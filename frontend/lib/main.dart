@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
+
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'features/auth/login_screen.dart';
@@ -71,15 +73,14 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
     );
 
-    // 3. Đặt bộ đếm thời gian: Sau 3 giây sẽ tự động điều hướng
-    Timer(const Duration(seconds: 3), () {
-      _checkAuthAndNavigate();
-    });
+    // Tạm thời vô hiệu hóa bộ đếm giờ để bạn kịp bấm nút Test
+    // Timer(const Duration(seconds: 3), () {
+    //   _checkAuthAndNavigate();
+    // });
   }
 
   void _checkAuthAndNavigate() {
-    // Tạm thời điều hướng thẳng vào LoginScreen.
-    // Sau này có thể thêm logic: Nếu Supabase.instance.client.auth.currentSession != null thì vào Home.
+    // Điều hướng thẳng vào LoginScreen.
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
     );
@@ -94,7 +95,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF6750A4), // Nền màu tím full màn hình theo UI[cite: 4]
+      backgroundColor: const Color(0xFF6750A4), // Nền màu tím full màn hình
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -115,7 +116,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   borderRadius: BorderRadius.circular(28),
                 ),
                 child: const Icon(
-                  Icons.content_cut_rounded, // Icon chiếc kéo tượng trưng cho Xén Nợ[cite: 4]
+                  Icons.content_cut_rounded, // Icon chiếc kéo tượng trưng cho Xén Nợ
                   size: 72,
                   color: Colors.white,
                 ),
@@ -140,6 +141,50 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 letterSpacing: 0.5,
               ),
             ),
+            const SizedBox(height: 40),
+
+            // NÚT TEST KẾT NỐI TỚI SPRING BOOT BACKEND
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  // Dùng 10.0.2.2 nếu bạn chạy trên Android Emulator.
+                  // Đổi thành 'http://localhost:8080/api/health' nếu chạy Web/iOS.
+                  final url = Uri.parse('http://localhost:8080/api/health');
+                  final response = await http.get(url);
+
+                  if (context.mounted) {
+                    if (response.statusCode == 200) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('✅ ${response.body}'), backgroundColor: Colors.green),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('⚠️ Lỗi Server: ${response.statusCode}'), backgroundColor: Colors.orange),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('❌ Mất kết nối: $e'), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF6750A4),
+              ),
+              child: const Text('Test Kết Nối Backend'),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Nút điều hướng thủ công (thay thế cho Timer)
+            TextButton(
+              onPressed: _checkAuthAndNavigate,
+              child: const Text('Vào màn hình Login ->', style: TextStyle(color: Colors.white70)),
+            )
           ],
         ),
       ),
