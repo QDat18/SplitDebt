@@ -1,6 +1,6 @@
 # ✂️ SplitDebt (Xén Nợ)
 
-SplitDebt là ứng dụng quản lý chi tiêu nhóm thông minh, giúp tự động hóa việc tính toán và tối ưu hóa các khoản nợ chéo (Smart Settlement) giữa các thành viên. Dự án được phát triển bởi **Team ErrorAtLine1**.
+SplitDebt là ứng dụng quản lý chi tiêu nhóm thông minh, giúp tự động hóa việc tính toán và tối ưu hóa các khoản nợ chéo (Smart Settlement) giữa các thành viên. Dự án được phát triển bởi **Nhóm *****.
 
 ## 🏗 Kiến trúc dự án (Monorepo)
 
