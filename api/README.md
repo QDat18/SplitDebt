@@ -3,7 +3,7 @@ Sao chép toàn bộ nội dung dưới đây và lưu vào file `SplitDebt/api/
 ```markdown
 # ⚙️ SplitDebt API - Backend
 
-Phân hệ Backend (RESTful API) của dự án **SplitDebt**, được phát triển bởi **Team ErrorAtLine1**. Hệ thống đóng vai trò trung tâm xử lý dữ liệu, quản lý bảo mật và thực thi thuật toán tối ưu hóa công nợ (Smart Settlement).
+Phân hệ Backend (RESTful API) của dự án **SplitDebt**, được phát triển bởi **Team IUMAITRUONG**. Hệ thống đóng vai trò trung tâm xử lý dữ liệu, quản lý bảo mật và thực thi thuật toán tối ưu hóa công nợ (Smart Settlement).
 
 ## 🛠 Công nghệ sử dụng
 
