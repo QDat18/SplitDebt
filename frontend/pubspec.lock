@@ -162,7 +162,7 @@ packages:
     source: hosted
     version: "7.0.1"
   firebase_core:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: firebase_core
       sha256: "26de145bb9688a90962faec6f838247377b0b0d32cc0abecd9a4e43525fc856c"
@@ -186,7 +186,7 @@ packages:
     source: hosted
     version: "2.17.5"
   firebase_messaging:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: firebase_messaging
       sha256: a1662cc95d9750a324ad9df349b873360af6f11414902021f130c68ec02267c4
@@ -210,7 +210,7 @@ packages:
     source: hosted
     version: "3.8.7"
   fl_chart:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: fl_chart
       sha256: d0f0d49112f2f4b192481c16d05b6418bd7820e021e265a3c22db98acf7ed7fb
@@ -313,7 +313,7 @@ packages:
     source: hosted
     version: "2.6.4"
   google_fonts:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: google_fonts
       sha256: "517b20870220c48752eafa0ba1a797a092fb22df0d89535fd9991e86ee2cdd9c"
@@ -353,7 +353,7 @@ packages:
     source: hosted
     version: "4.1.2"
   intl:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: intl
       sha256: d6f56758b7d3014a48af9701c085700aac781a92a87a62b1333b46d8879661cf
@@ -702,7 +702,7 @@ packages:
     source: hosted
     version: "2.13.4"
   supabase_flutter:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: supabase_flutter
       sha256: b6d34558565c14f1b44ff7bc9ca2979ed38ee2907b80ed73e699150cec08b739

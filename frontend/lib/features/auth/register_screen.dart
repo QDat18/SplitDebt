@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
-import '../../core/network/dio_client.dart';
-import '../../core/providers/auth_provider.dart';
-import '../home/home_screen.dart';
+
+import '../../core/theme/app_theme.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -15,134 +13,122 @@ class RegisterScreen extends ConsumerStatefulWidget {
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _agreeTerms = false;
-  bool _isLoading = false;
+  bool _obscurePassword = true;
 
-  Future<void> _signUp() async {
-    if (!_agreeTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng đồng ý điều khoản')));
-      return;
-    }
-    setState(() => _isLoading = true);
-    try {
-      final response = await dioClient.post('/auth/register', data: {
-        'fullName': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'password': _passwordController.text.trim(),
-      });
-      final token = response.data['token'];
-      if (token != null) {
-        await ref.read(authProvider.notifier).login(token);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tạo tài khoản thành công!')));
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-            (route) => false,
-          );
-        }
-      }
-    } on DioException catch (e) {
-      if (mounted) {
-        final msg = e.response?.data['message'] ?? 'Đăng ký thất bại';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Tạo tài khoản', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        centerTitle: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimaryColor),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: SinglePadding(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Họ và tên'), // Tự động nhận AppTheme
-              ),
               const SizedBox(height: 16),
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                keyboardType: TextInputType.emailAddress,
+              Text(
+                'Tạo tài khoản mới',
+                style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _phoneController,
-                decoration: const InputDecoration(labelText: 'Số điện thoại'),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Mật khẩu (Tối thiểu 8 ký tự)'),
-                obscureText: true,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: 24,
-                    width: 24,
-                    child: Checkbox(
-                      value: _agreeTerms,
-                      onChanged: (val) => setState(() => _agreeTerms = val ?? false),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Tôi đồng ý với Điều khoản dịch vụ và Chính sách bảo mật',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 8),
+              Text(
+                'Bắt đầu quản lý chi tiêu nhóm dễ dàng hơn',
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _signUp,
-                child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Tạo tài khoản'),
+              
+              // Name Field
+              Text(
+                'Họ và tên',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimaryColor,
+                ),
               ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  hintText: 'Nhập họ và tên',
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Email Field
+              Text(
+                'Email',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimaryColor,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  hintText: 'duy@gmail.com',
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Password Field
+              Text(
+                'Mật khẩu',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimaryColor,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  hintText: '••••••••',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      color: AppTheme.textSecondaryColor,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Register Button
+              ElevatedButton(
+                onPressed: () {
+                  // Perform register
+                },
+                child: const Text('Đăng ký'),
+              ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class SinglePadding extends StatelessWidget {
-  final Widget child;
-  const SinglePadding({super.key, required this.child});
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: child,
-            ),
-          );
-        }
     );
   }
 }

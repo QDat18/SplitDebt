@@ -1,13 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
-import 'features/auth/login_screen.dart';
 
 import 'features/auth/splash_screen.dart';
 
@@ -21,7 +18,7 @@ void main() async {
   // Khởi tạo kết nối an toàn với Supabase
   await Supabase.initialize(
     url: AppConstants.supabaseUrl,
-    anonKey: AppConstants.supabaseAnonKey,
+    publishableKey: AppConstants.supabaseAnonKey,
   );
 
   runApp(
@@ -44,4 +41,4 @@ class SplitDebtApp extends StatelessWidget {
       home: const SplashScreen(),
     );
   }
-}
+}

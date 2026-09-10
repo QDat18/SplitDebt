@@ -1,13 +1,13 @@
 import 'package:dio/dio.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../storage/token_storage.dart';
+import '../constants/app_constants.dart';
 
 class DioClient{
   late final Dio _dio;
   DioClient(){
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'http://localhost:8081/api',
+        baseUrl: AppConstants.apiBaseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
       ));
