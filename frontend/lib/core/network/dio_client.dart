@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../constants/app_constants.dart';
+import '../storage/token_storage.dart';
 
 class DioClient {
   late final Dio _dio;
@@ -18,18 +18,30 @@ class DioClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final session =
-              Supabase.instance.client.auth.currentSession;
+          // Login/register chưa có JWT nên không gắn token.
+          if (!options.path.contains('auth')) {
+            final token = await tokenStorage.getToken();
 
-          if (session != null) {
-            options.headers['Authorization'] =
-            'Bearer ${session.accessToken}';
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
           }
 
-          handler.next(options);
+          return handler.next(options);
         },
         onError: (DioException e, handler) {
-          handler.next(e);
+          if (e.response != null &&
+              e.response?.data is Map<String, dynamic>) {
+            final data = e.response!.data as Map<String, dynamic>;
+
+            if (data.containsKey('message')) {
+              e = e.copyWith(
+                message: data['message']?.toString(),
+              );
+            }
+          }
+
+          return handler.next(e);
         },
       ),
     );
@@ -37,3 +49,5 @@ class DioClient {
 
   Dio get dio => _dio;
 }
+
+final dioClient = DioClient().dio;
