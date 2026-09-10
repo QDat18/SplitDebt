@@ -1,115 +1,138 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../core/theme/app_theme.dart';
+import '../../data/api.dart';
+import '../../widgets/design.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  @override State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _isLoading = false;
+  final form = GlobalKey<FormState>();
+  final email = TextEditingController();
+  final password = TextEditingController();
+  bool busy = false;
+  bool hidden = true;
 
-  Future<void> _signIn() async {
-    setState(() => _isLoading = true);
+  @override void dispose() { email.dispose(); password.dispose(); super.dispose(); }
+
+  Future<void> submit() async {
+    if (!form.currentState!.validate()) return;
+    setState(() => busy = true);
     try {
-      await Supabase.instance.client.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      // TODO: Điều hướng vào màn hình Home
-    } on AuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-      }
+      await Session.signIn(email.text, password.text);
+    } catch (e) {
+      if (mounted) showError(context, e);
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => busy = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEADDFF), // Tím nhạt
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(Icons.content_cut_rounded, size: 32, color: colorScheme.primary),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text('Chào mừng trở lại', style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text('Đăng nhập để tiếp tục quản lý chi tiêu nhóm', style: textTheme.bodyMedium),
-              const SizedBox(height: 32),
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'), // Bỏ hardcode border để dùng AppTheme
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Mật khẩu'),
-                obscureText: true,
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {},
-                  child: const Text('Quên mật khẩu?'),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _signIn,
-                // Bỏ hardcode style để dùng elevatedButtonTheme từ AppTheme
-                child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Đăng nhập'),
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton(
-                onPressed: () {}, // TODO: OAuth Google
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  side: BorderSide(color: Colors.grey.shade300),
-                ),
-                child: Text('Tiếp tục với Google', style: TextStyle(color: colorScheme.onSurface)),
-              ),
-              const Spacer(),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(28, 34, 28, 34),
+            child: Form(
+              key: form,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Chưa có tài khoản?', style: textTheme.bodyMedium),
-                  TextButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
-                    child: const Text('Đăng ký'),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: const Icon(Icons.content_cut_rounded, color: AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Text('Chào mừng trở lại', style: Theme.of(context).textTheme.headlineMedium),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Đăng nhập để tiếp tục quản lý chi tiêu nhóm của bạn.',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 34),
+                  TextFormField(
+                    controller: email,
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      hintText: 'you@example.com',
+                      prefixIcon: Icon(Icons.alternate_email_rounded),
+                    ),
+                    validator: (v) => v != null && RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(v.trim())
+                        ? null : 'Nhập email hợp lệ.',
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: password,
+                    obscureText: hidden,
+                    autofillHints: const [AutofillHints.password],
+                    decoration: InputDecoration(
+                      labelText: 'Mật khẩu',
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      suffixIcon: IconButton(
+                        onPressed: () => setState(() => hidden = !hidden),
+                        icon: Icon(hidden ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                      ),
+                    ),
+                    validator: (v) => v != null && v.isNotEmpty ? null : 'Nhập mật khẩu.',
+                    onFieldSubmitted: (_) { if (!busy) submit(); },
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(onPressed: null, child: const Text('Quên mật khẩu?')),
+                  ),
+                  const SizedBox(height: 12),
+                  BusyButton(busy: busy, label: 'Đăng nhập', onPressed: submit),
+                  const SizedBox(height: 22),
+                  Row(children: [
+                    Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('hoặc'),
+                    ),
+                    Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                  ]),
+                  const SizedBox(height: 18),
+                  OutlinedButton.icon(
+                    onPressed: null,
+                    icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
+                    label: const Text('Tiếp tục với Google'),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Chưa có tài khoản?'),
+                      TextButton(
+                        onPressed: busy ? null : () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                        ),
+                        child: const Text('Đăng ký'),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }

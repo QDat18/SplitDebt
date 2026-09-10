@@ -1,34 +1,35 @@
-# ✂️ SplitDebt (Xén Nợ)
+# SplitDebt
 
-SplitDebt là ứng dụng quản lý chi tiêu nhóm thông minh, giúp tự động hóa việc tính toán và tối ưu hóa các khoản nợ chéo (Smart Settlement) giữa các thành viên. Dự án được phát triển bởi **Nhóm *****.
+SplitDebt là ứng dụng quản lý chi tiêu nhóm và sổ công nợ theo tài liệu SRS/PTTKHT của Nhóm 8.
 
-## 🏗 Kiến trúc dự án (Monorepo)
+## Kiến trúc
 
-Dự án được phân tách thành 2 phân hệ độc lập để dễ dàng bảo trì và mở rộng:
+- `frontend/`: Flutter/Dart, Material 3, lưu JWT cục bộ bằng `shared_preferences`.
+- `api/`: Java 17+, Spring Boot REST API, xác thực email/mật khẩu, JWT HMAC-SHA256, JDBC.
+- Database: PostgreSQL (có thể dùng Supabase PostgreSQL như một PostgreSQL managed database). Local development có H2 PostgreSQL mode.
+- Nghiệp vụ: nhóm + mã mời, OWNER/MEMBER, khoản chi, chia đều/số tiền/%/trọng số/theo món, công nợ, Smart Settlement, xác nhận thanh toán hai chiều, thông báo, thống kê và cài đặt.
+- UI/UX: premium Material 3, light/dark/system, glass surface, 3D interaction nhẹ, feedback success/error/warning/info và hướng dẫn nhanh 4 bước cho người mới.
 
-*   **[`/frontend`](./frontend/)**: Ứng dụng di động đa nền tảng (Android/iOS) được xây dựng bằng **Flutter**. Xử lý giao diện người dùng, trạng thái (Riverpod) và tương tác trực tiếp.
-*   **[`/api`](./api/)**: Máy chủ RESTful API được xây dựng bằng **Java Spring Boot 3**. Đảm nhiệm logic nghiệp vụ phức tạp, phân quyền, và thực thi thuật toán tối ưu hóa công nợ.
+## Bắt đầu nhanh
 
-## 🚀 Công nghệ sử dụng
+### Backend
 
-*   **Frontend:** Flutter, Riverpod, Google Fonts, Supabase Flutter.
-*   **Backend:** Java 21, Spring Boot 3.3.0, Spring Data JPA, Lombok.
-*   **Database:** PostgreSQL (Lưu trữ trên Supabase).
-*   **Authentication:** Supabase Auth.
+```powershell
+cd api
+Copy-Item .env.example .env
+.\mvnw.cmd spring-boot:run
+```
 
-## ⚙️ Hướng dẫn cài đặt chung
+Nếu không cấu hình `DB_URL`, backend dùng H2 local. Với PostgreSQL, điền `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` và `JWT_SECRET` trong `api/.env`.
 
-Để chạy toàn bộ dự án, bạn cần thiết lập cả Frontend và Backend chạy song song trên 2 cổng khác nhau.
+### Flutter
 
-1.  **Clone dự án:**
-    ```bash
-    git clone [https://github.com/QDat18/SplitDebt.git](https://github.com/QDat18/SplitDebt.git)
-    cd SplitDebt
-    ```
-2.  **Thiết lập Frontend:**
-    Vui lòng đọc hướng dẫn chi tiết tại [`frontend/README.md`](./frontend/README.md).
-3.  **Thiết lập Backend:**
-    Vui lòng đọc hướng dẫn chi tiết tại [`api/README.md`](./api/README.md).
+```powershell
+cd frontend
+flutter pub get
+flutter run
+```
 
-## 📄 Giấy phép
-Dự án được phát triển phục vụ mục đích học tập và nghiên cứu.
+Mặc định Flutter trỏ Android Emulator tới `http://10.0.2.2:8080/api`. Với điện thoại thật, chạy kèm `--dart-define=API_URL=http://<IP-LAN>:8080/api`.
+
+Xem `docs/SETUP.md`, `docs/API.md`, `docs/DESIGN_SYSTEM.md` và `docs/UX_UI_UPGRADE.md` để biết chi tiết.

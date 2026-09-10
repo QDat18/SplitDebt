@@ -1,0 +1,9 @@
+.idea/
+*.iml
+.env
+config.json
+api/data/
+api/target/
+api/target_test-classes/
+frontend/build/
+frontend/.dart_tool/

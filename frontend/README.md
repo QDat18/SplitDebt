@@ -1,56 +1,22 @@
-# 💸 SplitDebt - Smart Group Expense & Debt Management
+# SplitDebt Flutter frontend
 
-Ứng dụng quản lý chi tiêu nhóm tích hợp sổ công nợ, tự động phân chia chi phí và tối ưu hóa các khoản nợ bằng thuật toán Smart Settlement.
+Ứng dụng Flutter gọi trực tiếp Spring Boot REST API và lưu phiên JWT cục bộ bằng `shared_preferences`.
 
-**Phát triển bởi team ErrorAtLine1**
+## Chạy local
 
----
+1. Cài Flutter SDK phù hợp với `pubspec.yaml`.
+2. Chạy `flutter pub get`.
+3. Android Emulator có thể chạy trực tiếp bằng `flutter run`; API mặc định là `http://10.0.2.2:8080/api`.
+4. Với điện thoại thật, truyền IP LAN của máy chạy backend, ví dụ:
 
-## 🛠 Yêu cầu hệ thống (Prerequisites)
+```bash
+flutter run --dart-define=API_URL=http://192.168.1.10:8080/api
+```
 
-Trước khi chạy project, hãy đảm bảo máy tính của bạn đã cài đặt:
-* **Flutter SDK**: Phiên bản ổn định mới nhất (stable channel).
-* **Android Studio** hoặc **Visual Studio Code** (có cài đặt Flutter & Dart plugins).
-* **Git** để quản lý mã nguồn.
+Flutter desktop/web trên cùng máy backend có thể dùng:
 
----
+```bash
+flutter run --dart-define=API_URL=http://localhost:8080/api
+```
 
-## 🚀 Hướng dẫn cài đặt & Chạy dự án
-
-**Bước 1: Clone mã nguồn về máy**
-Mở Terminal/Git Bash tại thư mục muốn lưu project và chạy lệnh:
-`git clone https://github.com/QDat18/SplitDebt.git`
-`cd SplitDebt`
-
-**Bước 2: Cài đặt các thư viện (Dependencies)**
-Project sử dụng các thư viện cốt lõi như `flutter_riverpod`, `supabase_flutter`, `firebase_messaging`. Để tải toàn bộ thư viện, chạy lệnh:
-`flutter pub get`
-
-**Bước 3: Chạy ứng dụng**
-Kết nối máy ảo (Emulator) hoặc thiết bị thật (Android/iOS) và chạy:
-`flutter run`
-
----
-
-## 📂 Cấu trúc thư mục (Project Structure)
-
-Dự án áp dụng kiến trúc phân lớp (Layered Architecture) kết hợp quản lý trạng thái bằng **Riverpod**. Mọi code logic và UI đều nằm trong thư mục `lib/`:
-
-* **`core/`**: Chứa các cấu hình dùng chung toàn hệ thống (theme, màu sắc, constants, routes, utilities).
-* **`data/`**: Chứa các model map với Database, thao tác API (datasources) và kho lưu trữ (repositories).
-* **`features/`**: Chứa các module chức năng riêng biệt. Mỗi feature sẽ có UI và Provider tương ứng:
-    * `auth/`: Đăng nhập, đăng ký.
-    * `groups/`: Quản lý nhóm, thành viên.
-    * `expenses/`: Thêm, sửa, chia khoản chi.
-    * `debts/`: Sổ công nợ tổng quan.
-    * `settlements/`: Thuật toán Xén nợ (Smart Settlement) và thanh toán.
-    * `statistics/`: Thống kê chi tiêu.
-    * `notifications/`: Thông báo đẩy.
-    * `profile/`: Thông tin cá nhân.
-
----
-
-## 🔑 Lưu ý về Môi trường (Environment Variables)
-
-*(Sẽ cập nhật sau)*
-Hiện tại cấu hình **Supabase** (URL, Anon Key) và **Firebase** đang được thiết lập cứng hoặc chờ bổ sung. Khi có file `.env` hoặc file cấu hình bảo mật, các thành viên không push file đó lên GitHub mà sẽ được cấp phát riêng qua kênh nội bộ.
+Không cần Supabase Auth hoặc `config.json`. Xem thêm [SETUP](../docs/SETUP.md), [DESIGN_SYSTEM](../docs/DESIGN_SYSTEM.md), [VALIDATION](../docs/VALIDATION.md).

@@ -1,21 +1,19 @@
 spring:
   config:
     import: optional:file:.env[.properties]
-  
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-  
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: true
-    properties:
-      hibernate:
-        '[format_sql]': true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-
+    url: ${DB_URL:jdbc:h2:file:./data/splitdebt;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;NON_KEYWORDS=GROUPS}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
 server:
-  port: 8080
+  port: ${PORT:8080}
+  error:
+    include-message: always
+splitdebt:
+  jwt-secret: ${JWT_SECRET:dev-only-change-this-secret-before-deploying-splitdebt}
+  jwt-ttl-hours: ${JWT_TTL_HOURS:168}
+  allowed-origin-patterns: ${ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*}
