@@ -63,7 +63,6 @@ class _GroupScreenState extends State<GroupScreen> {
         final balancesRaw = Map<dynamic, dynamic>.from(d['balances'] as Map);
         int balanceFor(int id) => asInt(balancesRaw['$id'] ?? balancesRaw[id] ?? 0);
         String name(int id) => members.firstWhere((m) => asInt(m['id']) == id, orElse: () => {'name': 'Thành viên #$id'})['name'].toString();
-        final ownBalance = asInt(g['balance']);
         final ownerId = asInt(g['ownerId']);
         final payable = suggestions
             .where((x) => asInt(x['fromId']) == user)

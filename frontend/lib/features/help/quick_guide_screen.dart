@@ -89,7 +89,6 @@ class _QuickGuideScreenState extends State<QuickGuideScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final item = _slides[page];
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: PremiumBackground(
