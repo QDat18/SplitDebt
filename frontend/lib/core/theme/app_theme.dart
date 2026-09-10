@@ -1,104 +1,92 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
-import 'app_typography.dart';
-import 'app_dimensions.dart';
-
-export 'app_colors.dart';
-export 'app_typography.dart';
-export 'app_dimensions.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
+  // Colors based on Figma design
+  static const Color primaryColor = Color(0xFF6C63FF); // Adjust based on exact Figma hex
+  static const Color backgroundColor = Color(0xFFF8F9FA);
+  static const Color surfaceColor = Colors.white;
+  static const Color textPrimaryColor = Color(0xFF1E1E1E);
+  static const Color textSecondaryColor = Color(0xFF757575);
+  static const Color errorColor = Color(0xFFE53935);
+  static const Color successColor = Color(0xFF43A047);
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.n50,
-      colorScheme: const ColorScheme.light(
-        primary: AppColors.p500,
-        primaryContainer: AppColors.p100,
-        secondary: AppColors.p700,
-        surface: AppColors.n0,
-        error: AppColors.error,
-        onPrimary: AppColors.n0,
-        onSurface: AppColors.n800,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primaryColor,
+        primary: primaryColor,
+        surface: backgroundColor,
+        error: errorColor,
       ),
-      textTheme: TextTheme(
-        displayLarge: AppTypography.display,
-        headlineLarge: AppTypography.h1,
-        headlineMedium: AppTypography.h2,
-        headlineSmall: AppTypography.h3,
-        titleLarge: AppTypography.title,
-        bodyLarge: AppTypography.bodyLarge,
-        bodyMedium: AppTypography.bodyMedium,
-        bodySmall: AppTypography.bodySmall,
-        labelLarge: AppTypography.label,
-        labelSmall: AppTypography.caption,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: AppColors.n0,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.s16,
-          vertical: AppDimensions.s16,
+      scaffoldBackgroundColor: backgroundColor,
+      textTheme: GoogleFonts.interTextTheme().copyWith(
+        displayLarge: GoogleFonts.inter(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: textPrimaryColor,
         ),
-        border: OutlineInputBorder(
-          borderRadius: AppDimensions.radius12,
-          borderSide: const BorderSide(color: AppColors.n300),
+        headlineMedium: GoogleFonts.inter(
+          fontSize: 24,
+          fontWeight: FontWeight.w700,
+          color: textPrimaryColor,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: AppDimensions.radius12,
-          borderSide: const BorderSide(color: AppColors.n200),
+        bodyLarge: GoogleFonts.inter(
+          fontSize: 16,
+          color: textPrimaryColor,
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: AppDimensions.radius12,
-          borderSide: const BorderSide(color: AppColors.p500, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: AppDimensions.radius12,
-          borderSide: const BorderSide(color: AppColors.error),
+        bodyMedium: GoogleFonts.inter(
+          fontSize: 14,
+          color: textSecondaryColor,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.p500,
-          foregroundColor: AppColors.n0,
-          minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius16),
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
           elevation: 0,
-          textStyle: AppTypography.title.copyWith(color: AppColors.n0),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
-      cardTheme: CardTheme(
-        color: AppColors.n0,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius16),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: textPrimaryColor,
+          side: const BorderSide(color: Color(0xFFE0E0E0)),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
-    );
-  }
-
-  static ThemeData get darkTheme {
-    return ThemeData(
-      useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.n900,
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.p400,
-        primaryContainer: AppColors.p800,
-        secondary: AppColors.p300,
-        surface: AppColors.n800,
-        error: AppColors.error,
-        onPrimary: AppColors.n0,
-        onSurface: AppColors.n0,
-      ),
-      textTheme: TextTheme(
-        displayLarge: AppTypography.display.copyWith(color: AppColors.n0),
-        headlineLarge: AppTypography.h1.copyWith(color: AppColors.n0),
-        headlineMedium: AppTypography.h2.copyWith(color: AppColors.n0),
-        headlineSmall: AppTypography.h3.copyWith(color: AppColors.n0),
-        titleLarge: AppTypography.title.copyWith(color: AppColors.n0),
-        bodyLarge: AppTypography.bodyLarge.copyWith(color: AppColors.n100),
-        bodyMedium: AppTypography.bodyMedium.copyWith(color: AppColors.n300),
-        bodySmall: AppTypography.bodySmall.copyWith(color: AppColors.n400),
-        labelLarge: AppTypography.label.copyWith(color: AppColors.n0),
-        labelSmall: AppTypography.caption.copyWith(color: AppColors.n400),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: surfaceColor,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: primaryColor, width: 2),
+        ),
+        hintStyle: GoogleFonts.inter(color: textSecondaryColor),
       ),
     );
   }

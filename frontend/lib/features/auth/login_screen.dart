@@ -1,79 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_dimensions.dart';
-import '../../core/theme/app_typography.dart';
-import '../expenses/create_expense_screen.dart';
-import 'register_screen.dart';
+import '../../core/theme/app_theme.dart';
+// import 'register_screen.dart';
 
-/// MÀN HÌNH ĐĂNG NHẬP (CÓ CHẾ ĐỘ BYPASS / DEMO TRẢI NGHIỆM GIAO DIỆN)
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
-
-  // Đăng nhập thật qua Supabase Auth
-  Future<void> _signIn() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      // Nếu bỏ trống, hỗ trợ tự động dùng tài khoản Demo luôn
-      _bypassAuthDemo();
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      await Supabase.instance.client.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      _navigateToHome();
-    } on AuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  // Chức năng Bypass Đăng nhập (Chế độ Dùng thử / Dev Demo)
-  void _bypassAuthDemo() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.bolt_rounded, color: Colors.amber, size: 20),
-            SizedBox(width: AppDimensions.s8),
-            Text('Đã kích hoạt Chế độ Dev Demo (Bỏ qua Đăng nhập)!'),
-          ],
-        ),
-        backgroundColor: AppColors.p700,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
-      ),
-    );
-    _navigateToHome();
-  }
-
-  void _navigateToHome() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const CreateExpenseScreen()),
-    );
-  }
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -85,129 +26,166 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.n50,
       body: SafeArea(
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(AppDimensions.s24),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: AppDimensions.s32),
-
-              // LOGO ICON THƯƠNG HIỆU
+              const SizedBox(height: 40),
+              // Icon Logo Placeholder
               Align(
                 alignment: Alignment.centerLeft,
                 child: Container(
-                  padding: const EdgeInsets.all(AppDimensions.s16),
+                  width: 60,
+                  height: 60,
                   decoration: BoxDecoration(
-                    color: AppColors.p50,
-                    borderRadius: AppDimensions.radius20,
-                    border: Border.all(color: AppColors.p200),
+                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.call_split_rounded, size: 36, color: AppColors.p500),
+                  child: const Center(
+                    child: Text('✂️', style: TextStyle(fontSize: 28)),
+                  ),
                 ),
               ),
-
-              const SizedBox(height: AppDimensions.s24),
-              Text('Chào mừng trở lại!', style: AppTypography.h1.copyWith(fontSize: 26)),
-              const SizedBox(height: AppDimensions.s8),
-              Text('Đăng nhập để quản lý chi tiêu nhóm & chốt sổ sòng phẳng', style: AppTypography.bodyMedium),
-
-              const SizedBox(height: AppDimensions.s32),
-
-              // Ô NHẬP EMAIL & MẬT KHẨU
+              const SizedBox(height: 24),
+              Text(
+                'Chào mừng trở lại',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Đăng nhập để tiếp tục quản lý chi tiêu nhóm',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 32),
+              
+              // Email Field
+              Text(
+                'Email',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimaryColor,
+                ),
+              ),
+              const SizedBox(height: 8),
               TextField(
                 controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'nguyenvandat@gmail.com',
-                  prefixIcon: const Icon(Icons.email_outlined, color: AppColors.p500),
-                  border: OutlineInputBorder(borderRadius: AppDimensions.radius16),
-                ),
                 keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  hintText: 'duy@gmail.com',
+                ),
               ),
+              const SizedBox(height: 20),
 
-              const SizedBox(height: AppDimensions.s16),
-
+              // Password Field
+              Text(
+                'Mật khẩu',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimaryColor,
+                ),
+              ),
+              const SizedBox(height: 8),
               TextField(
                 controller: _passwordController,
+                obscureText: _obscurePassword,
                 decoration: InputDecoration(
-                  labelText: 'Mật khẩu',
-                  prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.p500),
-                  border: OutlineInputBorder(borderRadius: AppDimensions.radius16),
+                  hintText: '••••••••',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      color: AppTheme.textSecondaryColor,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                 ),
-                obscureText: true,
               ),
+              const SizedBox(height: 12),
 
+              // Forgot Password
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {},
-                  child: Text('Quên mật khẩu?', style: AppTypography.label.copyWith(color: AppColors.p600)),
-                ),
-              ),
-
-              const SizedBox(height: AppDimensions.s16),
-
-              // NÚT ĐĂNG NHẬP CHÍNH THỨC
-              ElevatedButton(
-                onPressed: _isLoading ? null : _signIn,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.p500,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius16),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                      )
-                    : Text('ĐĂNG NHẬP', style: AppTypography.title.copyWith(color: Colors.white, fontSize: 16)),
-              ),
-
-              const SizedBox(height: AppDimensions.s16),
-
-              // 🚀 NÚT DÙNG THỬ KHÔNG CẦN ĐĂNG NHẬP (BYPASS / DEMO MODE)
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.p50, AppColors.p100],
-                  ),
-                  borderRadius: AppDimensions.radius16,
-                  border: Border.all(color: AppColors.p300),
-                ),
-                child: InkWell(
-                  onTap: _bypassAuthDemo,
-                  borderRadius: AppDimensions.radius16,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.rocket_launch_rounded, color: AppColors.p700, size: 20),
-                        const SizedBox(width: AppDimensions.s8),
-                        Text(
-                          'Vào Thẳng App (Bỏ qua Đăng Nhập / Demo)',
-                          style: AppTypography.label.copyWith(color: AppColors.p700, fontWeight: FontWeight.w700),
-                        ),
-                      ],
+                  onPressed: () {
+                    // Navigate to forgot password
+                  },
+                  child: const Text(
+                    'Quên mật khẩu?',
+                    style: TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ),
+              const SizedBox(height: 24),
 
-              const SizedBox(height: AppDimensions.s24),
+              // Login Button
+              ElevatedButton(
+                onPressed: () {
+                  // Perform login
+                },
+                child: const Text('Đăng nhập'),
+              ),
+              const SizedBox(height: 24),
 
+              // Divider
+              Row(
+                children: [
+                  const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'hoặc',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Google Login
+              OutlinedButton(
+                onPressed: () {
+                  // Perform Google login
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // TODO: Replace with Google SVG Icon from Figma
+                    const Icon(Icons.g_mobiledata, size: 28, color: Colors.black87),
+                    const SizedBox(width: 8),
+                    const Text('Tiếp tục với Google'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Sign Up Link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Chưa có tài khoản? ', style: AppTypography.bodyMedium),
+                  Text(
+                    'Chưa có tài khoản? ',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                   GestureDetector(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
-                    child: Text('Đăng ký ngay', style: AppTypography.label.copyWith(color: AppColors.p600)),
+                    onTap: () {
+                      // Navigate to Register screen
+                    },
+                    child: const Text(
+                      'Đăng ký',
+                      style: TextStyle(
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
