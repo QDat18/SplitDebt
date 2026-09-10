@@ -71,4 +71,4 @@
 
 ## 🎯 4. KẾT LUẬN
 
-Toàn bộ các task backend & frontend phân công cho **Dev 2 (Đạt)** đã hoàn thành xuất sắc 100% và sẵn sàng ghép nối hệ thống với toàn đội!
+Toàn bộ các task backend & frontend phân công cho **Dev 2 (Đạt)** đã hoàn thành và sẵn sàng ghép nối hệ thống với toàn đội!

@@ -83,6 +83,7 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
+  final Map<String, TextEditingController> _percentControllers = {};
 
   final currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 
@@ -128,6 +129,8 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
     ];
     _payerId = _members.first.id;
 
+    _initPercentControllers();
+
     // Animation khởi tạo
     _animController = AnimationController(
       vsync: this,
@@ -157,6 +160,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
     _amountController.dispose();
     _titleController.dispose();
     _noteController.dispose();
+    for (var ctrl in _percentControllers.values) {
+      ctrl.dispose();
+    }
     super.dispose();
   }
 
@@ -166,8 +172,128 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
     return double.tryParse(cleanStr) ?? 0.0;
   }
 
+  String _formatPercent(double p) {
+    if (p == p.roundToDouble()) {
+      return p.toInt().toString();
+    }
+    return p.toStringAsFixed(1);
+  }
+
+  void _initPercentControllers() {
+    for (var m in _members) {
+      _percentControllers[m.id] = TextEditingController(
+        text: m.isSelected && m.percentage > 0 ? _formatPercent(m.percentage) : (m.isSelected ? '0' : ''),
+      );
+    }
+  }
+
+  void _syncPercentControllers({String? excludeId}) {
+    for (var m in _members) {
+      if (m.id == excludeId) continue;
+      final ctrl = _percentControllers[m.id];
+      if (ctrl != null) {
+        final formatted = m.isSelected ? _formatPercent(m.percentage) : '';
+        if (ctrl.text != formatted) {
+          ctrl.value = TextEditingValue(
+            text: formatted,
+            selection: TextSelection.collapsed(offset: formatted.length),
+          );
+        }
+      }
+    }
+  }
+
+  void _splitEquallyPercent() {
+    HapticFeedback.selectionClick();
+    final selected = _members.where((m) => m.isSelected).toList();
+    if (selected.isEmpty) return;
+
+    final count = selected.length;
+    final basePct = double.parse((100.0 / count).toStringAsFixed(1));
+    double runningSum = 0.0;
+
+    for (int i = 0; i < count; i++) {
+      if (i == count - 1) {
+        selected[i].percentage = double.parse((100.0 - runningSum).toStringAsFixed(1));
+      } else {
+        selected[i].percentage = basePct;
+        runningSum += basePct;
+      }
+    }
+
+    for (var m in _members) {
+      if (m.isSelected) {
+        m.amount = (_totalAmount * m.percentage) / 100.0;
+      } else {
+        m.percentage = 0.0;
+        m.amount = 0.0;
+      }
+    }
+    _syncPercentControllers();
+    setState(() {});
+  }
+
+  void _autoBalancePercent([GroupMemberItem? target]) {
+    HapticFeedback.lightImpact();
+    final selected = _members.where((m) => m.isSelected).toList();
+    if (selected.isEmpty) return;
+
+    final targetMember = target ?? selected.last;
+    final sumOthers = selected
+        .where((m) => m.id != targetMember.id)
+        .fold(0.0, (s, m) => s + m.percentage);
+    final remaining = (100.0 - sumOthers).clamp(0.0, 100.0);
+    final roundedRemaining = double.parse(remaining.toStringAsFixed(1));
+
+    targetMember.percentage = roundedRemaining;
+    for (var m in _members) {
+      m.amount = (_totalAmount * m.percentage) / 100.0;
+    }
+    _syncPercentControllers();
+    setState(() {});
+  }
+
+  void _onPercentChanged(GroupMemberItem editedMember, String value) {
+    final cleanVal = value.replaceAll(',', '.').trim();
+    final valNum = double.tryParse(cleanVal) ?? 0.0;
+    editedMember.percentage = valNum;
+
+    final selectedMembers = _members.where((m) => m.isSelected).toList();
+    if (selectedMembers.length > 1) {
+      // Tự động tính phần % cho người cuối cùng khi nhập các người trước
+      final targetMember = (selectedMembers.last.id == editedMember.id)
+          ? (selectedMembers.length >= 2 ? selectedMembers[selectedMembers.length - 2] : null)
+          : selectedMembers.last;
+
+      if (targetMember != null && targetMember.id != editedMember.id) {
+        final sumOthers = selectedMembers
+            .where((m) => m.id != targetMember.id)
+            .fold(0.0, (s, m) => s + m.percentage);
+        final remaining = 100.0 - sumOthers;
+        if (remaining >= 0) {
+          final roundedRemaining = double.parse(remaining.toStringAsFixed(1));
+          targetMember.percentage = roundedRemaining;
+          final targetCtrl = _percentControllers[targetMember.id];
+          if (targetCtrl != null) {
+            final formatted = _formatPercent(roundedRemaining);
+            targetCtrl.value = TextEditingValue(
+              text: formatted,
+              selection: TextSelection.collapsed(offset: formatted.length),
+            );
+          }
+        }
+      }
+    }
+
+    for (var m in _members) {
+      m.amount = (_totalAmount * m.percentage) / 100.0;
+    }
+    setState(() {});
+  }
+
   void _recalculateSplit() {
-    final selectedCount = _members.where((m) => m.isSelected).length;
+    final selectedMembers = _members.where((m) => m.isSelected).toList();
+    final selectedCount = selectedMembers.length;
     if (selectedCount == 0 || _totalAmount <= 0) return;
 
     if (_splitMode == SplitMode.equal) {
@@ -182,13 +308,28 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
         }
       }
     } else if (_splitMode == SplitMode.percent) {
-      final defaultPct = 100.0 / selectedCount;
-      for (var m in _members) {
-        if (m.isSelected) {
-          m.percentage = m.percentage == 0.0 ? defaultPct : m.percentage;
-          m.amount = (_totalAmount * m.percentage) / 100.0;
+      final totalPct = selectedMembers.fold(0.0, (s, m) => s + m.percentage);
+      if (totalPct == 0.0) {
+        final defaultPct = double.parse((100.0 / selectedCount).toStringAsFixed(1));
+        double runningSum = 0.0;
+        for (int i = 0; i < selectedCount; i++) {
+          if (i == selectedCount - 1) {
+            selectedMembers[i].percentage = double.parse((100.0 - runningSum).toStringAsFixed(1));
+          } else {
+            selectedMembers[i].percentage = defaultPct;
+            runningSum += defaultPct;
+          }
         }
       }
+      for (var m in _members) {
+        if (m.isSelected) {
+          m.amount = (_totalAmount * m.percentage) / 100.0;
+        } else {
+          m.percentage = 0.0;
+          m.amount = 0.0;
+        }
+      }
+      _syncPercentControllers();
     } else if (_splitMode == SplitMode.weight) {
       final totalWeight = _members.where((m) => m.isSelected).fold(0.0, (sum, m) => sum + m.weight);
       for (var m in _members) {
@@ -886,8 +1027,11 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
 
   // 3. Chia theo Phần trăm % (PERCENT)
   Widget _buildPercentSplitContent() {
-    final totalPct = _members.fold(0.0, (s, m) => s + (m.isSelected ? m.percentage : 0.0));
-    final isExact = (totalPct - 100.0).abs() < 0.1;
+    final selectedMembers = _members.where((m) => m.isSelected).toList();
+    final totalPct = selectedMembers.fold(0.0, (s, m) => s + m.percentage);
+    final isExact = (totalPct - 100.0).abs() < 0.05;
+    final isOver = totalPct > 100.05;
+    final remainingPct = (100.0 - totalPct);
 
     return Container(
       key: const ValueKey('percent_split'),
@@ -898,43 +1042,191 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
         boxShadow: AppDimensions.shadowSm,
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Tổng phần trăm: ${totalPct.toStringAsFixed(1)}%', style: AppTypography.title.copyWith(fontSize: 14, color: isExact ? AppColors.success : AppColors.error)),
-              Text(isExact ? 'Hợp lệ 100%' : 'Chưa đủ 100%', style: AppTypography.caption.copyWith(color: isExact ? AppColors.success : AppColors.error, fontWeight: FontWeight.w700)),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.s12),
-          ..._members.map((m) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: AppDimensions.s12),
-              child: Column(
-                children: [
-                  Row(
+          // Banner trạng thái tổng phần trăm
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: AppDimensions.s12, vertical: AppDimensions.s8),
+            decoration: BoxDecoration(
+              color: isExact
+                  ? AppColors.successTint
+                  : (isOver ? AppColors.errorTint : AppColors.warningTint),
+              borderRadius: AppDimensions.radius12,
+              border: Border.all(
+                color: isExact
+                    ? AppColors.success.withOpacity(0.3)
+                    : (isOver ? AppColors.error.withOpacity(0.3) : AppColors.warning.withOpacity(0.3)),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isExact
+                      ? Icons.check_circle_rounded
+                      : (isOver ? Icons.warning_rounded : Icons.info_rounded),
+                  color: isExact
+                      ? AppColors.success
+                      : (isOver ? AppColors.error : AppColors.warning),
+                  size: 20,
+                ),
+                const SizedBox(width: AppDimensions.s8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(radius: 14, backgroundImage: NetworkImage(m.avatarUrl)),
-                      const SizedBox(width: AppDimensions.s8),
-                      Expanded(child: Text(m.name, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600))),
-                      Text('${m.percentage.toStringAsFixed(1)}%', style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700, color: AppColors.p600)),
-                      const SizedBox(width: 8),
-                      Text('(${currencyFormatter.format(m.amount)})', style: AppTypography.caption),
+                      Text(
+                        isExact
+                            ? 'Tổng phần trăm: 100% (Đạt chuẩn)'
+                            : isOver
+                                ? 'Tổng phần trăm: ${_formatPercent(totalPct)}% (Vượt quá ${_formatPercent(totalPct - 100)}%)'
+                                : 'Tổng phần trăm: ${_formatPercent(totalPct)}% (Còn thiếu ${_formatPercent(remainingPct)}%)',
+                        style: AppTypography.bodySmall.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: isExact
+                              ? AppColors.success
+                              : (isOver ? AppColors.error : AppColors.warning),
+                        ),
+                      ),
+                      Text(
+                        isExact
+                            ? 'Các phần chia đã khớp hoàn toàn 100%.'
+                            : 'Nhập số % cho từng người (tự động tính phần người cuối).',
+                        style: AppTypography.caption.copyWith(fontSize: 11),
+                      ),
                     ],
                   ),
-                  Slider(
-                    value: m.percentage.clamp(0.0, 100.0),
-                    min: 0.0,
-                    max: 100.0,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: AppDimensions.s12),
+
+          // Thanh công cụ nhanh: Chia đều % và Tự bù 100%
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _splitEquallyPercent,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    side: const BorderSide(color: AppColors.p300),
+                    shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
+                    backgroundColor: AppColors.p50.withOpacity(0.5),
+                  ),
+                  icon: const Icon(Icons.pie_chart_outline_rounded, size: 16, color: AppColors.p600),
+                  label: Text('Chia đều %', style: AppTypography.label.copyWith(fontSize: 12, color: AppColors.p600)),
+                ),
+              ),
+              const SizedBox(width: AppDimensions.s8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: remainingPct > 0.05 ? () => _autoBalancePercent() : null,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    side: BorderSide(color: remainingPct > 0.05 ? AppColors.p500 : AppColors.n300),
+                    shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
+                    backgroundColor: remainingPct > 0.05 ? AppColors.p50 : AppColors.n100.withOpacity(0.3),
+                  ),
+                  icon: Icon(Icons.auto_fix_high_rounded, size: 16, color: remainingPct > 0.05 ? AppColors.p500 : AppColors.n400),
+                  label: Text('Tự bù 100%', style: AppTypography.label.copyWith(fontSize: 12, color: remainingPct > 0.05 ? AppColors.p600 : AppColors.n400)),
+                ),
+              ),
+            ],
+          ),
+
+          const Divider(height: 24, color: AppColors.n100),
+
+          // Danh sách từng thành viên
+          ..._members.map((m) {
+            final ctrl = _percentControllers[m.id];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppDimensions.s12),
+              child: Row(
+                children: [
+                  Checkbox(
+                    value: m.isSelected,
                     activeColor: AppColors.p500,
-                    inactiveColor: AppColors.n200,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                     onChanged: (val) {
                       setState(() {
-                        m.percentage = val;
-                        m.amount = (_totalAmount * val) / 100.0;
+                        m.isSelected = val ?? false;
+                        if (!m.isSelected) {
+                          m.percentage = 0.0;
+                          m.amount = 0.0;
+                          _percentControllers[m.id]?.text = '0';
+                        }
+                        _recalculateSplit();
                       });
                     },
                   ),
+                  CircleAvatar(radius: 16, backgroundImage: NetworkImage(m.avatarUrl)),
+                  const SizedBox(width: AppDimensions.s8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(m.name, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                        Text(
+                          m.isSelected ? currencyFormatter.format(m.amount) : 'Không tham gia',
+                          style: AppTypography.caption.copyWith(
+                            color: m.isSelected ? AppColors.p600 : AppColors.n400,
+                            fontWeight: m.isSelected ? FontWeight.w700 : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (m.isSelected) ...[
+                    if (remainingPct > 0.1 && (100.0 - totalPct + m.percentage) > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: InkWell(
+                          onTap: () => _autoBalancePercent(m),
+                          borderRadius: AppDimensions.radius8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.p50,
+                              borderRadius: AppDimensions.radius8,
+                              border: Border.all(color: AppColors.p200),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.add_rounded, size: 12, color: AppColors.p600),
+                                Text('Bù', style: AppTypography.caption.copyWith(fontSize: 10, color: AppColors.p600, fontWeight: FontWeight.w700)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    SizedBox(
+                      width: 85,
+                      height: 42,
+                      child: TextField(
+                        controller: ctrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        textAlign: TextAlign.right,
+                        style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700, color: AppColors.p600, fontSize: 15),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d*[\.,]?\d{0,2}')),
+                        ],
+                        decoration: InputDecoration(
+                          hintText: '0',
+                          suffixText: '%',
+                          suffixStyle: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w700, color: AppColors.p500),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          fillColor: AppColors.n50,
+                          filled: true,
+                          border: OutlineInputBorder(borderRadius: AppDimensions.radius12, borderSide: const BorderSide(color: AppColors.n200)),
+                          enabledBorder: OutlineInputBorder(borderRadius: AppDimensions.radius12, borderSide: const BorderSide(color: AppColors.n200)),
+                          focusedBorder: OutlineInputBorder(borderRadius: AppDimensions.radius12, borderSide: const BorderSide(color: AppColors.p500, width: 1.8)),
+                        ),
+                        onChanged: (val) => _onPercentChanged(m, val),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             );
