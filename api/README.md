@@ -40,11 +40,10 @@ src/main/java/com/splitdebt/api/
 Tạo file `.env` tại thư mục gốc của backend (`SplitDebt/api/.env`), đặt ngang hàng với file `pom.xml`:
 
 ```env
-# URL kết nối trực tiếp đến Postgres Supabase (Cổng 5432)
-DB_URL=jdbc:postgresql://db.[YOUR_PROJECT_REF].supabase.co:5432/postgres?sslmode=require
-DB_USERNAME=postgres
+# Kết nối qua Supabase Connection Pooler (Hỗ trợ IPv4 - Cổng 5432 hoặc 6543)
+DB_URL=jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require
+DB_USERNAME=postgres.[YOUR_PROJECT_REF]
 DB_PASSWORD=[YOUR_DB_PASSWORD]
-
 ```
 
 *(Lưu ý: Không commit file `.env` lên Git).*

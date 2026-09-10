@@ -3,19 +3,29 @@ spring:
     import: optional:file:.env[.properties]
   
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require}
+    username: ${DB_USERNAME:postgres.zvgpxmzznstotmqfwjet}
+    password: ${DB_PASSWORD:26a4040725Dat@}
     driver-class-name: org.postgresql.Driver
   
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         '[format_sql]': true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+  
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false
 
 server:
-  port: 8080
+  port: 8081
+
+app:
+  jwt:
+    secret: aVeryLongSecretKeyForJwtAuthenticationWhichMustBeAtLeast256BitsLong1234567890
+    expirationMs: 86400000 # 24 hours
