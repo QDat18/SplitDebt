@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import 'providers/auth_provider.dart';
 // import 'register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -25,6 +26,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -127,10 +130,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
               // Login Button
               ElevatedButton(
-                onPressed: () {
-                  // Perform login
+                onPressed: authState.isLoading ? null : () async {
+                  final email = _emailController.text.trim();
+                  final password = _passwordController.text.trim();
+                  
+                  if (email.isEmpty || password.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Vui lòng nhập đầy đủ email và mật khẩu')),
+                    );
+                    return;
+                  }
+
+                  final success = await ref.read(authProvider.notifier).login(email, password);
+                  if (mounted) {
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Đăng nhập thành công!')),
+                      );
+                    } else {
+                      final errorMsg = ref.read(authProvider).error?.toString().replaceAll('Exception: ', '') ?? 'Đăng nhập thất bại';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(errorMsg)),
+                      );
+                    }
+                  }
                 },
-                child: const Text('Đăng nhập'),
+                child: authState.isLoading 
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Đăng nhập'),
               ),
               const SizedBox(height: 24),
 
