@@ -2,3 +2,9 @@
 *.env
 api/data/
 frontend/android/build/
+*.docx
+*.pdf
+De_cuong_LTDD.docx
+Lập trình di động.pdf
+Nhom8-PTTKHT.docx
+Nhom8-SRS.docx
