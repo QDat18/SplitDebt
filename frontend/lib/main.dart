@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/app/app_keys.dart';
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/splash_screen.dart';
@@ -58,6 +59,7 @@ class SplitDebtApp extends StatelessWidget {
     return MaterialApp(
       title: 'SplitDebt',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: scaffoldMessengerKey,
       theme: AppTheme.lightTheme,
       home: const SplashScreen(),
     );

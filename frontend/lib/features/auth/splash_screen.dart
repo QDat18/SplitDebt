@@ -1,9 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
-// import 'onboarding_screen.dart'; // TODO: Navigate to this after 2s
+import '../profile/profile_screen.dart';
+import 'login_screen.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -13,14 +16,46 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
-    // Simulate a loading time
-    Timer(const Duration(seconds: 2), () {
-      // TODO: check auth status
-      // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const OnboardingScreen()));
-    });
+
+    _timer = Timer(
+      const Duration(seconds: 2),
+      _checkAuthAndNavigate,
+    );
+  }
+
+  Future<void> _checkAuthAndNavigate() async {
+    // Giữ nguyên AuthNotifier của dev1-huy.
+    // Gọi lại checkToken để chắc chắn trạng thái auth đã được xác định.
+    await ref.read(authProvider.notifier).checkToken();
+
+    if (!mounted) return;
+
+    final authState = ref.read(authProvider);
+
+    if (authState == AuthState.authenticated) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => const ProfileScreen(),
+        ),
+      );
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => const LoginScreen(),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -49,17 +84,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             Text(
               'XÉN NỢ',
               style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                  ),
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Chia tiền nhóm, hết lăn tăn',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
+                color: Colors.white.withValues(alpha: 0.9),
+              ),
             ),
           ],
         ),
