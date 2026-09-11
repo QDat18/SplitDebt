@@ -18,7 +18,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _signUp() async {
     if (!_agreeTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng đồng ý điều khoản')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng đồng ý điều khoản')),
+      );
       return;
     }
     setState(() => _isLoading = true);
@@ -32,12 +34,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         },
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tạo tài khoản thành công!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tạo tài khoản thành công!')),
+        );
         Navigator.pop(context);
       }
     } on AuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -49,7 +55,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Tạo tài khoản', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20)),
+        title: const Text(
+          'Tạo tài khoản',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
@@ -62,7 +71,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               TextField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Họ và tên'), // Tự động nhận AppTheme
+                decoration: const InputDecoration(
+                  labelText: 'Họ và tên',
+                ), // Tự động nhận AppTheme
               ),
               const SizedBox(height: 16),
               TextField(
@@ -79,7 +90,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Mật khẩu (Tối thiểu 8 ký tự)'),
+                decoration: const InputDecoration(
+                  labelText: 'Mật khẩu (Tối thiểu 8 ký tự)',
+                ),
                 obscureText: true,
               ),
               const SizedBox(height: 16),
@@ -91,7 +104,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     width: 24,
                     child: Checkbox(
                       value: _agreeTerms,
-                      onChanged: (val) => setState(() => _agreeTerms = val ?? false),
+                      onChanged:
+                          (val) => setState(() => _agreeTerms = val ?? false),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -106,7 +120,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: _isLoading ? null : _signUp,
-                child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Tạo tài khoản'),
+                child:
+                    _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Tạo tài khoản'),
               ),
             ],
           ),
@@ -122,14 +139,14 @@ class SinglePadding extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: child,
-            ),
-          );
-        }
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }

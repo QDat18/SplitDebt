@@ -3,19 +3,19 @@ spring:
     import: optional:file:.env[.properties]
   
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL:jdbc:h2:file:./data/splitdebtdb;MODE=PostgreSQL;AUTO_SERVER=TRUE}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:org.postgresql.Driver}
   
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: validate
-    show-sql: true
+      ddl-auto: update
     properties:
       hibernate:
-        '[format_sql]': true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
 
 server:
   port: 8080

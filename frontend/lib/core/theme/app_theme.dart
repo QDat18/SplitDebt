@@ -11,7 +11,7 @@ class AppColors {
   static const Color textSecondary = Color(0xFF49454F);
 
   static const Color success = Color(0xFF2E7D32);
-  static const Color error = Color(0xB3261E);
+  static const Color error = Color(0xFFB3261E);
   static const Color warning = Color(0xFFF9A825);
 }
 
@@ -21,13 +21,18 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
-        background: AppColors.background,
         surface: AppColors.surface,
         error: AppColors.error,
       ),
       textTheme: GoogleFonts.robotoTextTheme().copyWith(
-        displayLarge: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
-        titleLarge: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+        displayLarge: const TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        titleLarge: const TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
         bodyLarge: const TextStyle(color: AppColors.textPrimary),
         bodyMedium: const TextStyle(color: AppColors.textSecondary),
       ),
@@ -52,7 +57,9 @@ class AppTheme {
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(50),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 0,
         ),
       ),

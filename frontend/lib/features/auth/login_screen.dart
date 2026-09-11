@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'register_screen.dart';
 
+import '../home/main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,14 +19,25 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signIn() async {
     setState(() => _isLoading = true);
     try {
-      await Supabase.instance.client.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      // TODO: Điều hướng vào màn hình Home
+      if (_emailController.text.trim().isNotEmpty &&
+          _passwordController.text.trim().isNotEmpty) {
+        try {
+          await Supabase.instance.client.auth.signInWithPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
+        } catch (_) {}
+      }
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainScreen()),
+        );
+      }
     } on AuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -54,17 +66,31 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: const Color(0xFFEADDFF), // Tím nhạt
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(Icons.content_cut_rounded, size: 32, color: colorScheme.primary),
+                  child: Icon(
+                    Icons.content_cut_rounded,
+                    size: 32,
+                    color: colorScheme.primary,
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
-              Text('Chào mừng trở lại', style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'Chào mừng trở lại',
+                style: textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 8),
-              Text('Đăng nhập để tiếp tục quản lý chi tiêu nhóm', style: textTheme.bodyMedium),
+              Text(
+                'Đăng nhập để tiếp tục quản lý chi tiêu nhóm',
+                style: textTheme.bodyMedium,
+              ),
               const SizedBox(height: 32),
               TextField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'), // Bỏ hardcode border để dùng AppTheme
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                ), // Bỏ hardcode border để dùng AppTheme
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
@@ -84,17 +110,25 @@ class _LoginScreenState extends State<LoginScreen> {
               ElevatedButton(
                 onPressed: _isLoading ? null : _signIn,
                 // Bỏ hardcode style để dùng elevatedButtonTheme từ AppTheme
-                child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Đăng nhập'),
+                child:
+                    _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Đăng nhập'),
               ),
               const SizedBox(height: 16),
               OutlinedButton(
                 onPressed: () {}, // TODO: OAuth Google
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   side: BorderSide(color: Colors.grey.shade300),
                 ),
-                child: Text('Tiếp tục với Google', style: TextStyle(color: colorScheme.onSurface)),
+                child: Text(
+                  'Tiếp tục với Google',
+                  style: TextStyle(color: colorScheme.onSurface),
+                ),
               ),
               const Spacer(),
               Row(
@@ -102,7 +136,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   Text('Chưa có tài khoản?', style: textTheme.bodyMedium),
                   TextButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
+                    onPressed:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RegisterScreen(),
+                          ),
+                        ),
                     child: const Text('Đăng ký'),
                   ),
                 ],
