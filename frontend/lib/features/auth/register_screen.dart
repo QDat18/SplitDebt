@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import 'providers/auth_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -26,6 +27,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -119,10 +122,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
               // Register Button
               ElevatedButton(
-                onPressed: () {
-                  // Perform register
+                onPressed: authState.isLoading ? null : () async {
+                  final name = _nameController.text.trim();
+                  final email = _emailController.text.trim();
+                  final password = _passwordController.text.trim();
+                  
+                  if (name.isEmpty || email.isEmpty || password.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Vui lòng nhập đầy đủ thông tin')),
+                    );
+                    return;
+                  }
+
+                  final success = await ref.read(authProvider.notifier).register(name, email, password);
+                  if (mounted) {
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Đăng ký thành công!')),
+                      );
+                    } else {
+                      final errorMsg = ref.read(authProvider).error?.toString().replaceAll('Exception: ', '') ?? 'Đăng ký thất bại';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(errorMsg)),
+                      );
+                    }
+                  }
                 },
-                child: const Text('Đăng ký'),
+                child: authState.isLoading 
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Đăng ký'),
               ),
               const SizedBox(height: 24),
             ],
