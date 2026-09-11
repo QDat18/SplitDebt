@@ -15,14 +15,18 @@
     <groupId>com.splitdebt</groupId>
     <artifactId>api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+
     <name>splitdebt-api</name>
     <description>API for Split Debt application</description>
 
     <properties>
         <java.version>21</java.version>
+        <lombok.version>1.18.32</lombok.version>
     </properties>
 
     <dependencies>
+
+        <!-- ==================== DATABASE / JPA ==================== -->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -35,12 +39,24 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- H2 chỉ dùng khi test -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+
+        <!-- ==================== WEB ==================== -->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Auth / Security của Dev1 -->
+
+        <!-- ==================== SECURITY / JWT ==================== -->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
@@ -66,18 +82,36 @@
             <scope>runtime</scope>
         </dependency>
 
+
+        <!-- ==================== LOMBOK ==================== -->
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <optional>true</optional>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
         </dependency>
 
-        <!-- Firebase FCM của Dev4 -->
+
+        <!-- ==================== FIREBASE / FCM - DEV4 ==================== -->
+
         <dependency>
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
             <version>9.3.0</version>
         </dependency>
+
+
+        <!-- ==================== SWAGGER / OPENAPI - DEV2 ==================== -->
+
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+
+
+        <!-- ==================== TEST ==================== -->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -91,19 +125,36 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
-
     </dependencies>
+
 
     <build>
         <plugins>
+
+            <!-- Ép Lombok chạy annotation processing -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+
+                <configuration>
+                    <release>${java.version}</release>
+
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+
                 <configuration>
                     <excludes>
                         <exclude>
@@ -113,6 +164,7 @@
                     </excludes>
                 </configuration>
             </plugin>
+
         </plugins>
     </build>
 

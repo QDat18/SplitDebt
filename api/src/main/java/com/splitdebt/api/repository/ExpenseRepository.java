@@ -10,6 +10,7 @@ import java.util.List;
 public interface ExpenseRepository
         extends JpaRepository<Expense, Long> {
 
+    // DEV4: thống kê theo khoảng ngày
     @EntityGraph(attributePaths = {
             "category",
             "payer",
@@ -20,4 +21,20 @@ public interface ExpenseRepository
             LocalDate from,
             LocalDate to
     );
+
+    // DEV2: lấy toàn bộ expense của group
+    @EntityGraph(attributePaths = {
+            "category",
+            "payer",
+            "group"
+    })
+    List<Expense> findByGroupId(Long groupId);
+
+    // DEV2: lịch sử expense mới nhất trước
+    @EntityGraph(attributePaths = {
+            "category",
+            "payer",
+            "group"
+    })
+    List<Expense> findByGroupIdOrderByExpenseDateDesc(Long groupId);
 }
