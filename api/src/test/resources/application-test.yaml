@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:splitdebt_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;NON_KEYWORDS=GROUPS;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+splitdebt:
+  jwt-secret: splitdebt-test-secret-that-is-long-enough-for-tests
+  jwt-ttl-hours: 1
+
+  password-reset:
+    dev-return-code: true
+    ttl-minutes: 10

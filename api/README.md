@@ -10,3 +10,8 @@ Backend REST cho ứng dụng SplitDebt. Runtime sử dụng schema `users`, `gr
 4. API mặc định: `http://localhost:8080/api`.
 
 Đọc thêm: [SETUP](../docs/SETUP.md), [API](../docs/API.md), [VALIDATION](../docs/VALIDATION.md).
+
+
+## Google Sign-In và quên mật khẩu
+
+Backend hỗ trợ `/api/auth/google`, `/api/auth/forgot-password` và `/api/auth/reset-password`. Cấu hình `GOOGLE_CLIENT_ID`, SMTP và chế độ local trong `.env`. Xem [AUTH_GOOGLE_PASSWORD_RESET](../docs/AUTH_GOOGLE_PASSWORD_RESET.md).

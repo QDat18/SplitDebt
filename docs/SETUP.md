@@ -113,3 +113,28 @@ flutter run -d chrome --dart-define=API_URL=http://localhost:9090/api
 ```
 
 Nếu health endpoint không mở được thì lỗi nằm ở backend/database, không phải DDS của Flutter.
+
+## Google Sign-In / Forgot Password
+
+Backend `.env`:
+
+```properties
+GOOGLE_CLIENT_ID=xxxxxxxx.apps.googleusercontent.com
+PASSWORD_RESET_TTL_MINUTES=10
+PASSWORD_RESET_DEV_RETURN_CODE=true
+# SMTP optional for local, required for real email delivery
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+MAIL_FROM=your-email@gmail.com
+SMTP_STARTTLS=true
+```
+
+Flutter Web example:
+
+```powershell
+flutter run -d chrome --web-port=5000 --dart-define=API_URL=http://localhost:8080/api --dart-define=GOOGLE_WEB_CLIENT_ID=xxxxxxxx.apps.googleusercontent.com
+```
+
+For production, set `PASSWORD_RESET_DEV_RETURN_CODE=false`. See `AUTH_GOOGLE_PASSWORD_RESET.md` for Google Cloud origins, Android OAuth package/SHA and SMTP details.

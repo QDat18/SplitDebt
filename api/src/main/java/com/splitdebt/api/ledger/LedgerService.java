@@ -34,12 +34,13 @@ public class LedgerService {
     public record AuthResult(String token, Profile user) {}
     public record CurrencyBalance(String currency, long receivable, long payable) {}
     public record ActivityItem(long id, String title, String kind, long amount, String currency,
-                               long groupId, String groupName, String createdAt, String payerName, String status) {}
+                               long groupId, String groupName, String createdAt, String payerName, String status,
+                               Long debtorId, Long creditorId, String debtorName, String creditorName) {}
     public record ActivityPage(List<ActivityItem> items, Integer nextOffset) {}
     public record Group(long id, String name, String description, String inviteCode, long ownerId,
                         String createdAt, int memberCount, long balance, long total, String currency,
-                        int decimalScale, boolean smartSettlementEnabled) {}
-    public record Member(long id, String email, String name, String avatarUrl, String role, String status) {}
+                        int decimalScale, boolean smartSettlementEnabled, long pendingOutgoing, long pendingIncoming) {}
+    public record Member(long id, String email, String phone, String name, String avatarUrl, String role, String status) {}
     public record Share(long userId, String splitType, long amount, BigDecimal percentage, BigDecimal weight) {}
     public record ItemShare(long userId, long shareAmount) {}
     public record ExpenseItem(long id, String itemName, BigDecimal quantity, long unitPrice, long totalPrice,
@@ -50,7 +51,8 @@ public class LedgerService {
     public record Settlement(long id, long debtorId, long creditorId, long amount, String status,
                              String paymentMethod, String requestedAt, String paidAt, String confirmedAt) {}
     public record Detail(Group group, List<Member> members, List<Expense> expenses, List<Settlement> settlements,
-                         Map<Long, Long> balances, List<LedgerMath.Transfer> suggestions) {}
+                         Map<Long, Long> balances, Map<Long, Long> effectiveBalances,
+                         List<LedgerMath.Transfer> suggestions) {}
     public record Overview(Profile me, List<Group> groups, List<CurrencyBalance> balances, long unreadNotifications) {}
 
     private record GroupMeta(long id, String name, String description, String inviteCode, long ownerId,
@@ -78,16 +80,68 @@ public class LedgerService {
         String normalizedName = clean(fullName, 100);
         require(normalizedName.length() >= 2, "Full name must contain at least 2 characters.");
         require(password != null && password.length() >= 8, "Password must contain at least 8 characters.");
-        String normalizedPhone = phone == null || phone.isBlank() ? null : clean(phone, 20);
+        String normalizedPhone = normalizePhoneOptional(phone);
+        if (count("SELECT COUNT(*) FROM users WHERE LOWER(email)=?", normalizedEmail) > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email is already in use.");
+        }
+        Long phoneOwner = normalizedPhone == null ? null : findUserIdByPhone(normalizedPhone);
+        if (phoneOwner != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Phone number is already in use.");
+        }
         try {
             long id = insertAndKey(
                     "INSERT INTO users(full_name,email,phone,password_hash,created_at,updated_at) VALUES(?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",
                     normalizedName, normalizedEmail, normalizedPhone, passwords.hash(password));
             ensureUserSettings(id);
-            return Map.of("id", id, "message", "Account created successfully. You can now sign in.");
+            Profile profile = profileById(id);
+            String token = jwt.issue(id, profile.email(), profile.name());
+            return Map.of(
+                    "id", id,
+                    "message", "Account created successfully.",
+                    "token", token,
+                    "user", profile);
         } catch (DuplicateKeyException e) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email is already in use.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email or phone number is already in use.");
         }
+    }
+
+    @Transactional
+    public AuthResult googleLogin(GoogleIdentityService.GoogleIdentity identity) {
+        String normalizedEmail = normalizeEmail(identity.email());
+        List<Long> linked = db.query(
+                "SELECT user_id FROM user_identities WHERE provider='GOOGLE' AND provider_subject=?",
+                (r, n) -> r.getLong("user_id"), identity.subject());
+
+        long userId;
+        if (!linked.isEmpty()) {
+            userId = linked.get(0);
+            ensureActiveUser(userId);
+        } else {
+            List<Long> existing = db.query("SELECT id FROM users WHERE LOWER(email)=?",
+                    (r, n) -> r.getLong("id"), normalizedEmail);
+            if (!existing.isEmpty()) {
+                userId = existing.get(0);
+            } else {
+                String normalizedName = clean(identity.name(), 100);
+                if (normalizedName.length() < 2) normalizedName = normalizedEmail.split("@", 2)[0];
+                String randomPassword = passwords.hash(UUID.randomUUID().toString() + UUID.randomUUID());
+                userId = insertAndKey(
+                        "INSERT INTO users(full_name,email,phone,password_hash,avatar_url,created_at,updated_at) VALUES(?,?,NULL,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",
+                        normalizedName, normalizedEmail, randomPassword, blankToNull(identity.avatarUrl(), 2000));
+            }
+            db.update("INSERT INTO user_identities(user_id,provider,provider_subject,email,created_at) "
+                            + "SELECT ?, 'GOOGLE', ?, ?, CURRENT_TIMESTAMP "
+                            + "WHERE NOT EXISTS (SELECT 1 FROM user_identities WHERE provider='GOOGLE' AND provider_subject=?)",
+                    userId, identity.subject(), normalizedEmail, identity.subject());
+        }
+
+        if (identity.avatarUrl() != null && !identity.avatarUrl().isBlank()) {
+            db.update("UPDATE users SET avatar_url=CASE WHEN avatar_url IS NULL OR avatar_url='' THEN ? ELSE avatar_url END, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                    clean(identity.avatarUrl(), 2000), userId);
+        }
+        ensureUserSettings(userId);
+        Profile profile = profileById(userId);
+        return new AuthResult(jwt.issue(userId, profile.email(), profile.name()), profile);
     }
 
     @Transactional(readOnly = true)
@@ -118,8 +172,13 @@ public class LedgerService {
     @Transactional
     public Profile updateProfile(AuthFilter.User user, String fullName, String phone, String avatarUrl) {
         ensureActiveUser(user.id());
+        String phoneValue = normalizePhoneOptional(phone);
+        Long phoneOwner = phoneValue == null ? null : findUserIdByPhone(phoneValue);
+        if (phoneOwner != null && phoneOwner != user.id()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Phone number is already in use.");
+        }
         db.update("UPDATE users SET full_name=?, phone=?, avatar_url=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-                clean(fullName, 100), blankToNull(phone, 20), blankToNull(avatarUrl, 2000), user.id());
+                clean(fullName, 100), phoneValue, blankToNull(avatarUrl, 2000), user.id());
         return profileById(user.id());
     }
 
@@ -207,8 +266,8 @@ public class LedgerService {
         boolean smart = valueOr(input.smartSettlementEnabled(), (Boolean) current.get("smartSettlementEnabled"));
         Long budget = input.monthlyBudgetLimit() == null ? (Long) current.get("monthlyBudgetLimit") : input.monthlyBudgetLimit();
         if (budget != null) require(budget >= 0, "Monthly budget cannot be negative.");
-        db.update("UPDATE group_settings SET auto_freeze_day=?,cloud_storage_sync=?,currency_code=?,decimal_scale=?,image_optimization_enabled=?,monthly_budget_limit=?,smart_settlement_enabled=?,updated_at=CURRENT_TIMESTAMP WHERE group_id=?",
-                freeze, cloud, currency, scale, image,
+        db.update("UPDATE group_settings SET auto_freeze_day=?,cloud_storage_sync=?,currency_code=?,default_currency=?,decimal_scale=?,image_optimization_enabled=?,monthly_budget_limit=?,smart_settlement_enabled=?,updated_at=CURRENT_TIMESTAMP WHERE group_id=?",
+                freeze, cloud, currency, currency, scale, image,
                 budget == null ? null : minorToDb(budget, scale), smart, groupId);
         return readGroupSettings(groupId);
     }
@@ -256,7 +315,10 @@ public class LedgerService {
         String sql = """
                 SELECT * FROM (
                   SELECT e.id,e.title,'expense' kind,e.total_amount amount,g.id group_id,g.name group_name,
-                         e.created_at,u.full_name payer_name,NULL status,COALESCE(gs.currency_code,'VND') currency_code,COALESCE(gs.decimal_scale,0) decimal_scale
+                         e.created_at,u.full_name payer_name,NULL status,
+                         CAST(NULL AS BIGINT) debtor_id,CAST(NULL AS BIGINT) creditor_id,
+                         CAST(NULL AS VARCHAR) debtor_name,CAST(NULL AS VARCHAR) creditor_name,
+                         COALESCE(gs.currency_code,'VND') currency_code,COALESCE(gs.decimal_scale,0) decimal_scale
                     FROM expenses e
                     JOIN groups g ON g.id=e.group_id
                     JOIN group_members gm ON gm.group_id=g.id AND gm.user_id=? AND gm.status='ACTIVE'
@@ -264,12 +326,14 @@ public class LedgerService {
                     LEFT JOIN group_settings gs ON gs.group_id=g.id
                   UNION ALL
                   SELECT s.id,'Settlement' title,'settlement' kind,s.amount,g.id group_id,g.name group_name,
-                         COALESCE(s.paid_at,s.requested_at) created_at,u.full_name payer_name,s.status,
+                         COALESCE(s.confirmed_at,s.paid_at,s.requested_at) created_at,debtor.full_name payer_name,s.status,
+                         s.debtor_id,s.creditor_id,debtor.full_name debtor_name,creditor.full_name creditor_name,
                          COALESCE(gs.currency_code,'VND') currency_code,COALESCE(gs.decimal_scale,0) decimal_scale
                     FROM settlements s
                     JOIN groups g ON g.id=s.group_id
                     JOIN group_members gm ON gm.group_id=g.id AND gm.user_id=? AND gm.status='ACTIVE'
-                    JOIN users u ON u.id=s.debtor_id
+                    JOIN users debtor ON debtor.id=s.debtor_id
+                    JOIN users creditor ON creditor.id=s.creditor_id
                     LEFT JOIN group_settings gs ON gs.group_id=g.id
                 ) x ORDER BY created_at DESC,id DESC,kind LIMIT ? OFFSET ?
                 """;
@@ -277,7 +341,9 @@ public class LedgerService {
                 r.getLong("id"), r.getString("title"), r.getString("kind"),
                 dbToMinor(r.getBigDecimal("amount"), r.getInt("decimal_scale")),
                 r.getString("currency_code"), r.getLong("group_id"), r.getString("group_name"),
-                instant(r.getTimestamp("created_at")), r.getString("payer_name"), r.getString("status")),
+                instant(r.getTimestamp("created_at")), r.getString("payer_name"), r.getString("status"),
+                nullableLong(r, "debtor_id"), nullableLong(r, "creditor_id"),
+                r.getString("debtor_name"), r.getString("creditor_name")),
                 user.id(), user.id(), limit + 1, offset);
         boolean more = rows.size() > limit;
         return new ActivityPage(more ? List.copyOf(rows.subList(0, limit)) : rows, more ? offset + limit : null);
@@ -303,8 +369,8 @@ public class LedgerService {
         long id = insertAndKey("INSERT INTO groups(name,description,invite_code,owner_id,created_at,updated_at) VALUES(?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",
                 clean(name, 100), blankToNull(description, 1000), code, user.id());
         db.update("INSERT INTO group_members(group_id,user_id,role,joined_at,status) VALUES(?,?,'OWNER',CURRENT_TIMESTAMP,'ACTIVE')", id, user.id());
-        db.update("INSERT INTO group_settings(created_at,updated_at,auto_freeze_day,cloud_storage_sync,currency_code,decimal_scale,image_optimization_enabled,monthly_budget_limit,smart_settlement_enabled,group_id) VALUES(CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL,'OFF',?,?,TRUE,NULL,TRUE,?)",
-                normalizedCurrency, scale, id);
+        db.update("INSERT INTO group_settings(created_at,updated_at,auto_freeze_day,cloud_storage_sync,currency_code,default_currency,decimal_scale,image_optimization_enabled,monthly_budget_limit,require_approval,smart_settlement_enabled,group_id) VALUES(CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL,'OFF',?,?,?,TRUE,NULL,FALSE,TRUE,?)",
+                normalizedCurrency, normalizedCurrency, scale, id);
         return group(id, user.id());
     }
 
@@ -327,19 +393,25 @@ public class LedgerService {
     }
 
     @Transactional
-    public void addMember(long groupId, AuthFilter.User user, String email) {
+    public void addMember(long groupId, AuthFilter.User user, String identifier) {
         lockGroup(groupId, user.id());
         requireOwner(groupId, user.id());
-        String normalized = normalizeEmail(email);
-        List<Long> ids = db.queryForList("SELECT id FROM users WHERE email=?", Long.class, normalized);
-        if (ids.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No SplitDebt account uses this email.");
-        long memberId = ids.get(0);
+        String value = clean(identifier, 255);
+        Long memberId = value.contains("@")
+                ? findUserIdByEmail(normalizeEmail(value))
+                : findUserIdByPhone(value);
+        if (memberId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Không tìm thấy tài khoản SplitDebt theo email hoặc số điện thoại này.");
+        }
+        require(memberId != user.id(), "Bạn đã là Trưởng nhóm.");
         if (count("SELECT COUNT(*) FROM group_members WHERE group_id=? AND user_id=?", groupId, memberId) == 0) {
             db.update("INSERT INTO group_members(group_id,user_id,role,joined_at,status) VALUES(?,?,'MEMBER',CURRENT_TIMESTAMP,'ACTIVE')", groupId, memberId);
         } else {
             db.update("UPDATE group_members SET status='ACTIVE' WHERE group_id=? AND user_id=?", groupId, memberId);
         }
-        insertNotification(memberId, "Added to a group", "You were added to " + groupMeta(groupId).name() + ".", "MEMBER_JOINED");
+        insertNotification(memberId, "Đã được thêm vào nhóm",
+                "Bạn đã được Trưởng nhóm thêm vào " + groupMeta(groupId).name() + ".", "MEMBER_JOINED");
     }
 
     @Transactional
@@ -364,25 +436,19 @@ public class LedgerService {
         requireMember(groupId, user.id());
         Group group = group(groupId, user.id());
         List<Member> members = db.query("""
-                SELECT u.id,u.email,u.full_name,u.avatar_url,gm.role,gm.status
+                SELECT u.id,u.email,u.phone,u.full_name,u.avatar_url,gm.role,gm.status
                   FROM group_members gm JOIN users u ON u.id=gm.user_id
                  WHERE gm.group_id=? AND gm.status='ACTIVE'
                  ORDER BY CASE gm.role WHEN 'OWNER' THEN 0 ELSE 1 END,u.full_name,u.id
-                """, (r, n) -> new Member(r.getLong("id"), r.getString("email"), r.getString("full_name"),
+                """, (r, n) -> new Member(r.getLong("id"), r.getString("email"), r.getString("phone"), r.getString("full_name"),
                 r.getString("avatar_url"), r.getString("role"), r.getString("status")), groupId);
         List<Expense> expenses = expenses(groupId, group.decimalScale());
         List<Settlement> settlements = settlements(groupId, group.decimalScale());
         Map<Long, Long> balances = balances(groupId);
-        Map<Long, Long> availableBalances = new TreeMap<>(balances);
-        for (Settlement pending : settlements) {
-            if ("PAID".equals(pending.status())) {
-                availableBalances.merge(pending.debtorId(), pending.amount(), Long::sum);
-                availableBalances.merge(pending.creditorId(), -pending.amount(), Long::sum);
-            }
-        }
+        Map<Long, Long> availableBalances = effectiveBalances(balances, settlements);
         List<LedgerMath.Transfer> suggestions = group.smartSettlementEnabled()
                 ? LedgerMath.simplify(availableBalances) : List.of();
-        return new Detail(group, members, expenses, settlements, balances, suggestions);
+        return new Detail(group, members, expenses, settlements, balances, availableBalances, suggestions);
     }
 
     @Transactional
@@ -549,6 +615,19 @@ public class LedgerService {
         return result;
     }
 
+    private Map<Long, Long> effectiveBalances(Map<Long, Long> rawBalances, List<Settlement> settlements) {
+        Map<Long, Long> result = new TreeMap<>(rawBalances);
+        for (Settlement pending : settlements) {
+            if ("PAID".equals(pending.status())) {
+                result.merge(pending.debtorId(), pending.amount(), Long::sum);
+                result.merge(pending.creditorId(), -pending.amount(), Long::sum);
+            }
+        }
+        long total = result.values().stream().mapToLong(Long::longValue).sum();
+        if (total != 0) throw new IllegalStateException("Effective group ledger is not balanced: " + total);
+        return result;
+    }
+
     private void syncDebts(long groupId) {
         GroupMeta meta = groupMeta(groupId);
         db.update("DELETE FROM debts WHERE group_id=?", groupId);
@@ -660,6 +739,11 @@ public class LedgerService {
         if (changed == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification was not found.");
     }
 
+    @Transactional
+    public int markAllNotificationsRead(AuthFilter.User user) {
+        return db.update("UPDATE notifications SET is_read=TRUE WHERE user_id=? AND is_read=FALSE", user.id());
+    }
+
     @Transactional(readOnly = true)
     public Map<String, Object> statistics(long groupId, AuthFilter.User user, String range) {
         requireMember(groupId, user.id());
@@ -667,13 +751,15 @@ public class LedgerService {
         String normalized = range == null ? "MONTH" : range.toUpperCase(Locale.ROOT);
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         LocalDate from = switch (normalized) {
-            case "WEEK" -> today.minusDays(6);
+            case "DAY" -> today;
             case "MONTH" -> today.with(TemporalAdjusters.firstDayOfMonth());
-            case "ALL" -> LocalDate.of(1970, 1, 1);
-            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Range must be WEEK, MONTH or ALL.");
+            case "YEAR" -> today.with(TemporalAdjusters.firstDayOfYear());
+            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Range must be DAY, MONTH or YEAR.");
         };
         BigDecimal totalDb = db.queryForObject("SELECT COALESCE(SUM(total_amount),0) FROM expenses WHERE group_id=? AND expense_date BETWEEN ? AND ?",
                 BigDecimal.class, groupId, from, today);
+        BigDecimal mySpentDb = db.queryForObject("SELECT COALESCE(SUM(total_amount),0) FROM expenses WHERE group_id=? AND payer_id=? AND expense_date BETWEEN ? AND ?",
+                BigDecimal.class, groupId, user.id(), from, today);
         List<Map<String, Object>> byCategory = db.query("""
                 SELECT COALESCE(c.name,'Other') label,COALESCE(SUM(e.total_amount),0) amount
                   FROM expenses e LEFT JOIN categories c ON c.id=e.category_id
@@ -694,6 +780,7 @@ public class LedgerService {
         out.put("to", today.toString());
         out.put("currency", meta.currency());
         out.put("totalExpense", dbToMinor(totalDb == null ? BigDecimal.ZERO : totalDb, meta.scale()));
+        out.put("mySpent", dbToMinor(mySpentDb == null ? BigDecimal.ZERO : mySpentDb, meta.scale()));
         out.put("byCategory", byCategory);
         out.put("byPayer", byPayer);
         return out;
@@ -705,7 +792,15 @@ public class LedgerService {
 
     private Group group(long id, long userId) {
         GroupMeta meta = groupMeta(id);
-        Map<Long, Long> balances = balances(id);
+        Map<Long, Long> rawBalances = balances(id);
+        List<Settlement> settlementRows = settlements(id, meta.scale());
+        Map<Long, Long> balances = effectiveBalances(rawBalances, settlementRows);
+        long pendingOutgoing = settlementRows.stream()
+                .filter(x -> "PAID".equals(x.status()) && x.debtorId() == userId)
+                .mapToLong(Settlement::amount).sum();
+        long pendingIncoming = settlementRows.stream()
+                .filter(x -> "PAID".equals(x.status()) && x.creditorId() == userId)
+                .mapToLong(Settlement::amount).sum();
         long total = db.query("SELECT total_amount FROM expenses WHERE group_id=?", r -> {
             long sum = 0;
             while (r.next()) sum = Math.addExact(sum, dbToMinor(r.getBigDecimal(1), meta.scale()));
@@ -713,7 +808,8 @@ public class LedgerService {
         }, id);
         int memberCount = count("SELECT COUNT(*) FROM group_members WHERE group_id=? AND status='ACTIVE'", id);
         return new Group(id, meta.name(), meta.description(), meta.inviteCode(), meta.ownerId(), meta.createdAt(),
-                memberCount, balances.getOrDefault(userId, 0L), total, meta.currency(), meta.scale(), meta.smartSettlementEnabled());
+                memberCount, balances.getOrDefault(userId, 0L), total, meta.currency(), meta.scale(),
+                meta.smartSettlementEnabled(), pendingOutgoing, pendingIncoming);
     }
 
     private GroupMeta groupMeta(long id) {
@@ -735,8 +831,8 @@ public class LedgerService {
         if (count("SELECT COUNT(*) FROM group_settings WHERE group_id=?", groupId) == 0) {
             String normalized = Set.of("VND", "USD", "EUR").contains(currency) ? currency : "VND";
             int scale = normalized.equals("VND") ? 0 : 2;
-            db.update("INSERT INTO group_settings(created_at,updated_at,auto_freeze_day,cloud_storage_sync,currency_code,decimal_scale,image_optimization_enabled,monthly_budget_limit,smart_settlement_enabled,group_id) VALUES(CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL,'OFF',?,?,TRUE,NULL,TRUE,?)",
-                    normalized, scale, groupId);
+            db.update("INSERT INTO group_settings(created_at,updated_at,auto_freeze_day,cloud_storage_sync,currency_code,default_currency,decimal_scale,image_optimization_enabled,monthly_budget_limit,require_approval,smart_settlement_enabled,group_id) VALUES(CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL,'OFF',?,?,?,TRUE,NULL,FALSE,TRUE,?)",
+                    normalized, normalized, scale, groupId);
         }
     }
 
@@ -866,6 +962,41 @@ public class LedgerService {
     private static long dbToMinor(BigDecimal amount, int scale) {
         if (amount == null) return 0L;
         return amount.setScale(scale, RoundingMode.HALF_UP).movePointRight(scale).longValueExact();
+    }
+
+    private Long findUserIdByEmail(String normalizedEmail) {
+        List<Long> rows = db.query("SELECT id FROM users WHERE LOWER(email)=?",
+                (r, n) -> r.getLong("id"), normalizedEmail);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    private Long findUserIdByPhone(String phone) {
+        String normalized = normalizePhone(phone);
+        List<Long> matches = new ArrayList<>();
+        db.query("SELECT id,phone FROM users WHERE phone IS NOT NULL", r -> {
+            String candidate = r.getString("phone");
+            if (candidate != null && normalizePhone(candidate).equals(normalized)) {
+                matches.add(r.getLong("id"));
+            }
+        });
+        if (matches.size() > 1) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Số điện thoại này đang liên kết với nhiều tài khoản. Hãy dùng email.");
+        }
+        return matches.isEmpty() ? null : matches.get(0);
+    }
+
+    private static String normalizePhoneOptional(String phone) {
+        if (phone == null || phone.isBlank()) return null;
+        return normalizePhone(phone);
+    }
+
+    private static String normalizePhone(String phone) {
+        String digits = Objects.requireNonNullElse(phone, "").replaceAll("[^0-9]", "");
+        if (digits.startsWith("0084") && digits.length() > 4) digits = "0" + digits.substring(4);
+        else if (digits.startsWith("84") && digits.length() >= 10) digits = "0" + digits.substring(2);
+        require(digits.length() >= 9 && digits.length() <= 15, "Nhập số điện thoại hợp lệ.");
+        return digits;
     }
 
     private static String normalizeEmail(String email) {

@@ -19,128 +19,171 @@ class PremiumBackground extends StatefulWidget {
   State<PremiumBackground> createState() => _PremiumBackgroundState();
 }
 
+/// Flutter interpretation of the WebGL shader shipped in the Stitch source.
+/// The shader itself mixes Deep Slate Navy with an emerald signal using
+/// sin/cos time noise. Keeping the same formula here preserves the moving,
+/// atmospheric depth on Android, iOS and web without falling back to a flat
+/// gradient.
 class _PremiumBackgroundState extends State<PremiumBackground>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  late final ValueNotifier<Offset> _pointer;
 
   @override
   void initState() {
     super.initState();
+    _pointer = ValueNotifier<Offset>(const Offset(.5, .5));
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 14),
-    );
+      duration: const Duration(seconds: 8),
+    )..value = .18;
+  }
 
-    if (widget.animate) {
-      _controller.repeat(reverse: true);
+  void _syncAnimation() {
+    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (widget.animate && !reduceMotion) {
+      if (!_controller.isAnimating) _controller.repeat();
     } else {
-      _controller.value = 0.35;
+      _controller.stop();
+      _controller.value = .18;
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncAnimation();
   }
 
   @override
   void didUpdateWidget(covariant PremiumBackground oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.animate == oldWidget.animate) return;
-    if (widget.animate) {
-      _controller.repeat(reverse: true);
-    } else {
-      _controller.stop();
-      _controller.value = 0.35;
-    }
+    if (oldWidget.animate != widget.animate) _syncAnimation();
   }
 
   @override
   void dispose() {
+    _pointer.dispose();
     _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final background =
-        isDark ? AppColors.darkBackground : AppColors.lightBackground;
-
-    return ColoredBox(
-      color: background,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          RepaintBoundary(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                final t = _controller.value;
-                return IgnorePointer(
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        top: -130 + (t * 42),
-                        right: -110 + (t * 22),
-                        child: _GlowBlob(
-                          size: 310,
-                          color: AppColors.primary.withOpacity(
-                            isDark ? 0.20 : 0.15,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 250 - (t * 28),
-                        left: -160 + (t * 38),
-                        child: _GlowBlob(
-                          size: 290,
-                          color: AppColors.accentBlue.withOpacity(
-                            isDark ? 0.13 : 0.10,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: -170 + (t * 34),
-                        right: -120 - (t * 24),
-                        child: _GlowBlob(
-                          size: 330,
-                          color: AppColors.primaryAlt.withOpacity(
-                            isDark ? 0.15 : 0.10,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    return MouseRegion(
+      onHover: reduceMotion
+          ? null
+          : (event) {
+              final box = context.findRenderObject();
+              if (box is! RenderBox || !box.hasSize) return;
+              final local = box.globalToLocal(event.position);
+              final next = Offset(
+                (local.dx / box.size.width).clamp(0.0, 1.0),
+                (local.dy / box.size.height).clamp(0.0, 1.0),
+              );
+              if ((next - _pointer.value).distance > .02) {
+                _pointer.value = next;
+              }
+            },
+      child: ColoredBox(
+        color: AppColors.background,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF080F21), AppColors.background, Color(0xFF071B20)],
+                ),
+              ),
             ),
-          ),
-          widget.child,
-        ],
+            ValueListenableBuilder<Offset>(
+              valueListenable: _pointer,
+              builder: (context, pointer, _) => RepaintBoundary(
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) => CustomPaint(
+                    painter: _LuminousShaderPainter(
+                      time: _controller.value * math.pi * 2,
+                      pointer: pointer,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            IgnorePointer(
+              child: ValueListenableBuilder<Offset>(
+                valueListenable: _pointer,
+                builder: (context, pointer, _) => DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment(pointer.dx * 2 - 1, pointer.dy * 2 - 1),
+                      radius: .72,
+                      colors: [
+                        AppColors.primary.withValues(alpha: .035),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            widget.child,
+          ],
+        ),
       ),
     );
   }
 }
 
-class _GlowBlob extends StatelessWidget {
-  const _GlowBlob({
-    required this.size,
-    required this.color,
-  });
+class _LuminousShaderPainter extends CustomPainter {
+  const _LuminousShaderPainter({required this.time, required this.pointer});
 
-  final double size;
-  final Color color;
+  final double time;
+  final Offset pointer;
 
   @override
-  Widget build(BuildContext context) {
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 42, sigmaY: 42),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-        ),
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    const navy = Color(0xFF0F172A);
+    const emerald = Color(0xFF107451);
+    const cols = 22;
+    final rows = math.max(18, (cols * size.height / size.width).round());
+    final cellW = size.width / cols;
+    final cellH = size.height / rows;
+    final paint = Paint();
+
+    for (var y = 0; y < rows; y++) {
+      final ny = (y + .5) / rows;
+      for (var x = 0; x < cols; x++) {
+        final nx = (x + .5) / cols;
+        final noise = math.sin(nx * 10 + time) * math.cos(ny * 10 + time * .5);
+        final mouseDistance = (Offset(nx, ny) - pointer).distance;
+        final mouseLift = math.max(0.0, .30 - mouseDistance) * .15;
+        final mix = (noise * .10 + .055 + mouseLift).clamp(0.0, .22);
+        paint.color = Color.lerp(navy, emerald, mix)!;
+        canvas.drawRect(
+          Rect.fromLTWH(x * cellW, y * cellH, cellW + 1, cellH + 1),
+          paint,
+        );
+      }
+    }
+
+    final haze = Paint()
+      ..shader = RadialGradient(
+        center: Alignment(pointer.dx * 2 - 1, pointer.dy * 2 - 1),
+        radius: .75,
+        colors: const [Color(0x164EDEA3), Color(0x000B1326)],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, haze);
   }
+
+  @override
+  bool shouldRepaint(covariant _LuminousShaderPainter oldDelegate) =>
+      oldDelegate.time != time || oldDelegate.pointer != pointer;
 }
 
 class GlassSurface extends StatelessWidget {
@@ -148,7 +191,7 @@ class GlassSurface extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(20),
-    this.borderRadius = 28,
+    this.borderRadius = 16,
   });
 
   final Widget child;
@@ -157,41 +200,45 @@ class GlassSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final radius = BorderRadius.circular(borderRadius);
-
     return ClipRRect(
       borderRadius: radius,
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: radius,
-            color: isDark
-                ? const Color(0xB3162231)
-                : const Color(0xD9FFFFFF),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withOpacity(0.08)
-                  : Colors.white.withOpacity(0.92),
-            ),
+            color: AppColors.glassFill,
+            border: Border.all(color: AppColors.glassBorder),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.22 : 0.08),
-                blurRadius: 34,
-                offset: const Offset(0, 16),
+                color: Colors.black.withValues(alpha: .40),
+                blurRadius: 40,
+                offset: const Offset(0, 20),
               ),
-              if (!isDark)
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.05),
-                  blurRadius: 38,
-                  offset: const Offset(0, 18),
-                ),
             ],
           ),
-          child: Padding(
-            padding: padding,
-            child: child,
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                child: Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        Colors.white.withValues(alpha: .18),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Padding(padding: padding, child: child),
+            ],
           ),
         ),
       ),
@@ -207,95 +254,74 @@ class SplitDebtBrandMark extends StatelessWidget {
   });
 
   final double size;
+  // Kept for backwards source compatibility. The supplied reference logo is
+  // always rendered as an image and is never rebuilt from Flutter primitives.
   final bool showCoin;
 
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size + (showCoin ? 12 : 0),
-      height: size + (showCoin ? 10 : 0),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(size * 0.28),
-              gradient: AppColors.primaryGradient,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.34),
-                  blurRadius: 30,
-                  offset: const Offset(0, 14),
-                ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.18),
-                  blurRadius: 1,
-                  offset: const Offset(-1, -1),
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.account_balance_wallet_rounded,
-              color: Colors.white,
-              size: size * 0.48,
-            ),
+  Widget build(BuildContext context) => Semantics(
+        label: 'SplitDebt logo',
+        image: true,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(math.max(6, size * .06)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: .20),
+                blurRadius: size * .32,
+                spreadRadius: size * .015,
+              ),
+              BoxShadow(
+                color: AppColors.tertiary.withValues(alpha: .12),
+                blurRadius: size * .46,
+              ),
+            ],
           ),
-          if (showCoin)
-            Positioned(
-              right: 0,
-              top: -3,
-              child: _Coin(size: size * 0.32),
-            ),
-        ],
-      ),
-    );
-  }
+          clipBehavior: Clip.antiAlias,
+          child: Image.asset(
+            'assets/brand/splitdebt-reference-logo.png',
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+          ),
+        ),
+      );
 }
 
 class _Coin extends StatelessWidget {
   const _Coin({required this.size});
-
   final double size;
 
   @override
-  Widget build(BuildContext context) {
-    return Transform.rotate(
-      angle: -0.28,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFFFE59A),
-              Color(0xFFF7A93D),
+  Widget build(BuildContext context) => Transform.rotate(
+        angle: -.28,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFFDFA8), Color(0xFFFFB95F), Color(0xFFE29100)],
+            ),
+            border: Border.all(color: const Color(0xFFFFE7C5), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.tertiary.withValues(alpha: .25),
+                blurRadius: 16,
+                offset: const Offset(0, 7),
+              ),
             ],
           ),
-          border: Border.all(
-            color: const Color(0xFFFFE9AF),
-            width: 1.5,
+          child: Icon(
+            Icons.attach_money_rounded,
+            size: size * .64,
+            color: const Color(0xFF653E00),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFF6A63A).withOpacity(0.30),
-              blurRadius: 14,
-              offset: const Offset(0, 7),
-            ),
-          ],
         ),
-        child: Icon(
-          Icons.attach_money_rounded,
-          size: size * 0.64,
-          color: const Color(0xFF9A5B00),
-        ),
-      ),
-    );
-  }
+      );
 }
 
 class FloatingCoin extends StatelessWidget {
@@ -311,25 +337,23 @@ class FloatingCoin extends StatelessWidget {
   final double rotation;
 
   @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        final t = animation.value;
-        return Transform.translate(
-          offset: Offset(
-            math.sin(t * math.pi * 2) * 4,
-            math.cos(t * math.pi * 2) * 10,
-          ),
-          child: Transform.rotate(
-            angle: rotation + math.sin(t * math.pi * 2) * 0.10,
-            child: child,
-          ),
-        );
-      },
-      child: _Coin(size: size),
-    );
-  }
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: animation,
+        builder: (context, child) {
+          final t = animation.value;
+          return Transform.translate(
+            offset: Offset(
+              math.sin(t * math.pi * 2) * 4,
+              math.cos(t * math.pi * 2) * 10,
+            ),
+            child: Transform.rotate(
+              angle: rotation + math.sin(t * math.pi * 2) * .10,
+              child: child,
+            ),
+          );
+        },
+        child: _Coin(size: size),
+      );
 }
 
 class PremiumPrimaryButton extends StatefulWidget {
@@ -352,7 +376,6 @@ class PremiumPrimaryButton extends StatefulWidget {
 
 class _PremiumPrimaryButtonState extends State<PremiumPrimaryButton> {
   bool _pressed = false;
-
   bool get _enabled => widget.onPressed != null && !widget.isLoading;
 
   void _setPressed(bool value) {
@@ -361,84 +384,77 @@ class _PremiumPrimaryButtonState extends State<PremiumPrimaryButton> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: _pressed ? 0.985 : 1,
-      duration: const Duration(milliseconds: 110),
-      curve: Curves.easeOut,
-      child: Opacity(
-        opacity: _enabled || widget.isLoading ? 1 : 0.48,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            gradient: AppColors.primaryGradient,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(_pressed ? 0.18 : 0.30),
-                blurRadius: _pressed ? 12 : 22,
-                offset: Offset(0, _pressed ? 5 : 10),
-              ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(18),
-            child: InkWell(
-              onTap: _enabled ? widget.onPressed : null,
-              onTapDown: (_) => _setPressed(true),
-              onTapUp: (_) => _setPressed(false),
-              onTapCancel: () => _setPressed(false),
-              borderRadius: BorderRadius.circular(18),
-              splashColor: Colors.white.withOpacity(0.12),
-              highlightColor: Colors.white.withOpacity(0.04),
-              child: SizedBox(
-                height: 56,
-                child: Center(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 180),
-                    child: widget.isLoading
-                        ? const SizedBox(
-                            key: ValueKey('loader'),
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.4,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Row(
-                            key: const ValueKey('label'),
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (widget.icon != null) ...[
-                                Icon(
-                                  widget.icon,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 10),
-                              ],
-                              Text(
-                                widget.label,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelLarge
-                                    ?.copyWith(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                    ),
+  Widget build(BuildContext context) => AnimatedScale(
+        scale: _pressed ? .97 : 1,
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOut,
+        child: Opacity(
+          opacity: _enabled || widget.isLoading ? 1 : .45,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: AppColors.primaryGradient,
+              border: Border.all(color: Colors.white.withValues(alpha: .22)),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: _pressed ? .20 : .32),
+                  blurRadius: _pressed ? 12 : 22,
+                  offset: Offset(0, _pressed ? 4 : 10),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                onTap: _enabled ? widget.onPressed : null,
+                onTapDown: (_) => _setPressed(true),
+                onTapUp: (_) => _setPressed(false),
+                onTapCancel: () => _setPressed(false),
+                borderRadius: BorderRadius.circular(12),
+                splashColor: Colors.white.withValues(alpha: .10),
+                highlightColor: Colors.white.withValues(alpha: .04),
+                child: SizedBox(
+                  height: 52,
+                  child: Center(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      child: widget.isLoading
+                          ? const SizedBox(
+                              key: ValueKey('loader'),
+                              width: 21,
+                              height: 21,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                color: Color(0xFF003824),
                               ),
-                            ],
-                          ),
+                            )
+                          : Row(
+                              key: const ValueKey('label'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (widget.icon != null) ...[
+                                  Icon(widget.icon, color: const Color(0xFF003824), size: 19),
+                                  const SizedBox(width: 9),
+                                ],
+                                Text(
+                                  widget.label,
+                                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                        color: const Color(0xFF003824),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                              ],
+                            ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class SoftIconButton extends StatelessWidget {
@@ -454,27 +470,20 @@ class SoftIconButton extends StatelessWidget {
   final String? tooltip;
 
   @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return IconButton(
-      onPressed: onPressed,
-      tooltip: tooltip,
-      style: IconButton.styleFrom(
-        backgroundColor: isDark
-            ? Colors.white.withOpacity(0.06)
-            : Colors.white.withOpacity(0.80),
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        minimumSize: const Size.square(46),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-          side: BorderSide(
-            color: Theme.of(context).colorScheme.outlineVariant,
+  Widget build(BuildContext context) => IconButton(
+        onPressed: onPressed,
+        tooltip: tooltip,
+        style: IconButton.styleFrom(
+          backgroundColor: AppColors.surfaceHigh.withValues(alpha: .62),
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
+          minimumSize: const Size.square(44),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: AppColors.glassBorder),
           ),
         ),
-      ),
-      icon: Icon(icon, size: 21),
-    );
-  }
+        icon: Icon(icon, size: 20),
+      );
 }
 
 class Entrance extends StatelessWidget {
@@ -490,29 +499,26 @@ class Entrance extends StatelessWidget {
   final double offset;
 
   @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 440 + delay.inMilliseconds),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        final delayed = delay.inMilliseconds == 0
-            ? value
-            : ((value * (440 + delay.inMilliseconds) -
-                        delay.inMilliseconds) /
-                    440)
-                .clamp(0.0, 1.0)
-                .toDouble();
-
-        return Opacity(
-          opacity: delayed,
-          child: Transform.translate(
-            offset: Offset(0, (1 - delayed) * offset),
-            child: child,
-          ),
-        );
-      },
-      child: child,
-    );
-  }
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : Duration(milliseconds: 440 + delay.inMilliseconds),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) {
+          final delayed = delay.inMilliseconds == 0
+              ? value
+              : ((value * (440 + delay.inMilliseconds) - delay.inMilliseconds) / 440)
+                  .clamp(0.0, 1.0)
+                  .toDouble();
+          return Opacity(
+            opacity: delayed,
+            child: Transform.translate(
+              offset: Offset(0, (1 - delayed) * offset),
+              child: child,
+            ),
+          );
+        },
+        child: child,
+      );
 }

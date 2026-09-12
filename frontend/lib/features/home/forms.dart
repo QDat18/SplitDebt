@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/api.dart';
 import '../../core/widgets/reference_ui.dart';
+import '../../core/widgets/premium_ui.dart';
 import '../../widgets/design.dart';
 
 class CreateGroupScreen extends StatefulWidget {
@@ -53,10 +54,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     width: 92,
                     height: 92,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0EDFF),
+                      color: AppColors.primary.withValues(alpha: .10),
                       borderRadius: BorderRadius.circular(28),
                     ),
-                    child: const Icon(Icons.groups_rounded, color: Color(0xFF6C55EA), size: 44),
+                    child: const Icon(Icons.groups_rounded, color: AppColors.primary, size: 44),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -90,7 +91,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 Surface(
                   interactive: false,
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Icon(Icons.link_rounded, color: Color(0xFF6C55EA)),
+                    const Icon(Icons.link_rounded, color: AppColors.primary),
                     const SizedBox(width: 12),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('Mã mời tự động', style: Theme.of(context).textTheme.titleMedium),
@@ -231,16 +232,28 @@ class AddMemberScreen extends StatefulWidget {
 }
 
 class _AddMemberScreenState extends State<AddMemberScreen> {
-  final email = TextEditingController();
+  final identifier = TextEditingController();
   final form = GlobalKey<FormState>();
   bool busy = false;
-  @override void dispose() { email.dispose(); super.dispose(); }
+  @override void dispose() { identifier.dispose(); super.dispose(); }
+
+  String? validateIdentifier(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return 'Nhập email hoặc số điện thoại.';
+    if (text.contains('@')) {
+      return text.contains('.') ? null : 'Email chưa đúng định dạng.';
+    }
+    final digits = text.replaceAll(RegExp(r'[^0-9]'), '');
+    return digits.length >= 9 && digits.length <= 15 ? null : 'Số điện thoại chưa hợp lệ.';
+  }
 
   Future<void> save() async {
     if (!form.currentState!.validate()) return;
     setState(() => busy = true);
     try {
-      await Api.call('/groups/${widget.groupId}/members', method: 'POST', body: {'email': email.text.trim()});
+      await Api.call('/groups/${widget.groupId}/members', method: 'POST', body: {
+        'identifier': identifier.text.trim(),
+      });
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) showError(context, e);
@@ -267,28 +280,44 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
                     width: 82,
                     height: 82,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0EDFF),
+                      color: AppColors.primary.withValues(alpha: .10),
                       borderRadius: BorderRadius.circular(26),
                     ),
-                    child: const Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF6C55EA), size: 38),
+                    child: const Icon(Icons.person_add_alt_1_rounded, color: AppColors.primary, size: 38),
                   ),
                 ),
                 const SizedBox(height: 22),
                 Text('Mời thêm thành viên', textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 8),
-                const Text('Nhập email tài khoản SplitDebt. Thành viên cũng có thể tự tham gia bằng mã mời.', textAlign: TextAlign.center),
-                const SizedBox(height: 26),
-                TextFormField(
-                  controller: email,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email thành viên',
-                    prefixIcon: Icon(Icons.alternate_email_rounded),
-                  ),
-                  validator: (v) => v != null && v.contains('@') ? null : 'Nhập email hợp lệ.',
+                const Text(
+                  'Trưởng nhóm có thể thêm trực tiếp bằng email hoặc số điện thoại. Thành viên cũng có thể tự tham gia bằng mã nhóm.',
+                  textAlign: TextAlign.center,
                 ),
+                const SizedBox(height: 22),
+                Surface(
+                  interactive: false,
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Icon(Icons.key_rounded, color: AppColors.primary),
+                    const SizedBox(width: 12),
+                    const Expanded(child: Text('Cách 1 · Chia sẻ mã nhóm để thành viên tự tham gia từ màn hình “Tham gia nhóm”.')),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: identifier,
+                  keyboardType: TextInputType.text,
+                  autofillHints: const [AutofillHints.email, AutofillHints.telephoneNumber],
+                  decoration: const InputDecoration(
+                    labelText: 'Email hoặc số điện thoại',
+                    hintText: 'duy@example.com hoặc 0912345678',
+                    prefixIcon: Icon(Icons.person_search_rounded),
+                  ),
+                  validator: validateIdentifier,
+                ),
+                const SizedBox(height: 10),
+                const Text('Cách 2 · Hệ thống tìm đúng tài khoản SplitDebt rồi thêm vào nhóm ngay.'),
                 const SizedBox(height: 24),
-                BusyButton(busy: busy, label: 'Thêm thành viên', onPressed: save),
+                BusyButton(busy: busy, label: 'Thêm vào nhóm', onPressed: save),
               ]),
             ),
           ),
@@ -318,8 +347,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final description = TextEditingController();
   final amount = TextEditingController();
   final receipt = TextEditingController();
+  late final Map<String, dynamic> group = Map<String, dynamic>.from(widget.detail['group'] as Map);
   late final List<Map<String, dynamic>> people = maps(widget.detail['members']);
-  late int payer = Session.userId ?? asInt(people.first['id']);
+  late int payer;
   final Set<int> selected = {};
   final Map<int, TextEditingController> values = {};
   final List<_ItemDraft> items = [];
@@ -329,8 +359,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   bool busy = false;
   late Future<List<Map<String, dynamic>>> categoriesFuture;
 
-  String get currency => Map<String, dynamic>.from(widget.detail['group'] as Map)['currency'].toString();
-  int get groupId => asInt(Map<String, dynamic>.from(widget.detail['group'] as Map)['id']);
+  String get currency => group['currency'].toString();
+  int get groupId => asInt(group['id']);
+  int get ownerId => asInt(group['ownerId']);
 
   String get splitHelp => switch (splitType) {
     'EQUAL' => 'Chia đều tổng tiền cho tất cả người đang được chọn.',
@@ -345,11 +376,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   void initState() {
     super.initState();
     categoriesFuture = Api.call('/categories').then(maps);
+    payer = ownerId;
     for (final p in people) {
       final id = asInt(p['id']);
-      selected.add(id);
+      if (id != ownerId) selected.add(id);
       values[id] = TextEditingController();
     }
+    // Nhóm chỉ có Trưởng nhóm vẫn cần một người tham gia hợp lệ.
+    if (selected.isEmpty && people.isNotEmpty) selected.add(ownerId);
     final e = widget.existing;
     if (e != null) {
       title.text = e['title']?.toString() ?? '';
@@ -508,281 +542,394 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       return Icons.inventory_2_rounded;
     }
 
+    final me = people.firstWhere(
+      (p) => asInt(p['id']) == myId,
+      orElse: () => {'name': 'Bạn'},
+    );
+
     return Scaffold(
-      appBar: AppBar(title: Text(widget.existing == null ? 'Thêm khoản chi' : 'Chỉnh sửa khoản chi')),
-      body: SafeArea(
-        top: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 14, 24, 34),
-              child: Form(
-                key: form,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+      backgroundColor: Colors.transparent,
+      body: PremiumBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                child: Row(
                   children: [
-                    Text('Tên khoản chi', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 9),
-                    TextFormField(
-                      controller: title,
-                      maxLength: 200,
-                      decoration: const InputDecoration(hintText: 'Ăn tối nhà hàng', counterText: ''),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Nhập tên khoản chi.' : null,
+                    IconButton(
+                      tooltip: 'Quay lại',
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.chevron_left_rounded),
                     ),
-                    const SizedBox(height: 20),
-                    Text('Số tiền', style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    )),
-                    const SizedBox(height: 9),
-                    TextFormField(
-                      controller: amount,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: AppColors.primary),
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        hintText: '0',
-                        suffixText: currency,
-                        filled: true,
-                        fillColor: Theme.of(context).colorScheme.surface,
-                      ),
-                      validator: (v) => parseMoney(v ?? '', currency) == null ? 'Nhập số tiền hợp lệ.' : null,
-                    ),
-                    const SizedBox(height: 22),
-                    Text('Danh mục', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 10),
-                    FutureBuilder<List<Map<String, dynamic>>>(
-                      future: categoriesFuture,
-                      builder: (context, snapshot) {
-                        final categories = snapshot.data ?? const <Map<String, dynamic>>[];
-                        if (snapshot.connectionState != ConnectionState.done) {
-                          return const LinearProgressIndicator();
-                        }
-                        return Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final c in categories)
-                              CategoryChoice(
-                                label: c['name'].toString(),
-                                icon: categoryIcon(c['name'].toString()),
-                                selected: categoryId == asInt(c['id']),
-                                onTap: () => setState(() => categoryId = asInt(c['id'])),
-                              ),
-                            CategoryChoice(
-                              label: 'Khác',
-                              icon: Icons.inventory_2_rounded,
-                              selected: categoryId == null,
-                              onTap: () => setState(() => categoryId = null),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 22),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final compact = constraints.maxWidth < 540;
-                        final payerField = DropdownButtonFormField<int>(
-                          value: payer,
-                          isExpanded: true,
-                          decoration: const InputDecoration(labelText: 'Người trả'),
-                          items: people.map((p) => DropdownMenuItem(
-                            value: asInt(p['id']),
-                            child: Row(children: [
-                              Avatar(p['name'].toString(), radius: 14),
-                              const SizedBox(width: 9),
-                              Expanded(child: Text(p['name'].toString(), overflow: TextOverflow.ellipsis)),
-                            ]),
-                          )).toList(),
-                          onChanged: busy ? null : (v) => setState(() => payer = v!),
-                        );
-                        final dateField = OutlinedButton.icon(
-                          onPressed: pickDate,
-                          icon: const Icon(Icons.calendar_month_rounded),
-                          label: Text('${expenseDate.day.toString().padLeft(2, '0')}/${expenseDate.month.toString().padLeft(2, '0')}/${expenseDate.year}'),
-                        );
-                        return compact
-                            ? Column(children: [payerField, const SizedBox(height: 12), SizedBox(width: double.infinity, child: dateField)])
-                            : Row(children: [Expanded(child: payerField), const SizedBox(width: 12), Expanded(child: SizedBox(height: 56, child: dateField))]);
-                      },
-                    ),
-                    const SizedBox(height: 22),
-                    Text('Chia cho', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 10),
-                    PillSegment<String>(
-                      items: const [
-                        ('EQUAL', 'Chia đều'),
-                        ('AMOUNT', 'Số tiền'),
-                        ('PERCENT', '%'),
-                      ],
-                      value: splitType,
-                      onChanged: busy ? (_) {} : (v) => setState(() => splitType = v),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        ChoiceChip(
-                          label: const Text('Trọng số'),
-                          selected: splitType == 'WEIGHT',
-                          onSelected: busy ? null : (_) => setState(() => splitType = 'WEIGHT'),
-                        ),
-                        ChoiceChip(
-                          label: const Text('Theo từng món'),
-                          selected: splitType == 'ITEM',
-                          onSelected: busy ? null : (_) => setState(() => splitType = 'ITEM'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight.withOpacity(.65),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.lightbulb_outline_rounded, color: AppColors.primary, size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(child: Text(splitHelp)),
-                        ],
+                    Expanded(
+                      child: Text(
+                        widget.existing == null ? 'Thêm khoản chi' : 'Sửa khoản chi',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    ...people.map((p) {
-                      final id = asInt(p['id']);
-                      final checked = selected.contains(id);
-                      final preview = splitType == 'EQUAL' && checked ? equalShare : 0;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: Theme.of(context).dividerColor),
-                          ),
-                          child: Column(
-                            children: [
-                              CheckboxListTile(
-                                value: checked,
-                                onChanged: busy ? null : (v) => setState(() {
-                                  if (v == true) { selected.add(id); } else { selected.remove(id); }
-                                }),
-                                title: Row(children: [
-                                  Avatar(p['name'].toString(), radius: 17),
-                                  const SizedBox(width: 10),
-                                  Expanded(child: Text(p['name'].toString(), style: const TextStyle(fontWeight: FontWeight.w800))),
-                                  if (splitType == 'EQUAL' && checked)
-                                    Text(money(preview, currency), style: const TextStyle(fontWeight: FontWeight.w900)),
-                                ]),
-                                controlAffinity: ListTileControlAffinity.leading,
-                              ),
-                              if (checked && {'AMOUNT', 'PERCENT', 'WEIGHT'}.contains(splitType))
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
-                                  child: TextFormField(
-                                    controller: values[id],
-                                    onChanged: (_) => setState(() {}),
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    decoration: InputDecoration(
-                                      labelText: splitType == 'AMOUNT' ? 'Số tiền của ${p['name']}' : splitType == 'PERCENT' ? 'Phần trăm' : 'Trọng số',
-                                      suffixText: splitType == 'AMOUNT' ? currency : splitType == 'PERCENT' ? '%' : null,
-                                    ),
-                                    validator: (v) {
-                                      if (!selected.contains(id)) return null;
-                                      if (splitType == 'AMOUNT') return parseMoney(v ?? '', currency) == null ? 'Nhập số tiền.' : null;
-                                      if (splitType == 'PERCENT' || splitType == 'WEIGHT') {
-                                        final number = double.tryParse(v?.trim() ?? '');
-                                        return number != null && number > 0 ? null : 'Nhập giá trị lớn hơn 0.';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                    if (splitType == 'ITEM') ...[
-                      SectionTitle('Các món', trailing: TextButton.icon(onPressed: addItem, icon: const Icon(Icons.add), label: const Text('Thêm món'))),
-                      if (items.isEmpty)
-                        const EmptyState(
-                          title: 'Chưa có món',
-                          description: 'Thêm từng món trong hóa đơn và chọn ai sử dụng món đó.',
-                          icon: Icons.restaurant_menu_rounded,
-                        ),
-                      ...List.generate(items.length, (index) {
-                        final item = items[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Surface(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                            Row(children: [
-                              Expanded(child: Text('Món ${index + 1}', style: Theme.of(context).textTheme.titleMedium)),
-                              IconButton(onPressed: busy ? null : () => setState(() { item.dispose(); items.removeAt(index); }), icon: const Icon(Icons.delete_outline_rounded)),
-                            ]),
-                            TextFormField(controller: item.name, decoration: const InputDecoration(labelText: 'Tên món')),
-                            const SizedBox(height: 10),
-                            TextFormField(controller: item.total, keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: InputDecoration(labelText: 'Thành tiền', suffixText: currency)),
-                            const SizedBox(height: 10),
-                            const Text('Người dùng món:', style: TextStyle(fontWeight: FontWeight.w700)),
-                            ...people.where((p) => selected.contains(asInt(p['id']))).map((p) {
-                              final id = asInt(p['id']);
-                              return CheckboxListTile(
-                                dense: true,
-                                value: item.participants.contains(id),
-                                title: Text(p['name'].toString()),
-                                onChanged: busy ? null : (v) => setState(() {
-                                  if (v == true) { item.participants.add(id); } else { item.participants.remove(id); }
-                                }),
-                              );
-                            }),
-                          ])),
-                        );
-                      }),
-                    ],
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: description,
-                      minLines: 2,
-                      maxLines: 4,
-                      decoration: const InputDecoration(labelText: 'Ghi chú (không bắt buộc)'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: receipt,
-                      decoration: const InputDecoration(labelText: 'URL ảnh hóa đơn (không bắt buộc)', prefixIcon: Icon(Icons.camera_alt_outlined)),
-                    ),
-                    if (myShare > 0) ...[
-                      const SizedBox(height: 18),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: AppColors.primary.withOpacity(.45)),
-                        ),
-                        child: Row(children: [
-                          const Expanded(child: Text('Phần của bạn', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800))),
-                          Text(money(myShare, currency), style: const TextStyle(color: AppColors.primary, fontSize: 20, fontWeight: FontWeight.w900)),
-                        ]),
-                      ),
-                    ],
-                    const SizedBox(height: 26),
-                    BusyButton(
-                      busy: busy,
-                      label: widget.existing == null ? 'Lưu khoản chi' : 'Lưu chỉnh sửa',
-                      onPressed: save,
-                    ),
+                    Avatar(me['name']?.toString() ?? 'Bạn', radius: 17, imageUrl: me['avatarUrl']?.toString()),
                   ],
                 ),
               ),
-            ),
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 500),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
+                      child: Form(
+                        key: form,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            StaggerReveal(
+                              index: 0,
+                              child: Surface(
+                                interactive: false,
+                                padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+                                child: Column(
+                                  children: [
+                                    Text('AMOUNT', style: Theme.of(context).textTheme.labelSmall),
+                                    const SizedBox(height: 8),
+                                    TextFormField(
+                                      controller: amount,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontFamily: 'Geist',
+                                        fontSize: 34,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -1.2,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                      onChanged: (_) => setState(() {}),
+                                      decoration: InputDecoration(
+                                        hintText: '0',
+                                        prefixText: currency == 'VND' ? '₫ ' : '',
+                                        suffixText: currency == 'VND' ? null : currency,
+                                        border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        filled: false,
+                                        contentPadding: EdgeInsets.zero,
+                                      ),
+                                      validator: (v) => parseMoney(v ?? '', currency) == null ? 'Nhập số tiền hợp lệ.' : null,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    TextButton.icon(
+                                      onPressed: pickDate,
+                                      icon: const Icon(Icons.calendar_month_rounded, size: 16),
+                                      label: Text(
+                                        '${expenseDate.day.toString().padLeft(2, '0')}/${expenseDate.month.toString().padLeft(2, '0')}/${expenseDate.year}',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            TextFormField(
+                              controller: title,
+                              maxLength: 200,
+                              decoration: const InputDecoration(
+                                labelText: 'Khoản chi',
+                                hintText: 'Saturday Night Pizza',
+                                prefixIcon: Icon(Icons.receipt_long_rounded),
+                                counterText: '',
+                              ),
+                              validator: (v) => v == null || v.trim().isEmpty ? 'Nhập tên khoản chi.' : null,
+                            ),
+                            const SizedBox(height: 14),
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final compact = constraints.maxWidth < 390;
+                                final payerField = DropdownButtonFormField<int>(
+                                  initialValue: payer,
+                                  isExpanded: true,
+                                  decoration: const InputDecoration(labelText: 'Người trả'),
+                                  items: people.map((p) => DropdownMenuItem<int>(
+                                    value: asInt(p['id']),
+                                    child: Row(
+                                      children: [
+                                        Avatar(p['name'].toString(), radius: 13, imageUrl: p['avatarUrl']?.toString()),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            asInt(p['id']) == ownerId ? '${p['name']} · Trưởng nhóm' : p['name'].toString(),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )).toList(),
+                                  onChanged: busy || widget.existing == null ? null : (v) => setState(() => payer = v!),
+                                );
+                                final categoryField = FutureBuilder<List<Map<String, dynamic>>>(
+                                  future: categoriesFuture,
+                                  builder: (context, snapshot) {
+                                    final categories = snapshot.data ?? const <Map<String, dynamic>>[];
+                                    if (snapshot.connectionState != ConnectionState.done) {
+                                      return const SizedBox(height: 58, child: Center(child: LinearProgressIndicator()));
+                                    }
+                                    return DropdownButtonFormField<int>(
+                                      initialValue: categoryId ?? 0,
+                                      isExpanded: true,
+                                      decoration: const InputDecoration(labelText: 'Danh mục'),
+                                      items: [
+                                        const DropdownMenuItem<int>(value: 0, child: Text('Khác')),
+                                        ...categories.map((c) => DropdownMenuItem<int>(
+                                          value: asInt(c['id']),
+                                          child: Row(
+                                            children: [
+                                              Icon(categoryIcon(c['name'].toString()), size: 18, color: AppColors.tertiary),
+                                              const SizedBox(width: 7),
+                                              Expanded(child: Text(c['name'].toString(), overflow: TextOverflow.ellipsis)),
+                                            ],
+                                          ),
+                                        )),
+                                      ],
+                                      onChanged: busy ? null : (v) => setState(() => categoryId = v == 0 ? null : v),
+                                    );
+                                  },
+                                );
+                                return compact
+                                    ? Column(children: [payerField, const SizedBox(height: 12), categoryField])
+                                    : Row(children: [Expanded(child: payerField), const SizedBox(width: 12), Expanded(child: categoryField)]);
+                              },
+                            ),
+                            if (widget.existing == null) ...[
+                              const SizedBox(height: 12),
+                              Surface(
+                                interactive: false,
+                                padding: const EdgeInsets.all(13),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.admin_panel_settings_rounded, color: AppColors.primary, size: 19),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        'Người trả mặc định: Trưởng nhóm. Tổng chi được ghi nhận cho trưởng nhóm, sau đó chia phần phải thanh toán cho các thành viên còn lại.',
+                                        style: Theme.of(context).textTheme.bodySmall,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 14),
+                            Surface(
+                              interactive: false,
+                              child: Column(
+                                children: [
+                                  const Icon(Icons.receipt_long_outlined, color: AppColors.textSecondary, size: 27),
+                                  const SizedBox(height: 7),
+                                  Text('Hóa đơn / chứng từ', style: Theme.of(context).textTheme.titleMedium),
+                                  const SizedBox(height: 4),
+                                  Text('Có thể thêm đường dẫn ảnh hoặc PDF hóa đơn', style: Theme.of(context).textTheme.bodySmall),
+                                  const SizedBox(height: 10),
+                                  TextFormField(
+                                    controller: receipt,
+                                    decoration: const InputDecoration(
+                                      hintText: 'URL hóa đơn (không bắt buộc)',
+                                      prefixIcon: Icon(Icons.link_rounded),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 9),
+                                  OutlinedButton.icon(
+                                    onPressed: () => showInfo(context, 'Bạn có thể dán URL ảnh hóa đơn vào ô phía trên.', title: 'Receipt'),
+                                    icon: const Icon(Icons.qr_code_scanner_rounded),
+                                    label: const Text('OCR SCAN'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            Text('Split Options', style: Theme.of(context).textTheme.labelMedium),
+                            const SizedBox(height: 10),
+                            PillSegment<String>(
+                              items: const [
+                                ('EQUAL', 'Equal'),
+                                ('AMOUNT', 'Exact'),
+                                ('PERCENT', '%'),
+                                ('WEIGHT', 'Weight'),
+                                ('ITEM', 'Item'),
+                              ],
+                              value: splitType,
+                              onChanged: busy ? (_) {} : (v) => setState(() => splitType = v),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(splitHelp, style: Theme.of(context).textTheme.bodySmall),
+                            const SizedBox(height: 12),
+                            ...people.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final p = entry.value;
+                              final id = asInt(p['id']);
+                              final checked = selected.contains(id);
+                              final preview = splitType == 'EQUAL' && checked ? equalShare : 0;
+                              return StaggerReveal(
+                                index: 1 + index,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 9),
+                                  child: Surface(
+                                    padding: EdgeInsets.zero,
+                                    child: Column(
+                                      children: [
+                                        CheckboxListTile(
+                                          value: checked,
+                                          onChanged: busy ? null : (v) => setState(() {
+                                            if (v == true) {
+                                              selected.add(id);
+                                            } else {
+                                              selected.remove(id);
+                                            }
+                                          }),
+                                          title: Row(
+                                            children: [
+                                              Avatar(p['name'].toString(), radius: 17, imageUrl: p['avatarUrl']?.toString()),
+                                              const SizedBox(width: 10),
+                                              Expanded(child: Text(p['name'].toString(), style: const TextStyle(fontWeight: FontWeight.w800))),
+                                              if (splitType == 'EQUAL' && checked)
+                                                Text(money(preview, currency), style: const TextStyle(fontFamily: 'Geist', color: AppColors.tertiary, fontWeight: FontWeight.w900)),
+                                            ],
+                                          ),
+                                          controlAffinity: ListTileControlAffinity.leading,
+                                        ),
+                                        if (checked && {'AMOUNT', 'PERCENT', 'WEIGHT'}.contains(splitType))
+                                          Padding(
+                                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                                            child: TextFormField(
+                                              controller: values[id],
+                                              onChanged: (_) => setState(() {}),
+                                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                              decoration: InputDecoration(
+                                                labelText: splitType == 'AMOUNT'
+                                                    ? 'Số tiền của ${p['name']}'
+                                                    : splitType == 'PERCENT'
+                                                        ? 'Phần trăm'
+                                                        : 'Trọng số',
+                                                suffixText: splitType == 'AMOUNT' ? currency : splitType == 'PERCENT' ? '%' : null,
+                                              ),
+                                              validator: (v) {
+                                                if (!selected.contains(id)) return null;
+                                                if (splitType == 'AMOUNT') {
+                                                  return parseMoney(v ?? '', currency) == null ? 'Nhập số tiền.' : null;
+                                                }
+                                                if (splitType == 'PERCENT' || splitType == 'WEIGHT') {
+                                                  final number = double.tryParse(v?.trim() ?? '');
+                                                  return number != null && number > 0 ? null : 'Nhập giá trị lớn hơn 0.';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                            if (splitType == 'ITEM') ...[
+                              SectionTitle(
+                                'Các món',
+                                trailing: TextButton.icon(onPressed: addItem, icon: const Icon(Icons.add), label: const Text('Thêm món')),
+                              ),
+                              if (items.isEmpty)
+                                const EmptyState(
+                                  title: 'Chưa có món',
+                                  description: 'Thêm từng món trong hóa đơn và chọn ai sử dụng món đó.',
+                                  icon: Icons.restaurant_menu_rounded,
+                                ),
+                              ...List.generate(items.length, (index) {
+                                final item = items[index];
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Surface(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(child: Text('Món ${index + 1}', style: Theme.of(context).textTheme.titleMedium)),
+                                            IconButton(
+                                              onPressed: busy ? null : () => setState(() {
+                                                item.dispose();
+                                                items.removeAt(index);
+                                              }),
+                                              icon: const Icon(Icons.delete_outline_rounded),
+                                            ),
+                                          ],
+                                        ),
+                                        TextFormField(controller: item.name, decoration: const InputDecoration(labelText: 'Tên món')),
+                                        const SizedBox(height: 10),
+                                        TextFormField(
+                                          controller: item.total,
+                                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                          decoration: InputDecoration(labelText: 'Thành tiền', suffixText: currency),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        const Text('Người dùng món:', style: TextStyle(fontWeight: FontWeight.w700)),
+                                        ...people.where((p) => selected.contains(asInt(p['id']))).map((p) {
+                                          final id = asInt(p['id']);
+                                          return CheckboxListTile(
+                                            dense: true,
+                                            value: item.participants.contains(id),
+                                            title: Text(p['name'].toString()),
+                                            onChanged: busy ? null : (v) => setState(() {
+                                              if (v == true) {
+                                                item.participants.add(id);
+                                              } else {
+                                                item.participants.remove(id);
+                                              }
+                                            }),
+                                          );
+                                        }),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ],
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: description,
+                              minLines: 2,
+                              maxLines: 4,
+                              decoration: const InputDecoration(labelText: 'Ghi chú (không bắt buộc)'),
+                            ),
+                            if (myShare > 0) ...[
+                              const SizedBox(height: 14),
+                              Surface(
+                                interactive: false,
+                                child: Row(
+                                  children: [
+                                    const Expanded(
+                                      child: Text('Phần của mình', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800)),
+                                    ),
+                                    Text(
+                                      money(myShare, currency),
+                                      style: const TextStyle(fontFamily: 'Geist', color: AppColors.primary, fontSize: 20, fontWeight: FontWeight.w900),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 24),
+                            BrandButton(
+                              label: widget.existing == null ? 'Lưu khoản chi' : 'Lưu thay đổi',
+                              icon: Icons.check_rounded,
+                              busy: busy,
+                              onPressed: busy ? null : save,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

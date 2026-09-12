@@ -14,6 +14,17 @@ class AppConstants {
     defaultValue: '',
   );
 
+  /// Google OAuth Web Client ID. Pass the same Web OAuth client ID to the
+  /// Backend as GOOGLE_CLIENT_ID. On Android it is used as serverClientId so
+  /// Google returns an ID token that the Backend can verify.
+  static const String _googleWebClientId = String.fromEnvironment(
+    'GOOGLE_WEB_CLIENT_ID',
+    defaultValue: '',
+  );
+
+  static String get googleWebClientId => _googleWebClientId.trim();
+  static bool get googleSignInConfigured => googleWebClientId.isNotEmpty;
+
   static String get apiUrl {
     final configured = _configuredApiUrl.trim();
     final value = configured.isNotEmpty ? configured : _defaultApiUrl;

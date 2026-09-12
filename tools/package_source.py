@@ -5,9 +5,9 @@ import argparse, re
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser();parser.add_argument('output',type=Path);args=parser.parse_args()
 output=args.output.resolve();output.parent.mkdir(parents=True,exist_ok=True)
-exclude_parts={'.git','.idea','.dart_tool','.gradle','build','__pycache__'}
+exclude_parts={'.git','.idea','.dart_tool','.gradle','build','__pycache__','ephemeral','.plugin_symlinks'}
 exclude_prefixes=[('api','data'),('api','target'),('api','target_test-classes'),('frontend','build')]
-private_names={'.env','config.json','local.properties','key.properties'}
+private_names={'.env','config.json','local.properties','key.properties','Generated.xcconfig','flutter_export_environment.sh','.flutter-plugins-dependencies'}
 selected=[]
 for path in sorted(root.rglob('*')):
  if not path.is_file() or path.resolve()==output:continue

@@ -251,9 +251,9 @@ class _GuidePage extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(.07),
+                          color: AppColors.primary.withValues(alpha: .07),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.primary.withOpacity(.12)),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: .12)),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,7 +290,7 @@ class _StepRow extends StatelessWidget {
               gradient: AppColors.primaryGradient,
               borderRadius: BorderRadius.circular(11),
               boxShadow: [
-                BoxShadow(color: AppColors.primary.withOpacity(.18), blurRadius: 12, offset: const Offset(0, 5)),
+                BoxShadow(color: AppColors.primary.withValues(alpha: .18), blurRadius: 12, offset: const Offset(0, 5)),
               ],
             ),
             alignment: Alignment.center,
@@ -307,7 +307,7 @@ class _StepConnector extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(left: 15, top: 4, bottom: 4),
-        child: Container(width: 2, height: 18, color: AppColors.primary.withOpacity(.20)),
+        child: Container(width: 2, height: 18, color: AppColors.primary.withValues(alpha: .20)),
       );
 }
 
@@ -327,8 +327,8 @@ class _MiniPrototype extends StatelessWidget {
           color: Theme.of(context).colorScheme.surface,
           border: Border.all(color: Theme.of(context).dividerColor, width: 1.3),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(.10), blurRadius: 34, offset: const Offset(0, 17)),
-            BoxShadow(color: AppColors.primary.withOpacity(.08), blurRadius: 34),
+            BoxShadow(color: Colors.black.withValues(alpha: .10), blurRadius: 34, offset: const Offset(0, 17)),
+            BoxShadow(color: AppColors.primary.withValues(alpha: .08), blurRadius: 34),
           ],
         ),
         child: ClipRRect(
@@ -463,7 +463,7 @@ class _SettlementPreview extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(.07),
+              color: AppColors.primary.withValues(alpha: .07),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Column(
@@ -475,10 +475,11 @@ class _SettlementPreview extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          const Row(
+          const Wrap(
+            spacing: 6,
+            runSpacing: 6,
             children: [
               StatusPill(label: 'Ít giao dịch hơn', kind: FeedbackKind.success),
-              SizedBox(width: 6),
               StatusPill(label: 'Bảo toàn tổng tiền', kind: FeedbackKind.info),
             ],
           ),
@@ -513,7 +514,7 @@ class _MetricPreview extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: positive ? AppColors.success.withOpacity(.08) : AppColors.primary.withOpacity(.07),
+          color: positive ? AppColors.success.withValues(alpha: .08) : AppColors.primary.withValues(alpha: .07),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(

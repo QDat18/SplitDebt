@@ -1,7 +1,6 @@
 package com.splitdebt.api.ledger;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -40,7 +39,17 @@ public class LedgerController {
             @NotBlank @Size(max = 10) String currency) {}
 
     public record JoinGroupInput(@NotBlank @Size(max = 64) String inviteCode) {}
-    public record MemberInput(@NotBlank @Email @Size(max = 255) String email) {}
+    public record MemberInput(
+            @Size(max = 255) String identifier,
+            @Size(max = 255) String email,
+            @Size(max = 30) String phone) {
+        String value() {
+            if (identifier != null && !identifier.isBlank()) return identifier;
+            if (email != null && !email.isBlank()) return email;
+            if (phone != null && !phone.isBlank()) return phone;
+            return "";
+        }
+    }
     public record ProfileInput(@NotBlank @Size(max = 100) String fullName, @Size(max = 20) String phone, String avatarUrl) {}
 
     public record ParticipantInput(
@@ -141,6 +150,11 @@ public class LedgerController {
         return Map.of("ok", true);
     }
 
+    @PostMapping("/notifications/read-all")
+    public Object readAllNotifications(@RequestAttribute("user") AuthFilter.User user) {
+        return Map.of("ok", true, "updated", service.markAllNotificationsRead(user));
+    }
+
     @GetMapping("/groups")
     public Object groups(@RequestAttribute("user") AuthFilter.User user) {
         return service.groups(user);
@@ -167,7 +181,7 @@ public class LedgerController {
     public Object addMember(@PathVariable long id,
                             @RequestAttribute("user") AuthFilter.User user,
                             @Valid @RequestBody MemberInput input) {
-        service.addMember(id, user, input.email());
+        service.addMember(id, user, input.value());
         return Map.of("ok", true);
     }
 

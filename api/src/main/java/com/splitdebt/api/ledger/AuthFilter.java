@@ -29,6 +29,9 @@ public class AuthFilter extends OncePerRequestFilter {
                 || path.equals("/api/health")
                 || path.equals("/api/auth/login")
                 || path.equals("/api/auth/register")
+                || path.equals("/api/auth/google")
+                || path.equals("/api/auth/forgot-password")
+                || path.equals("/api/auth/reset-password")
                 || request.getMethod().equals("OPTIONS");
     }
 

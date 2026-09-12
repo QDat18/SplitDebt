@@ -98,3 +98,64 @@ Quy trình thanh toán hai chiều:
 `users`, `groups`, `group_members`, `categories`, `expenses`, `expense_participants`, `expense_items`, `item_participants`, `expense_shares`, `debts`, `settlements`, `notifications`, `group_settings`, `user_settings`.
 
 Các bảng legacy `profiles`, `debt_groups`, `members` không còn được runtime mới sử dụng.
+
+## Authentication extensions
+
+### `POST /api/auth/google`
+
+Public. Body:
+
+```json
+{"idToken":"<google-id-token>"}
+```
+
+Backend verifies the Google token audience using `GOOGLE_CLIENT_ID`, links/creates the SplitDebt user by verified email, then returns the same `{token,user}` shape as `/api/auth/login`.
+
+### `POST /api/auth/forgot-password`
+
+Public. Body:
+
+```json
+{"email":"user@example.com"}
+```
+
+Returns a generic message so callers cannot determine whether an email exists. In local DEV mode only, response may also contain `devCode`.
+
+### `POST /api/auth/reset-password`
+
+Public. Body:
+
+```json
+{"email":"user@example.com","code":"123456","newPassword":"new-password-123"}
+```
+
+The reset code is one-time, expires after the configured TTL and is invalidated after repeated wrong attempts.
+
+## UX v7 additions
+
+### Add group member by email or phone
+
+`POST /api/groups/{groupId}/members`
+
+Preferred payload:
+
+```json
+{"identifier":"0912345678"}
+```
+
+`identifier` may be either an account email or phone number. Legacy `{ "email": "..." }` remains accepted; `{ "phone": "..." }` is also accepted.
+
+### Mark all notifications read
+
+`POST /api/notifications/read-all`
+
+Returns `{ "ok": true, "updated": <count> }`.
+
+### Effective group balances
+
+`GET /api/groups/{groupId}` now contains both:
+
+- `balances`: confirmed ledger balance.
+- `effectiveBalances`: UI/action balance after subtracting settlements already marked `PAID` and waiting for confirmation.
+
+Each group object also exposes `pendingOutgoing` and `pendingIncoming` so the client can distinguish a completed balance from a payment that is still waiting for confirmation.

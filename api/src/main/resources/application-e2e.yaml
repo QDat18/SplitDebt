@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/splitdebt-e2e;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;NON_KEYWORDS=GROUPS
+    username: sa
+    password: ""
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+server:
+  port: 18080
+splitdebt:
+  jwt-secret: splitdebt-e2e-secret-only-for-local-automated-tests
+  jwt-ttl-hours: 1
+  allowed-origin-patterns: http://localhost:*,http://127.0.0.1:*
+
+  password-reset:
+    dev-return-code: true
+    ttl-minutes: 10

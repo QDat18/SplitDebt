@@ -20,3 +20,12 @@ flutter run --dart-define=API_URL=http://localhost:8080/api
 ```
 
 Không cần Supabase Auth hoặc `config.json`. Xem thêm [SETUP](../docs/SETUP.md), [DESIGN_SYSTEM](../docs/DESIGN_SYSTEM.md), [VALIDATION](../docs/VALIDATION.md).
+
+
+## Google Sign-In
+
+```bash
+flutter run -d chrome --web-port=5000 --dart-define=API_URL=http://localhost:8080/api --dart-define=GOOGLE_WEB_CLIENT_ID=xxxxxxxx.apps.googleusercontent.com
+```
+
+Chi tiết Google Cloud, Android OAuth Client và quên mật khẩu: [AUTH_GOOGLE_PASSWORD_RESET](../docs/AUTH_GOOGLE_PASSWORD_RESET.md).
