@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../data/api.dart' show money;
-import '../../widgets/design.dart' show Avatar, Surface, AnimatedMoneyText, StaggerReveal;
+import '../../widgets/design.dart' show Surface, AnimatedMoneyText, StaggerReveal;
 import '../theme/app_theme.dart';
 import 'premium_ui.dart';
 

@@ -409,7 +409,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           final d = _ItemDraft();
           d.name.text = old['itemName']?.toString() ?? '';
           d.total.text = _moneyInput(asInt(old['totalPrice']), currency);
-          for (final ps in maps(old['participants'])) d.participants.add(asInt(ps['userId']));
+          for (final ps in maps(old['participants'])) {
+            d.participants.add(asInt(ps['userId']));
+          }
           items.add(d);
         }
       }
@@ -419,8 +421,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   @override
   void dispose() {
     title.dispose(); description.dispose(); amount.dispose(); receipt.dispose();
-    for (final c in values.values) c.dispose();
-    for (final item in items) item.dispose();
+    for (final c in values.values) {
+      c.dispose();
+    }
+    for (final item in items) {
+      item.dispose();
+    }
     super.dispose();
   }
 

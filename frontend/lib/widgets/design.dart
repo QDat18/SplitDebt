@@ -36,11 +36,11 @@ class _SurfaceState extends State<Surface> {
 
     if (pressed && widget.interactive && !reducedMotion) {
       transform
-        ..translate(0.0, 1.5)
-        ..scale(.978, .978);
+        ..translateByDouble(0.0, 1.5, 0.0, 1.0)
+        ..scaleByDouble(.978, .978, 1.0, 1.0);
     } else if (hovered && widget.interactive && !reducedMotion) {
       transform
-        ..translate(0.0, -2.0)
+        ..translateByDouble(0.0, -2.0, 0.0, 1.0)
         ..rotateX(.006)
         ..rotateY(-.005);
     }
@@ -307,7 +307,7 @@ class _TiltShellState extends State<_TiltShell> {
           ..setEntry(3, 2, .001)
           ..rotateX(hovered ? -pointer.dy * .055 : 0)
           ..rotateY(hovered ? pointer.dx * .055 : 0)
-          ..translate(0.0, hovered ? -2.0 : 0.0),
+          ..translateByDouble(0.0, hovered ? -2.0 : 0.0, 0.0, 1.0),
         child: widget.child,
       ),
     );
@@ -470,7 +470,6 @@ class _FeedbackBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final (color, icon) = switch (kind) {
       FeedbackKind.success => (AppColors.success, Icons.check_circle_rounded),
       FeedbackKind.error => (Theme.of(context).colorScheme.error, Icons.error_rounded),
@@ -497,7 +496,7 @@ class _FeedbackBanner extends StatelessWidget {
           border: Border.all(color: color.withValues(alpha: .28)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: dark ? .35 : .12),
+              color: Colors.black.withValues(alpha: .35),
               blurRadius: 28,
               offset: const Offset(0, 12),
             ),
@@ -964,7 +963,6 @@ class BalancePair extends StatelessWidget {
       );
 
   Widget _tile(BuildContext context, String label, int amount, bool positive) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final color = positive
         ? AppColors.success
         : AppColors.error;
@@ -1261,6 +1259,7 @@ class LuminousBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _LuminousNavShell(
+        fab: LuminousFab(onTap: onAdd),
         child: Row(
           children: [
             Expanded(child: _navItem(context, 0)),
@@ -1270,7 +1269,6 @@ class LuminousBottomNav extends StatelessWidget {
             Expanded(child: _navItem(context, 3)),
           ],
         ),
-        fab: LuminousFab(onTap: onAdd),
       );
 
   Widget _navItem(BuildContext context, int index) {
@@ -1313,6 +1311,7 @@ class LuminousExtendedBottomNav extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final centerGap = width < 360 ? 52.0 : width < 420 ? 60.0 : 70.0;
     return _LuminousNavShell(
+      fab: LuminousFab(onTap: onAdd),
       child: Row(
         children: [
           for (var i = 0; i < 3; i++) Expanded(child: _navItem(context, i)),
@@ -1320,7 +1319,6 @@ class LuminousExtendedBottomNav extends StatelessWidget {
           for (var i = 3; i < 6; i++) Expanded(child: _navItem(context, i)),
         ],
       ),
-      fab: LuminousFab(onTap: onAdd),
     );
   }
 

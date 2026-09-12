@@ -162,9 +162,12 @@ def main() -> int:
     after = request("GET", f"/groups/{group_id}", token=owner_token)
     check(all(int(v) == 0 for v in after["balances"].values()), "balances should be zero after confirmation")
 
-    stats = request("GET", f"/groups/{group_id}/statistics?range=ALL", token=owner_token)
+    stats = request("GET", f"/groups/{group_id}/statistics?range=DAY", token=owner_token)
     check(stats["totalExpense"] == 10000, "statistics total mismatch")
-    request("GET", f"/groups/{group_id}/statistics?range=YEAR", token=owner_token, expected=(400,))
+    check(stats["mySpent"] == 10000, "statistics mySpent mismatch")
+    request("GET", f"/groups/{group_id}/statistics?range=MONTH", token=owner_token)
+    request("GET", f"/groups/{group_id}/statistics?range=YEAR", token=owner_token)
+    request("GET", f"/groups/{group_id}/statistics?range=ALL", token=owner_token, expected=(400,))
 
     member_notifications = request("GET", "/notifications?limit=100", token=member_token)
     check(any(n["type"] == "NEW_EXPENSE" for n in member_notifications), "member did not receive expense notification")

@@ -65,11 +65,15 @@ class _GroupScreenState extends State<GroupScreen> {
               child: FutureBuilder<dynamic>(
       future: future,
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
-        if (snapshot.hasError) return Center(child: EmptyState(
-          title: 'Không thể tải nhóm', description: snapshot.error.toString(),
-          action: FilledButton(onPressed: refresh, child: const Text('Thử lại')),
-        ));
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: EmptyState(
+            title: 'Không thể tải nhóm', description: snapshot.error.toString(),
+            action: FilledButton(onPressed: refresh, child: const Text('Thử lại')),
+          ));
+        }
         final d = Map<String, dynamic>.from(snapshot.data as Map);
         _latestDetail = d;
         final g = Map<String, dynamic>.from(d['group'] as Map);
@@ -357,16 +361,19 @@ class _GroupScreenState extends State<GroupScreen> {
                           onPressed: () async {
                             try {
                               await Api.call('/settlements/${p['id']}/confirm', method: 'POST');
-                              if (mounted) {
-                                await showSuccessDialog(
-                                  context,
-                                  title: 'Thanh toán đã được xác nhận',
-                                  message: 'Công nợ của nhóm đã được cập nhật và giao dịch được đánh dấu hoàn tất.',
-                                  actionLabel: 'Hoàn tất',
-                                );
-                                if (mounted) await refresh();
-                              }
-                            } catch (e) { if (mounted) showError(context, e); }
+                              if (!context.mounted) return;
+                              await showSuccessDialog(
+                                context,
+                                title: 'Thanh toán đã được xác nhận',
+                                message: 'Công nợ của nhóm đã được cập nhật và giao dịch được đánh dấu hoàn tất.',
+                                actionLabel: 'Hoàn tất',
+                              );
+                              if (!mounted) return;
+                              await refresh();
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              showError(context, e);
+                            }
                           },
                           icon: const Icon(Icons.verified_rounded),
                           label: const Text('Xác nhận đã nhận tiền'),
@@ -378,11 +385,13 @@ class _GroupScreenState extends State<GroupScreen> {
                           onPressed: () async {
                             try {
                               await Api.call('/settlements/${p['id']}/cancel', method: 'POST');
-                              if (mounted) {
-                                showInfo(context, 'Bản ghi thanh toán đã được hủy.');
-                                await refresh();
-                              }
-                            } catch (e) { if (mounted) showError(context, e); }
+                              if (!context.mounted) return;
+                              showInfo(context, 'Bản ghi thanh toán đã được hủy.');
+                              await refresh();
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              showError(context, e);
+                            }
                           },
                           child: const Text('Hủy bản ghi thanh toán'),
                         ),
@@ -844,7 +853,9 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
             onPressed: () async {
               final changed = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) =>
                 AddExpenseScreen(detail: widget.detail, existing: expense)));
-              if (changed == true && mounted) Navigator.pop(context, true);
+              if (changed == true && context.mounted) {
+                Navigator.pop(context, true);
+              }
             },
             icon: const Icon(Icons.edit_outlined),
           ),
@@ -1093,33 +1104,38 @@ class _SettlementScreenState extends State<SettlementScreen> {
                   const SizedBox(height: 22),
                   Text('Phương thức thanh toán', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 10),
-                  ...methods.map((item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(18),
-                        onTap: busy ? null : () => setState(() => method = item.$1),
-                        child: Ink(
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: method == item.$1 ? AppColors.primary : Theme.of(context).dividerColor,
-                              width: method == item.$1 ? 1.5 : 1,
+                  RadioGroup<String>(
+                    groupValue: method,
+                    onChanged: (value) {
+                      if (!busy && value != null) {
+                        setState(() => method = value);
+                      }
+                    },
+                    child: Column(
+                      children: methods.map((item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: method == item.$1 ? AppColors.primary : Theme.of(context).dividerColor,
+                                width: method == item.$1 ? 1.5 : 1,
+                              ),
+                            ),
+                            child: RadioListTile<String>(
+                              value: item.$1,
+                              enabled: !busy,
+                              secondary: Icon(item.$3, color: method == item.$1 ? AppColors.primary : null),
+                              title: Text(item.$2, style: const TextStyle(fontWeight: FontWeight.w800)),
                             ),
                           ),
-                          child: RadioListTile<String>(
-                            value: item.$1,
-                            groupValue: method,
-                            onChanged: busy ? null : (v) => setState(() => method = v!),
-                            secondary: Icon(item.$3, color: method == item.$1 ? AppColors.primary : null),
-                            title: Text(item.$2, style: const TextStyle(fontWeight: FontWeight.w800)),
-                          ),
                         ),
-                      ),
+                      )).toList(),
                     ),
-                  )),
+                  ),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(14),

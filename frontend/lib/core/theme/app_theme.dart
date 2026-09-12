@@ -92,7 +92,6 @@ class AppTheme {
     const brightness = Brightness.dark;
     const background = AppColors.background;
     const surface = AppColors.surface;
-    const elevated = AppColors.surfaceHigh;
     const ink = AppColors.textPrimary;
     const muted = AppColors.textSecondary;
     const border = AppColors.outlineVariant;

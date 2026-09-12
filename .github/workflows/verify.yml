@@ -90,7 +90,7 @@ jobs:
       - name: Android build smoke test
         run: flutter build apk --debug
         working-directory: frontend
-      - name: Upload Flutter coverage 
+      - name: Upload Flutter coverage
         if: always()
         uses: actions/upload-artifact@v4
         with:
