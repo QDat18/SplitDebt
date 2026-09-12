@@ -3,10 +3,6 @@
 SplitDebt là ứng dụng quản lý chi tiêu nhóm và sổ công nợ theo tài liệu SRS/PTTKHT của Nhóm 8.
 
 
-## UI reference v9 — Stitch Reference Complete
-
-Frontend v9 sử dụng đầy đủ bộ Stitch reference **Luminous Depth** do người dùng cung cấp cho splash, auth, dashboard, group details, add expense, debts, smart settlement, history, profile và analytics. Logo runtime là **ảnh PNG gốc của reference**, không redraw bằng Flutter code. Xem `CHANGELOG_REFERENCE_COMPLETE_V9.md`. Logic nghiệp vụ v7/v6 được giữ nguyên.
-
 ## Kiến trúc
 
 - `frontend/`: Flutter/Dart, Material 3, lưu JWT cục bộ bằng `shared_preferences`.
@@ -57,6 +53,3 @@ Chạy nhanh trong lúc code:
 
 Chi tiết test case, coverage, E2E và checklist Android: [`docs/TESTING.md`](docs/TESTING.md).
 
-### UX công nợ v7
-
-Trang nhóm hiện phân biệt rõ số **còn phải trả**, **còn được nhận**, **đã thanh toán** và **đã nhận**. Khoản đã ghi nhận thanh toán được trừ khỏi số cần xử lý ngay để tránh trả lặp, nhưng vẫn giữ trạng thái **Chờ xác nhận** cho đến khi người nhận xác nhận. Trưởng nhóm có thể thêm thành viên bằng email/số điện thoại hoặc chia sẻ mã nhóm; khi thêm khoản chi mới, Trưởng nhóm là người trả mặc định và chi phí được chọn chia cho các thành viên còn lại.
