@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_typography.dart';
+import 'data/settlement_repository.dart';
 
 /// ----------------------------------------------------------------------------
 /// MÀN HÌNH XÁC NHẬN THANH TOÁN 2 CHIỀU (SETTLEMENT CONFIRMATION SCREEN)
@@ -17,6 +18,13 @@ class SettlementConfirmationScreen extends ConsumerStatefulWidget {
   final String toName;
   final String toAvatar;
   final double amount;
+  final bool initialPayerConfirmed;
+
+  // ID để gọi API backend → trigger FCM
+  // Nếu null thì chạy offline (mock data)
+  final int? groupId;
+  final int? settlementId;
+  final int? currentUserId;
 
   const SettlementConfirmationScreen({
     super.key,
@@ -25,6 +33,10 @@ class SettlementConfirmationScreen extends ConsumerStatefulWidget {
     required this.toName,
     required this.toAvatar,
     required this.amount,
+    this.initialPayerConfirmed = false,
+    this.groupId,
+    this.settlementId,
+    this.currentUserId,
   });
 
   @override
@@ -38,13 +50,17 @@ class _SettlementConfirmationScreenState extends ConsumerState<SettlementConfirm
 
   final currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 
-  bool _payerConfirmed = false; // Người chuyển bấm "Tôi đã chuyển khoản"
+  late bool _payerConfirmed; // Người chuyển bấm "Tôi đã chuyển khoản"
   bool _receiverConfirmed = false; // Người nhận bấm "Đã nhận tiền"
+  bool _isLoading = false; // Đang gọi API
 
+  final _repo = SettlementRepository();
 
   @override
   void initState() {
     super.initState();
+
+    _payerConfirmed = widget.initialPayerConfirmed;
 
     _animController = AnimationController(
       vsync: this,
@@ -63,6 +79,8 @@ class _SettlementConfirmationScreenState extends ConsumerState<SettlementConfirm
 
   @override
   Widget build(BuildContext context) {
+    final isFullyCompleted = _payerConfirmed && _receiverConfirmed;
+
     return Scaffold(
       backgroundColor: AppColors.n50,
       appBar: AppBar(
@@ -78,7 +96,7 @@ class _SettlementConfirmationScreenState extends ConsumerState<SettlementConfirm
             ),
             child: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: AppColors.n800),
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(context, isFullyCompleted),
         ),
         title: Text('Xác nhận Thanh toán 2 Chiều', style: AppTypography.title.copyWith(fontSize: 16)),
         centerTitle: true,
@@ -328,21 +346,51 @@ class _SettlementConfirmationScreenState extends ConsumerState<SettlementConfirm
             if (!isFullyCompleted) ...[
               if (!_payerConfirmed)
                 ElevatedButton.icon(
-                  onPressed: () {
+                  onPressed: _isLoading ? null : () async {
                     HapticFeedback.mediumImpact();
-                    setState(() {
-                      _payerConfirmed = true;
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Đã ghi nhận: Người trả bấm "Tôi đã chuyển khoản"!'),
-                        backgroundColor: AppColors.warning,
-                        behavior: SnackBarBehavior.floating,
-                        margin: const EdgeInsets.only(bottom: 95, left: 16, right: 16),
-                        duration: const Duration(seconds: 2),
-                        shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
-                      ),
-                    );
+
+                    // Gọi API nếu có đủ thông tin
+                    if (widget.groupId != null &&
+                        widget.settlementId != null &&
+                        widget.currentUserId != null) {
+                      setState(() => _isLoading = true);
+                      try {
+                        await _repo.markPaid(
+                          groupId: widget.groupId!,
+                          settlementId: widget.settlementId!,
+                          debtorUserId: widget.currentUserId!,
+                        );
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Lỗi: $e'),
+                              backgroundColor: AppColors.error,
+                              behavior: SnackBarBehavior.floating,
+                              margin: const EdgeInsets.only(bottom: 95, left: 16, right: 16),
+                              shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
+                            ),
+                          );
+                        }
+                        setState(() => _isLoading = false);
+                        return;
+                      }
+                      setState(() => _isLoading = false);
+                    }
+
+                    setState(() { _payerConfirmed = true; });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Đã ghi nhận: Người trả bấm "Tôi đã chuyển khoản"!'),
+                          backgroundColor: AppColors.warning,
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 95, left: 16, right: 16),
+                          duration: const Duration(seconds: 2),
+                          shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.p500,
@@ -356,27 +404,57 @@ class _SettlementConfirmationScreenState extends ConsumerState<SettlementConfirm
 
               if (_payerConfirmed && !_receiverConfirmed)
                 ElevatedButton.icon(
-                  onPressed: () {
+                  onPressed: _isLoading ? null : () async {
                     HapticFeedback.mediumImpact();
-                    setState(() {
-                      _receiverConfirmed = true;
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Row(
-                          children: [
-                            Icon(Icons.check_circle_rounded, color: Colors.white),
-                            SizedBox(width: 8),
-                            Text('Xác nhận 2 chiều thành công! Đã chốt sổ giao dịch.'),
-                          ],
+
+                    // Gọi API confirm → backend gửi FCM cho người trả
+                    if (widget.groupId != null &&
+                        widget.settlementId != null &&
+                        widget.currentUserId != null) {
+                      setState(() => _isLoading = true);
+                      try {
+                        await _repo.confirmPaid(
+                          groupId: widget.groupId!,
+                          settlementId: widget.settlementId!,
+                          creditorUserId: widget.currentUserId!,
+                        );
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Lỗi: $e'),
+                              backgroundColor: AppColors.error,
+                              behavior: SnackBarBehavior.floating,
+                              margin: const EdgeInsets.only(bottom: 95, left: 16, right: 16),
+                              shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
+                            ),
+                          );
+                        }
+                        setState(() => _isLoading = false);
+                        return;
+                      }
+                      setState(() => _isLoading = false);
+                    }
+
+                    setState(() { _receiverConfirmed = true; });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Row(
+                            children: [
+                              Icon(Icons.check_circle_rounded, color: Colors.white),
+                              SizedBox(width: 8),
+                              Text('Xác nhận 2 chiều thành công! Đã chốt sổ giao dịch.'),
+                            ],
+                          ),
+                          backgroundColor: AppColors.success,
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 95, left: 16, right: 16),
+                          duration: const Duration(seconds: 2),
+                          shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
                         ),
-                        backgroundColor: AppColors.success,
-                        behavior: SnackBarBehavior.floating,
-                        margin: const EdgeInsets.only(bottom: 95, left: 16, right: 16),
-                        duration: const Duration(seconds: 2),
-                        shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
-                      ),
-                    );
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.success,
@@ -389,6 +467,7 @@ class _SettlementConfirmationScreenState extends ConsumerState<SettlementConfirm
                 ),
             ] else ...[
               Container(
+                margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: AppColors.successTint,
@@ -403,6 +482,17 @@ class _SettlementConfirmationScreenState extends ConsumerState<SettlementConfirm
                   ],
                 ),
               ),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius16),
+                ),
+                icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
+                label: Text('Hoàn tất & Quay lại', style: AppTypography.title.copyWith(color: Colors.white, fontSize: 15)),
+              ),
             ],
           ],
         ),
@@ -410,3 +500,4 @@ class _SettlementConfirmationScreenState extends ConsumerState<SettlementConfirm
     );
   }
 }
+

@@ -5,8 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
-import '../profile/profile_screen.dart';
+import '../../main_layout_screen.dart';
 import 'login_screen.dart';
+import 'data/auth_repository.dart';
+import '../notifications/push_notification_service.dart';
+import '../../core/app/app_keys.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -38,9 +41,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final authState = ref.read(authProvider);
 
     if (authState == AuthState.authenticated) {
+      unawaited(_restorePush());
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => const ProfileScreen(),
+          builder: (_) => const MainLayoutScreen(),
         ),
       );
     } else {
@@ -49,6 +53,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           builder: (_) => const LoginScreen(),
         ),
       );
+    }
+  }
+
+  Future<void> _restorePush() async {
+    try {
+      final push = PushNotificationService.instance;
+      push.bindMessenger(scaffoldMessengerKey);
+      await push.initialize();
+      await push.subscribeToUser(await AuthRepository().getCurrentUserId());
+    } catch (error) {
+      debugPrint('Không khôi phục được thông báo: $error');
     }
   }
 
@@ -84,17 +99,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             Text(
               'XÉN NỢ',
               style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.5,
-              ),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
               'Chia tiền nhóm, hết lăn tăn',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.white.withValues(alpha: 0.9),
-              ),
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
             ),
           ],
         ),

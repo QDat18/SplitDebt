@@ -33,6 +33,14 @@ public class DebtSettlementController {
 
     private final SettlementService settlementService;
 
+    private final com.splitdebt.api.repository.UserRepository userRepository;
+
+    private Long currentUserId() {
+        String email = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication().getName();
+        return userRepository.findByEmail(email).orElseThrow().getId();
+    }
+
     @GetMapping("/debts")
     public ResponseEntity<ApiResponse<DebtSummaryDto>>
     getDebts(
@@ -149,7 +157,7 @@ public class DebtSettlementController {
                         settlementService.markPaid(
                                 groupId,
                                 settlementId,
-                                request
+                                new MarkPaidRequest(currentUserId(), request.paymentMethod())
                         ),
                         "Đã ghi nhận thanh toán, chờ xác nhận"
                 )
@@ -169,7 +177,7 @@ public class DebtSettlementController {
                         settlementService.confirm(
                                 groupId,
                                 settlementId,
-                                request
+                                new ConfirmSettlementRequest(currentUserId())
                         ),
                         "Thanh toán đã hoàn tất"
                 )

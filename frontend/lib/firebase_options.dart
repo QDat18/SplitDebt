@@ -47,13 +47,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDsZWFLwk3QCF0s5oFpUyB2lSMxkRBCptI',
-    appId: '1:280691561510:web:f603b685a82b4484c002e7',
-    messagingSenderId: '280691561510',
-    projectId: 'phela-8533d',
-    authDomain: 'phela-8533d.firebaseapp.com',
-    storageBucket: 'phela-8533d.firebasestorage.app',
-    measurementId: 'G-93P6010GCP',
+    apiKey: 'AIzaSyCdiMdo7cvmdEjj_3k063RV-AAj0l6A-7s',
+    appId: '1:534922111462:web:52cf4fa91bf487425f4e27',
+    messagingSenderId: '534922111462',
+    projectId: 'splitdebt-8c3fa',
+    authDomain: 'splitdebt-8c3fa.firebaseapp.com',
+    storageBucket: 'splitdebt-8c3fa.firebasestorage.app',
+    measurementId: 'G-V7PJSRN5M0',
   );
 
   static const FirebaseOptions android = FirebaseOptions(

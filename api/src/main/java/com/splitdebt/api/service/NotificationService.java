@@ -9,6 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
+import java.util.HashMap;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @RequiredArgsConstructor
@@ -40,12 +43,19 @@ public class NotificationService {
                                 .build()
                 );
 
-        fcmPushService.sendToUserTopic(
-                user.getId(),
-                title,
-                content,
-                data
-        );
+        Map<String, String> payload = new HashMap<>(data == null ? Map.of() : data);
+        payload.put("type", type);
+        Long userId = user.getId();
+        Runnable push = () -> fcmPushService.sendToUserTopic(userId, title, content, payload);
+        // Clients re-fetch balances on push: the transaction must be visible first.
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() { push.run(); }
+            });
+        } else {
+            push.run();
+        }
 
         return saved;
     }

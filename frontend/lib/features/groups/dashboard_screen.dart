@@ -6,9 +6,9 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_typography.dart';
-import '../expenses/create_expense_screen.dart';
 import '../expenses/expense_detail_screen.dart';
-import '../settlements/group_settlement_screen.dart';
+import '../../core/network/dio_client.dart';
+import '../auth/data/auth_repository.dart';
 
 /// ----------------------------------------------------------------------------
 /// MÀN HÌNH DASHBOARD TRANG CHỦ (MAIN DASHBOARD SCREEN)
@@ -33,6 +33,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
 
+  int _unreadNotificationCount = 0;
   final currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 
   @override
@@ -40,8 +41,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 550),
     );
+
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
   }
@@ -121,30 +123,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ],
         ),
 
-        // Notification Bell Icon
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.n0,
-            shape: BoxShape.circle,
-            boxShadow: AppDimensions.shadowSm,
-          ),
-          child: Stack(
-            children: [
-              const Icon(Icons.notifications_outlined, color: AppColors.n800, size: 22),
-              Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppColors.error,
-                    shape: BoxShape.circle,
+        // Notification Bell Icon (Interactive FCM Notification Center)
+        InkWell(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            _showNotificationSheet(context);
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.n0,
+              shape: BoxShape.circle,
+              boxShadow: AppDimensions.shadowSm,
+            ),
+            child: Stack(
+              children: [
+                const Icon(Icons.notifications_outlined, color: AppColors.n800, size: 22),
+                if (_unreadNotificationCount > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: const BoxDecoration(
+                        color: AppColors.error,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -454,5 +464,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         }),
       ],
     );
+  }
+
+  // --- MODAL THÔNG BÁO PUSH REAL-TIME FCM (BE4-SET-02 & FE4-PAY-01) ---
+  Future<void> _showNotificationSheet(BuildContext context) async {
+    final future = _loadNotifications();
+    await showModalBottomSheet<void>(context: context, isScrollControlled: true,
+      builder: (context) => SizedBox(height: MediaQuery.sizeOf(context).height * 0.65,
+        child: FutureBuilder<List<Map<String, dynamic>>>(future: future, builder: (context, snapshot) {
+          if (snapshot.hasError) return Center(child: Text('Không tải được thông báo: ${snapshot.error}'));
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          final notifications = snapshot.data!;
+          if (notifications.isEmpty) return const Center(child: Text('Chưa có thông báo.'));
+          return ListView(children: [
+            const ListTile(title: Text('Thông báo')),
+            for (final item in notifications) ListTile(
+              leading: const Icon(Icons.notifications_outlined),
+              title: Text(item['title']?.toString() ?? ''),
+              subtitle: Text(item['content']?.toString() ?? ''),
+              onTap: () { Navigator.pop(context); widget.onNavigateToSettlement(); },
+            ),
+          ]);
+        })),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _loadNotifications() async {
+    final userId = await AuthRepository().getCurrentUserId();
+    final response = await dioClient.get('/notifications', queryParameters: {'userId': userId});
+    return (response.data['data'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 }

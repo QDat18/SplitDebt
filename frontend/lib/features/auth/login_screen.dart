@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
-// import 'register_screen.dart';
+import 'register_screen.dart';
+import '../../main_layout_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -147,6 +148,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Đăng nhập thành công!')),
                       );
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (_) => const MainLayoutScreen(),
+                        ),
+                      );
                     } else {
                       final errorMsg = ref.read(authProvider).error?.toString().replaceAll('Exception: ', '') ?? 'Đăng nhập thất bại';
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -204,7 +210,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      // Navigate to Register screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const RegisterScreen(),
+                        ),
+                      );
                     },
                     child: const Text(
                       'Đăng ký',
