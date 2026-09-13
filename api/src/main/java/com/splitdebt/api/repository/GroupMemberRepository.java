@@ -10,19 +10,21 @@ import java.util.Optional;
 public interface GroupMemberRepository
         extends JpaRepository<GroupMember, Long> {
 
-    // DEV4: kiểm tra user có phải thành viên ACTIVE hay không
+    List<GroupMember> findByUserId(Long userId);
+    boolean existsByGroupIdAndUserId(Long groupId, Long userId);
+    int countByGroupId(Long groupId);
+    int countByGroupIdAndRole(Long groupId, com.splitdebt.api.entity.enums.GroupRole role);
+
     boolean existsByGroupIdAndUserIdAndStatus(
             Long groupId,
             Long userId,
             GroupMemberStatus status
     );
 
-    // DEV2: lấy danh sách thành viên group
     List<GroupMember> findByGroupId(Long groupId);
 
     List<GroupMember> findByUserIdAndStatus(Long userId, GroupMemberStatus status);
 
-    // DEV2: tìm một thành viên cụ thể trong group
     Optional<GroupMember> findByGroupIdAndUserId(
             Long groupId,
             Long userId

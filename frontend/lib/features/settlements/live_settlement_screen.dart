@@ -11,7 +11,8 @@ import '../settlement/presentation/payment_dialog.dart';
 
 class GroupSettlementScreen extends StatefulWidget {
   final int? groupId;
-  const GroupSettlementScreen({super.key, this.groupId});
+  final bool isActive;
+  const GroupSettlementScreen({super.key, this.groupId, this.isActive = true});
   @override
   State<GroupSettlementScreen> createState() => _GroupSettlementScreenState();
 }
@@ -55,6 +56,12 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
     WidgetsBinding.instance.removeObserver(this);
     _messages?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant GroupSettlementScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) _initialize();
   }
 
   Future<void> _initialize() async {

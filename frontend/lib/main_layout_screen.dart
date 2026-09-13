@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_dimensions.dart';
 import 'core/theme/app_typography.dart';
-import 'features/groups/dashboard_screen.dart';
+import 'features/home/home_screen.dart';
 import 'features/expenses/create_expense_screen.dart';
 import 'features/settlements/group_settlement_screen.dart';
 import 'features/profile/settings_screen.dart';
@@ -23,10 +23,12 @@ class MainLayoutScreen extends ConsumerStatefulWidget {
 
 class _MainLayoutScreenState extends ConsumerState<MainLayoutScreen> {
   int _currentIndex = 0;
+  final Set<int> _visitedTabs = {0};
 
   void _onTabTapped(int index) {
     HapticFeedback.selectionClick();
     setState(() {
+      _visitedTabs.add(index);
       _currentIndex = index;
     });
   }
@@ -39,19 +41,25 @@ class _MainLayoutScreenState extends ConsumerState<MainLayoutScreen> {
         index: _currentIndex,
         children: [
           // Tab 0: Trang chủ Dashboard
-          DashboardScreen(
-            onNavigateToCreateExpense: () => _onTabTapped(1),
-            onNavigateToSettlement: () => _onTabTapped(2),
-          ),
+          const HomeScreen(),
 
           // Tab 1: Tạo khoản chi mới
-          const CreateExpenseScreen(),
+          if (_visitedTabs.contains(1))
+            CreateExpenseScreen(isActive: _currentIndex == 1)
+          else
+            const SizedBox.shrink(),
 
           // Tab 2: Quyết toán nợ nhóm (Min-Cash-Flow)
-          const GroupSettlementScreen(),
+          if (_visitedTabs.contains(2))
+            GroupSettlementScreen(isActive: _currentIndex == 2)
+          else
+            const SizedBox.shrink(),
 
           // Tab 3: Cài đặt nhóm & cá nhân
-          const SettingsScreen(),
+          if (_visitedTabs.contains(3))
+            const SettingsScreen()
+          else
+            const SizedBox.shrink(),
         ],
       ),
 
@@ -60,7 +68,8 @@ class _MainLayoutScreenState extends ConsumerState<MainLayoutScreen> {
         decoration: BoxDecoration(
           color: AppColors.n0,
           boxShadow: AppDimensions.shadowLg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppDimensions.r24)),
+          borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppDimensions.r24)),
         ),
         child: SafeArea(
           child: Padding(
@@ -68,10 +77,14 @@ class _MainLayoutScreenState extends ConsumerState<MainLayoutScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Trang chủ'),
-                _buildNavItem(1, Icons.add_circle_rounded, Icons.add_circle_outline_rounded, 'Tạo chi tiêu'),
-                _buildNavItem(2, Icons.auto_awesome_rounded, Icons.auto_awesome_outlined, 'Quyết toán'),
-                _buildNavItem(3, Icons.settings_rounded, Icons.settings_outlined, 'Cài đặt'),
+                _buildNavItem(
+                    0, Icons.home_rounded, Icons.home_outlined, 'Nhóm'),
+                _buildNavItem(1, Icons.add_circle_rounded,
+                    Icons.add_circle_outline_rounded, 'Tạo chi tiêu'),
+                _buildNavItem(2, Icons.auto_awesome_rounded,
+                    Icons.auto_awesome_outlined, 'Quyết toán'),
+                _buildNavItem(3, Icons.settings_rounded,
+                    Icons.settings_outlined, 'Cài đặt'),
               ],
             ),
           ),
@@ -80,7 +93,8 @@ class _MainLayoutScreenState extends ConsumerState<MainLayoutScreen> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData activeIcon, IconData inactiveIcon, String label) {
+  Widget _buildNavItem(
+      int index, IconData activeIcon, IconData inactiveIcon, String label) {
     final isSelected = _currentIndex == index;
     return InkWell(
       onTap: () => _onTabTapped(index),

@@ -10,6 +10,28 @@ import org.springframework.http.ResponseEntity;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler({GroupNotFoundException.class, UserNotFoundException.class,
+            org.springframework.web.servlet.resource.NoResourceFoundException.class})
+    public ResponseEntity<ApiResponse<Object>> handleNotFound(Exception ex) {
+        return ResponseEntity.status(404).body(ApiResponse.error(404, ex.getMessage()));
+    }
+
+    @ExceptionHandler(GroupPermissionException.class)
+    public ResponseEntity<ApiResponse<Object>> handlePermission(GroupPermissionException ex) {
+        return ResponseEntity.status(403).body(ApiResponse.error(403, ex.getMessage()));
+    }
+
+    @ExceptionHandler(MemberAlreadyExistsException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDuplicate(MemberAlreadyExistsException ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.error(400, ex.getMessage()));
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIntegrity(Exception ex) {
+        return ResponseEntity.status(409).body(ApiResponse.error(409,
+                "Không thể thực hiện vì dữ liệu đang được sử dụng hoặc đã tồn tại"));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleException(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

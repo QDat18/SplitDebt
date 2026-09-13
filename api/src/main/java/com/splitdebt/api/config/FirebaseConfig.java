@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        name = "app.firebase.enabled", havingValue = "true", matchIfMissing = true)
 @Slf4j
 public class FirebaseConfig {
 

@@ -6,7 +6,9 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_typography.dart';
-import 'expense_detail_screen.dart';
+import '../../core/api/api_client.dart';
+import '../auth/data/auth_repository.dart';
+import '../settlements/group_settlement_screen.dart';
 
 /// ----------------------------------------------------------------------------
 /// DỮ LIỆU MẪU BAN ĐẦU CHO MÀN HÌNH TẠO KHOẢN CHI
@@ -66,10 +68,13 @@ enum SplitMode { equal, amount, percent, weight, item }
 /// Chuyển động mượt mà, đầy đủ các chế độ chia tiền & chuẩn Design Tokens
 /// ----------------------------------------------------------------------------
 class CreateExpenseScreen extends ConsumerStatefulWidget {
-  const CreateExpenseScreen({super.key});
+  final int? groupId;
+  final bool isActive;
+  const CreateExpenseScreen({super.key, this.groupId, this.isActive = true});
 
   @override
-  ConsumerState<CreateExpenseScreen> createState() => _CreateExpenseScreenState();
+  ConsumerState<CreateExpenseScreen> createState() =>
+      _CreateExpenseScreenState();
 }
 
 class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
@@ -85,23 +90,53 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
   final TextEditingController _noteController = TextEditingController();
   final Map<String, TextEditingController> _percentControllers = {};
 
-  final currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+  final currencyFormatter =
+      NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 
   // Danh mục khoản chi
   final List<CategoryItem> _categories = const [
-    CategoryItem(id: 'food', name: 'Ăn uống', icon: Icons.restaurant_rounded, color: Color(0xFFFF7675)),
-    CategoryItem(id: 'transport', name: 'Di chuyển', icon: Icons.directions_car_rounded, color: Color(0xFF74B9FF)),
-    CategoryItem(id: 'shopping', name: 'Mua sắm', icon: Icons.shopping_bag_rounded, color: Color(0xFFA29BFE)),
-    CategoryItem(id: 'entertainment', name: 'Giải trí', icon: Icons.local_activity_rounded, color: Color(0xFFFD79A8)),
-    CategoryItem(id: 'stay', name: 'Khách sạn', icon: Icons.hotel_rounded, color: Color(0xFF55E6C1)),
-    CategoryItem(id: 'other', name: 'Khác', icon: Icons.more_horiz_rounded, color: Color(0xFFB2BEC3)),
+    CategoryItem(
+        id: 'food',
+        name: 'Ăn uống',
+        icon: Icons.restaurant_rounded,
+        color: Color(0xFFFF7675)),
+    CategoryItem(
+        id: 'transport',
+        name: 'Di chuyển',
+        icon: Icons.directions_car_rounded,
+        color: Color(0xFF74B9FF)),
+    CategoryItem(
+        id: 'shopping',
+        name: 'Mua sắm',
+        icon: Icons.shopping_bag_rounded,
+        color: Color(0xFFA29BFE)),
+    CategoryItem(
+        id: 'entertainment',
+        name: 'Giải trí',
+        icon: Icons.local_activity_rounded,
+        color: Color(0xFFFD79A8)),
+    CategoryItem(
+        id: 'stay',
+        name: 'Khách sạn',
+        icon: Icons.hotel_rounded,
+        color: Color(0xFF55E6C1)),
+    CategoryItem(
+        id: 'other',
+        name: 'Khác',
+        icon: Icons.more_horiz_rounded,
+        color: Color(0xFFB2BEC3)),
   ];
 
   late CategoryItem _selectedCategory;
 
   // Danh sách thành viên nhóm mẫu
   late List<GroupMemberItem> _members;
-  late String _payerId;
+  String _payerId = '';
+  int? _groupId;
+  List<Map<String, dynamic>> _groups = [];
+  bool _loadingMembers = true;
+  bool _saving = false;
+  String? _loadError;
 
   // Chế độ chia tiền
   SplitMode _splitMode = SplitMode.equal;
@@ -113,23 +148,14 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
   bool _hasReceipt = false;
   bool _isOcrScanning = false;
 
-
   @override
   void initState() {
     super.initState();
 
     _selectedCategory = _categories.first;
 
-    // Khởi tạo thành viên nhóm mẫu
-    _members = [
-      GroupMemberItem(id: 'u1', name: 'Đạt (Tôi)', avatarUrl: 'https://i.pravatar.cc/150?img=11', isSelected: true),
-      GroupMemberItem(id: 'u2', name: 'Hoàng (Dev 1)', avatarUrl: 'https://i.pravatar.cc/150?img=12', isSelected: true),
-      GroupMemberItem(id: 'u3', name: 'Minh (Dev 3)', avatarUrl: 'https://i.pravatar.cc/150?img=13', isSelected: true),
-      GroupMemberItem(id: 'u4', name: 'Trang (Dev 4)', avatarUrl: 'https://i.pravatar.cc/150?img=5', isSelected: true),
-    ];
-    _payerId = _members.first.id;
-
-    _initPercentControllers();
+    _members = [];
+    _loadGroups();
 
     // Animation khởi tạo
     _animController = AnimationController(
@@ -152,6 +178,148 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
 
     _animController.forward();
     _recalculateSplit();
+  }
+
+  Future<void> _loadGroups() async {
+    setState(() {
+      _loadingMembers = true;
+      _loadError = null;
+    });
+    try {
+      final groups = (await ApiClient.get('/groups') as List)
+          .map((g) => Map<String, dynamic>.from(g as Map))
+          .toList();
+      if (!mounted) return;
+      _groups = groups;
+      final preferred = _groupId ?? widget.groupId;
+      _groupId = groups.any((g) => g['id'] == preferred)
+          ? preferred
+          : (groups.isEmpty ? null : (groups.first['id'] as num).toInt());
+      if (_groupId != null) {
+        await _loadMembers();
+      } else {
+        setState(() => _loadingMembers = false);
+      }
+    } catch (error) {
+      if (mounted)
+        setState(() {
+          _loadError = '$error';
+          _loadingMembers = false;
+        });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant CreateExpenseScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) _loadGroups();
+  }
+
+  Future<void> _loadMembers() async {
+    setState(() {
+      _loadingMembers = true;
+      _loadError = null;
+    });
+    try {
+      final currentId = await AuthRepository().getCurrentUserId();
+      final data = await ApiClient.get('/groups/$_groupId/members') as List;
+      if (!mounted) return;
+      for (final controller in _percentControllers.values) {
+        controller.dispose();
+      }
+      _percentControllers.clear();
+      _members = data
+          .map((m) => GroupMemberItem(
+              id: m['userId'].toString(),
+              name: m['fullName']?.toString() ?? 'Thành viên',
+              avatarUrl: m['avatarUrl']?.toString() ?? ''))
+          .toList();
+      _payerId = _members.any((m) => m.id == '$currentId')
+          ? '$currentId'
+          : (_members.isEmpty ? '' : _members.first.id);
+      _items = [];
+      _initPercentControllers();
+      _recalculateSplit();
+      setState(() => _loadingMembers = false);
+    } catch (error) {
+      if (mounted)
+        setState(() {
+          _loadError = '$error';
+          _loadingMembers = false;
+        });
+    }
+  }
+
+  Future<void> _saveExpense() async {
+    if (_saving || _groupId == null) return;
+    final selected = _members.where((m) => m.isSelected).toList();
+    if (_titleController.text.trim().isEmpty ||
+        _totalAmount <= 0 ||
+        selected.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Nhập tên, số tiền và chọn người tham gia.')));
+      return;
+    }
+    if (_splitMode == SplitMode.item &&
+        (_items.isEmpty ||
+            _items.any(
+                (item) => item.assignedMemberIds.isEmpty || item.price <= 0) ||
+            (_items.fold<double>(0, (sum, item) => sum + item.price) -
+                        _totalAmount)
+                    .abs() >
+                0.01)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Mỗi món cần người chia; tổng các món phải bằng tổng khoản chi.')));
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await ApiClient.post('/v1/expenses', {
+        'groupId': _groupId,
+        'payerId': int.parse(_payerId),
+        'title': _titleController.text.trim(),
+        'description': _noteController.text.trim(),
+        'totalAmount': _totalAmount,
+        'expenseDate': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        'splitType': _splitMode.name.toUpperCase(),
+        'participants': selected
+            .map((m) => {
+                  'userId': int.parse(m.id),
+                  'amount': m.amount,
+                  'percentage': m.percentage,
+                  'weight': m.weight
+                })
+            .toList(),
+        if (_splitMode == SplitMode.item)
+          'items': _items
+              .map((item) => {
+                    'itemName': item.name,
+                    'quantity': 1,
+                    'unitPrice': item.price,
+                    'participants': item.assignedMemberIds
+                        .map((id) => {'userId': int.parse(id)})
+                        .toList(),
+                  })
+              .toList(),
+      });
+      if (!mounted) return;
+      _titleController.clear();
+      _amountController.clear();
+      _noteController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã lưu khoản chi vào nhóm.')));
+      await Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => GroupSettlementScreen(groupId: _groupId)));
+    } catch (error) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Không lưu được khoản chi: $error')));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -182,7 +350,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
   void _initPercentControllers() {
     for (var m in _members) {
       _percentControllers[m.id] = TextEditingController(
-        text: m.isSelected && m.percentage > 0 ? _formatPercent(m.percentage) : (m.isSelected ? '0' : ''),
+        text: m.isSelected && m.percentage > 0
+            ? _formatPercent(m.percentage)
+            : (m.isSelected ? '0' : ''),
       );
     }
   }
@@ -214,7 +384,8 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
 
     for (int i = 0; i < count; i++) {
       if (i == count - 1) {
-        selected[i].percentage = double.parse((100.0 - runningSum).toStringAsFixed(1));
+        selected[i].percentage =
+            double.parse((100.0 - runningSum).toStringAsFixed(1));
       } else {
         selected[i].percentage = basePct;
         runningSum += basePct;
@@ -262,7 +433,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
     if (selectedMembers.length > 1) {
       // Tự động tính phần % cho người cuối cùng khi nhập các người trước
       final targetMember = (selectedMembers.last.id == editedMember.id)
-          ? (selectedMembers.length >= 2 ? selectedMembers[selectedMembers.length - 2] : null)
+          ? (selectedMembers.length >= 2
+              ? selectedMembers[selectedMembers.length - 2]
+              : null)
           : selectedMembers.last;
 
       if (targetMember != null && targetMember.id != editedMember.id) {
@@ -310,11 +483,13 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
     } else if (_splitMode == SplitMode.percent) {
       final totalPct = selectedMembers.fold(0.0, (s, m) => s + m.percentage);
       if (totalPct == 0.0) {
-        final defaultPct = double.parse((100.0 / selectedCount).toStringAsFixed(1));
+        final defaultPct =
+            double.parse((100.0 / selectedCount).toStringAsFixed(1));
         double runningSum = 0.0;
         for (int i = 0; i < selectedCount; i++) {
           if (i == selectedCount - 1) {
-            selectedMembers[i].percentage = double.parse((100.0 - runningSum).toStringAsFixed(1));
+            selectedMembers[i].percentage =
+                double.parse((100.0 - runningSum).toStringAsFixed(1));
           } else {
             selectedMembers[i].percentage = defaultPct;
             runningSum += defaultPct;
@@ -331,7 +506,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
       }
       _syncPercentControllers();
     } else if (_splitMode == SplitMode.weight) {
-      final totalWeight = _members.where((m) => m.isSelected).fold(0.0, (sum, m) => sum + m.weight);
+      final totalWeight = _members
+          .where((m) => m.isSelected)
+          .fold(0.0, (sum, m) => sum + m.weight);
       for (var m in _members) {
         if (m.isSelected && totalWeight > 0) {
           m.amount = (_totalAmount * m.weight) / totalWeight;
@@ -346,7 +523,8 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
     HapticFeedback.lightImpact();
     final current = _totalAmount;
     final updated = current + value;
-    _amountController.text = currencyFormatter.format(updated).replaceAll('₫', '').trim();
+    _amountController.text =
+        currencyFormatter.format(updated).replaceAll('₫', '').trim();
     setState(() {
       _recalculateSplit();
     });
@@ -354,49 +532,23 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
 
   // Giả lập AI OCR Scan Hóa đơn
   Future<void> _scanReceiptOCR() async {
-    setState(() {
-      _isOcrScanning = true;
-    });
-
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    setState(() {
-      _isOcrScanning = false;
-      _hasReceipt = true;
-      _titleController.text = 'Ăn lẩu nướng Gogi House';
-      _amountController.text = '680.000';
-      _selectedCategory = _categories[0]; // Ăn uống
-      _items = [
-        ExpenseItemDetail(id: 'i1', name: 'Buffet Thịt Nướng Premium', price: 500000, assignedMemberIds: ['u1', 'u2', 'u3', 'u4']),
-        ExpenseItemDetail(id: 'i2', name: 'Nước ngọt & Bia', price: 120000, assignedMemberIds: ['u1', 'u2']),
-        ExpenseItemDetail(id: 'i3', name: 'Món tráng miệng', price: 60000, assignedMemberIds: ['u3', 'u4']),
-      ];
-      _splitMode = SplitMode.item;
-      _recalculateSplit();
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.auto_awesome, color: Colors.amber, size: 20),
-              SizedBox(width: AppDimensions.s8),
-              Text('AI đã trích xuất hóa đơn 680.000₫ thành công!'),
-            ],
-          ),
-          backgroundColor: AppColors.p700,
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.only(bottom: 95, left: 16, right: 16),
-          duration: const Duration(seconds: 2),
-          shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
-        ),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(
+            'Quét hóa đơn chưa được kết nối. Bạn có thể nhập khoản chi và từng món bên dưới.')));
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_loadingMembers)
+      return const Center(child: CircularProgressIndicator());
+    if (_loadError != null || _members.isEmpty)
+      return Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(_loadError ??
+            'Hãy tạo nhóm và thêm thành viên trước khi ghi khoản chi.'),
+        TextButton(onPressed: _loadGroups, child: const Text('Tải lại nhóm')),
+      ]));
+
     return Scaffold(
       backgroundColor: AppColors.n50,
       appBar: _buildAppBar(context),
@@ -409,10 +561,27 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: AppDimensions.s20, vertical: AppDimensions.s12),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimensions.s20,
+                      vertical: AppDimensions.s12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      DropdownButton<int>(
+                          value: _groupId,
+                          isExpanded: true,
+                          items: _groups
+                              .map((g) => DropdownMenuItem<int>(
+                                  value: (g['id'] as num).toInt(),
+                                  child: Text(g['name'] as String)))
+                              .toList(),
+                          onChanged: _saving
+                              ? null
+                              : (id) {
+                                  _groupId = id;
+                                  _loadMembers();
+                                }),
+
                       // --- 1. NHÓM VÀ TỔNG SỐ TIỀN ---
                       _buildAmountInputCard(),
                       const SizedBox(height: AppDimensions.s20),
@@ -460,13 +629,15 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
             shape: BoxShape.circle,
             boxShadow: AppDimensions.shadowSm,
           ),
-          child: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: AppColors.n800),
+          child: const Icon(Icons.arrow_back_ios_new_rounded,
+              size: 16, color: AppColors.n800),
         ),
         onPressed: () => Navigator.maybePop(context),
       ),
       title: Column(
         children: [
-          Text('Tạo khoản chi mới', style: AppTypography.title.copyWith(fontSize: 16)),
+          Text('Tạo khoản chi mới',
+              style: AppTypography.title.copyWith(fontSize: 16)),
           const SizedBox(height: 2),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -478,9 +649,14 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.groups_rounded, size: 12, color: AppColors.p500),
+                const Icon(Icons.groups_rounded,
+                    size: 12, color: AppColors.p500),
                 const SizedBox(width: 4),
-                Text('Du Lịch Hà Giang', style: AppTypography.caption.copyWith(color: AppColors.p700, fontWeight: FontWeight.w600)),
+                Text(
+                    _groups.firstWhere((g) => g['id'] == _groupId)['name']
+                        as String,
+                    style: AppTypography.caption.copyWith(
+                        color: AppColors.p700, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
@@ -509,7 +685,11 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
       ),
       child: Column(
         children: [
-          Text('TỔNG SỐ TIỀN', style: AppTypography.caption.copyWith(letterSpacing: 1.2, fontWeight: FontWeight.w700, color: AppColors.n500)),
+          Text('TỔNG SỐ TIỀN',
+              style: AppTypography.caption.copyWith(
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.n500)),
           const SizedBox(height: AppDimensions.s8),
 
           // Ô nhập số tiền lớn
@@ -545,7 +725,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                 ),
               ),
               const SizedBox(width: 4),
-              Text('₫', style: AppTypography.h2.copyWith(color: AppColors.p500, fontWeight: FontWeight.w700)),
+              Text('₫',
+                  style: AppTypography.h2.copyWith(
+                      color: AppColors.p500, fontWeight: FontWeight.w700)),
             ],
           ),
 
@@ -583,7 +765,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
             borderRadius: AppDimensions.radius12,
             border: Border.all(color: AppColors.p200),
           ),
-          child: Text(label, style: AppTypography.label.copyWith(color: AppColors.p600, fontSize: 13)),
+          child: Text(label,
+              style: AppTypography.label
+                  .copyWith(color: AppColors.p600, fontSize: 13)),
         ),
       ),
     );
@@ -604,11 +788,14 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
           // Tiêu đề khoản chi
           TextField(
             controller: _titleController,
-            style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+            style:
+                AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
             decoration: InputDecoration(
               hintText: 'Nhập tên khoản chi (Ví dụ: Ăn lẩu nướng)',
-              hintStyle: AppTypography.bodyLarge.copyWith(color: AppColors.n400),
-              prefixIcon: const Icon(Icons.edit_note_rounded, color: AppColors.p500),
+              hintStyle:
+                  AppTypography.bodyLarge.copyWith(color: AppColors.n400),
+              prefixIcon:
+                  const Icon(Icons.edit_note_rounded, color: AppColors.p500),
               border: InputBorder.none,
             ),
           ),
@@ -616,7 +803,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
           const Divider(height: 20, color: AppColors.n100),
 
           // Chọn Danh Mục
-          Text('Danh mục', style: AppTypography.label.copyWith(fontSize: 13, color: AppColors.n600)),
+          Text('Danh mục',
+              style: AppTypography.label
+                  .copyWith(fontSize: 13, color: AppColors.n600)),
           const SizedBox(height: AppDimensions.s12),
 
           SingleChildScrollView(
@@ -638,9 +827,12 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
                       curve: Curves.easeOutCubic,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: isSelected ? cat.color.withOpacity(0.15) : AppColors.n50,
+                        color: isSelected
+                            ? cat.color.withOpacity(0.15)
+                            : AppColors.n50,
                         borderRadius: AppDimensions.radius16,
                         border: Border.all(
                           color: isSelected ? cat.color : AppColors.n200,
@@ -649,12 +841,16 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                       ),
                       child: Row(
                         children: [
-                          Icon(cat.icon, size: 18, color: isSelected ? cat.color : AppColors.n600),
+                          Icon(cat.icon,
+                              size: 18,
+                              color: isSelected ? cat.color : AppColors.n600),
                           const SizedBox(width: 8),
                           Text(
                             cat.name,
                             style: AppTypography.bodyMedium.copyWith(
-                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
                               color: isSelected ? cat.color : AppColors.n700,
                             ),
                           ),
@@ -690,15 +886,18 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                   color: AppColors.p50,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.document_scanner_rounded, color: AppColors.p500, size: 20),
+                child: const Icon(Icons.document_scanner_rounded,
+                    color: AppColors.p500, size: 20),
               ),
               const SizedBox(width: AppDimensions.s12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Hóa đơn & AI Scan OCR', style: AppTypography.label.copyWith(fontSize: 14)),
-                    Text('Quét tự động tên món ăn & số tiền từ ảnh', style: AppTypography.caption),
+                    Text('Hóa đơn & AI Scan OCR',
+                        style: AppTypography.label.copyWith(fontSize: 14)),
+                    Text('Quét tự động tên món ăn & số tiền từ ảnh',
+                        style: AppTypography.caption),
                   ],
                 ),
               ),
@@ -706,18 +905,24 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                 const SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.p500),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2.5, color: AppColors.p500),
                 )
               else
                 OutlinedButton.icon(
                   onPressed: _scanReceiptOCR,
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.p500),
-                    shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: AppDimensions.radius12),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
-                  icon: const Icon(Icons.auto_awesome, size: 16, color: AppColors.p500),
-                  label: Text(_hasReceipt ? 'Quét lại' : 'Quét bill', style: AppTypography.label.copyWith(color: AppColors.p500, fontSize: 13)),
+                  icon: const Icon(Icons.auto_awesome,
+                      size: 16, color: AppColors.p500),
+                  label: Text(_hasReceipt ? 'Quét lại' : 'Quét bill',
+                      style: AppTypography.label
+                          .copyWith(color: AppColors.p500, fontSize: 13)),
                 ),
             ],
           ),
@@ -732,13 +937,19 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
+                  const Icon(Icons.check_circle_rounded,
+                      color: AppColors.success, size: 20),
                   const SizedBox(width: AppDimensions.s8),
                   Expanded(
-                    child: Text('Đã nhận diện hóa đơn 680.000₫ & tự động bóc tách 3 món ăn!', style: AppTypography.bodySmall.copyWith(color: AppColors.n800, fontWeight: FontWeight.w600)),
+                    child: Text(
+                        'Đã nhận diện hóa đơn 680.000₫ & tự động bóc tách 3 món ăn!',
+                        style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.n800,
+                            fontWeight: FontWeight.w600)),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 16, color: AppColors.n600),
+                    icon: const Icon(Icons.close,
+                        size: 16, color: AppColors.n600),
                     onPressed: () {
                       setState(() {
                         _hasReceipt = false;
@@ -769,15 +980,20 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
         children: [
           CircleAvatar(
             radius: 20,
-            backgroundImage: NetworkImage(currentPayer.avatarUrl),
+            backgroundImage: currentPayer.avatarUrl.isEmpty
+                ? null
+                : NetworkImage(currentPayer.avatarUrl),
           ),
           const SizedBox(width: AppDimensions.s12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Người ứng tiền trước', style: AppTypography.caption.copyWith(color: AppColors.n500)),
-                Text(currentPayer.name, style: AppTypography.title.copyWith(fontSize: 15)),
+                Text('Người ứng tiền trước',
+                    style:
+                        AppTypography.caption.copyWith(color: AppColors.n500)),
+                Text(currentPayer.name,
+                    style: AppTypography.title.copyWith(fontSize: 15)),
               ],
             ),
           ),
@@ -788,7 +1004,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
             items: _members.map((m) {
               return DropdownMenuItem<String>(
                 value: m.id,
-                child: Text(m.name, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                child: Text(m.name,
+                    style: AppTypography.bodyMedium
+                        .copyWith(fontWeight: FontWeight.w600)),
               );
             }).toList(),
             onChanged: (val) {
@@ -809,7 +1027,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('CHẾ ĐỘ CHIA TIỀN', style: AppTypography.label.copyWith(fontSize: 13, letterSpacing: 0.8, color: AppColors.n600)),
+        Text('CHẾ ĐỘ CHIA TIỀN',
+            style: AppTypography.label.copyWith(
+                fontSize: 13, letterSpacing: 0.8, color: AppColors.n600)),
         const SizedBox(height: AppDimensions.s12),
 
         // Thanh Tab chuyển chế độ chia
@@ -821,11 +1041,15 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
           padding: const EdgeInsets.all(4),
           child: Row(
             children: [
-              _buildSplitTabItem('Chia đều', SplitMode.equal, Icons.pie_chart_rounded),
-              _buildSplitTabItem('Số tiền', SplitMode.amount, Icons.attach_money_rounded),
+              _buildSplitTabItem(
+                  'Chia đều', SplitMode.equal, Icons.pie_chart_rounded),
+              _buildSplitTabItem(
+                  'Số tiền', SplitMode.amount, Icons.attach_money_rounded),
               _buildSplitTabItem('%', SplitMode.percent, Icons.percent_rounded),
-              _buildSplitTabItem('Hệ số', SplitMode.weight, Icons.balance_rounded),
-              _buildSplitTabItem('Theo món', SplitMode.item, Icons.fastfood_rounded),
+              _buildSplitTabItem(
+                  'Hệ số', SplitMode.weight, Icons.balance_rounded),
+              _buildSplitTabItem(
+                  'Theo món', SplitMode.item, Icons.fastfood_rounded),
             ],
           ),
         ),
@@ -864,7 +1088,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
           ),
           child: Column(
             children: [
-              Icon(icon, size: 16, color: isSelected ? AppColors.p500 : AppColors.n600),
+              Icon(icon,
+                  size: 16,
+                  color: isSelected ? AppColors.p500 : AppColors.n600),
               const SizedBox(height: 2),
               Text(
                 label,
@@ -900,7 +1126,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
   // 1. Chia đều (EQUAL)
   Widget _buildEqualSplitContent() {
     final selectedMembers = _members.where((m) => m.isSelected).toList();
-    final perPerson = selectedMembers.isNotEmpty ? _totalAmount / selectedMembers.length : 0.0;
+    final perPerson = selectedMembers.isNotEmpty
+        ? _totalAmount / selectedMembers.length
+        : 0.0;
 
     return Container(
       key: const ValueKey('equal_split'),
@@ -915,8 +1143,12 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Tự động chia đều cho ${selectedMembers.length} người', style: AppTypography.bodySmall.copyWith(color: AppColors.n600)),
-              Text('${currencyFormatter.format(perPerson)} /người', style: AppTypography.title.copyWith(color: AppColors.p600, fontSize: 14)),
+              Text('Tự động chia đều cho ${selectedMembers.length} người',
+                  style:
+                      AppTypography.bodySmall.copyWith(color: AppColors.n600)),
+              Text('${currencyFormatter.format(perPerson)} /người',
+                  style: AppTypography.title
+                      .copyWith(color: AppColors.p600, fontSize: 14)),
             ],
           ),
           const Divider(height: 20, color: AppColors.n100),
@@ -924,11 +1156,21 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
             return CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               activeColor: AppColors.p500,
-              shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
-              secondary: CircleAvatar(radius: 16, backgroundImage: NetworkImage(m.avatarUrl)),
-              title: Text(m.name, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
-              subtitle: Text(m.isSelected ? currencyFormatter.format(perPerson) : 'Không tham gia',
-                  style: AppTypography.caption.copyWith(color: m.isSelected ? AppColors.p600 : AppColors.n400)),
+              shape:
+                  RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
+              secondary: CircleAvatar(
+                  radius: 16,
+                  backgroundImage:
+                      m.avatarUrl.isEmpty ? null : NetworkImage(m.avatarUrl)),
+              title: Text(m.name,
+                  style: AppTypography.bodyMedium
+                      .copyWith(fontWeight: FontWeight.w600)),
+              subtitle: Text(
+                  m.isSelected
+                      ? currencyFormatter.format(perPerson)
+                      : 'Không tham gia',
+                  style: AppTypography.caption.copyWith(
+                      color: m.isSelected ? AppColors.p600 : AppColors.n400)),
               value: m.isSelected,
               onChanged: (val) {
                 setState(() {
@@ -945,7 +1187,8 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
 
   // 2. Chia theo Số tiền cụ thể (AMOUNT)
   Widget _buildAmountSplitContent() {
-    final sum = _members.fold(0.0, (s, m) => s + (m.isSelected ? m.amount : 0.0));
+    final sum =
+        _members.fold(0.0, (s, m) => s + (m.isSelected ? m.amount : 0.0));
     final diff = _totalAmount - sum;
     final isExact = diff.abs() < 1.0;
 
@@ -969,12 +1212,18 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
             ),
             child: Row(
               children: [
-                Icon(isExact ? Icons.check_circle_rounded : Icons.warning_rounded,
-                    color: isExact ? AppColors.success : AppColors.warning, size: 20),
+                Icon(
+                    isExact
+                        ? Icons.check_circle_rounded
+                        : Icons.warning_rounded,
+                    color: isExact ? AppColors.success : AppColors.warning,
+                    size: 20),
                 const SizedBox(width: AppDimensions.s8),
                 Expanded(
                   child: Text(
-                    isExact ? 'Tổng số tiền nhập vào vừa đủ 100%!' : 'Còn thiếu: ${currencyFormatter.format(diff)}',
+                    isExact
+                        ? 'Tổng số tiền nhập vào vừa đủ 100%!'
+                        : 'Còn thiếu: ${currencyFormatter.format(diff)}',
                     style: AppTypography.bodySmall.copyWith(
                       fontWeight: FontWeight.w700,
                       color: isExact ? AppColors.success : AppColors.warning,
@@ -990,23 +1239,35 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
               padding: const EdgeInsets.only(bottom: AppDimensions.s12),
               child: Row(
                 children: [
-                  CircleAvatar(radius: 16, backgroundImage: NetworkImage(m.avatarUrl)),
+                  CircleAvatar(
+                      radius: 16,
+                      backgroundImage: m.avatarUrl.isEmpty
+                          ? null
+                          : NetworkImage(m.avatarUrl)),
                   const SizedBox(width: AppDimensions.s8),
-                  Expanded(child: Text(m.name, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600))),
+                  Expanded(
+                      child: Text(m.name,
+                          style: AppTypography.bodyMedium
+                              .copyWith(fontWeight: FontWeight.w600))),
                   SizedBox(
                     width: 120,
                     height: 40,
                     child: TextField(
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.right,
-                      style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700, color: AppColors.p600),
+                      style: AppTypography.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w700, color: AppColors.p600),
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: InputDecoration(
                         hintText: '0 ₫',
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
                         fillColor: AppColors.n50,
                         filled: true,
-                        border: OutlineInputBorder(borderRadius: AppDimensions.radius12, borderSide: const BorderSide(color: AppColors.n200)),
+                        border: OutlineInputBorder(
+                            borderRadius: AppDimensions.radius12,
+                            borderSide:
+                                const BorderSide(color: AppColors.n200)),
                       ),
                       onChanged: (val) {
                         final valNum = double.tryParse(val) ?? 0.0;
@@ -1046,7 +1307,8 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
         children: [
           // Banner trạng thái tổng phần trăm
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppDimensions.s12, vertical: AppDimensions.s8),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.s12, vertical: AppDimensions.s8),
             decoration: BoxDecoration(
               color: isExact
                   ? AppColors.successTint
@@ -1055,7 +1317,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
               border: Border.all(
                 color: isExact
                     ? AppColors.success.withOpacity(0.3)
-                    : (isOver ? AppColors.error.withOpacity(0.3) : AppColors.warning.withOpacity(0.3)),
+                    : (isOver
+                        ? AppColors.error.withOpacity(0.3)
+                        : AppColors.warning.withOpacity(0.3)),
               ),
             ),
             child: Row(
@@ -1109,27 +1373,49 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                 child: OutlinedButton.icon(
                   onPressed: _splitEquallyPercent,
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                     side: const BorderSide(color: AppColors.p300),
-                    shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: AppDimensions.radius12),
                     backgroundColor: AppColors.p50.withOpacity(0.5),
                   ),
-                  icon: const Icon(Icons.pie_chart_outline_rounded, size: 16, color: AppColors.p600),
-                  label: Text('Chia đều %', style: AppTypography.label.copyWith(fontSize: 12, color: AppColors.p600)),
+                  icon: const Icon(Icons.pie_chart_outline_rounded,
+                      size: 16, color: AppColors.p600),
+                  label: Text('Chia đều %',
+                      style: AppTypography.label
+                          .copyWith(fontSize: 12, color: AppColors.p600)),
                 ),
               ),
               const SizedBox(width: AppDimensions.s8),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: remainingPct > 0.05 ? () => _autoBalancePercent() : null,
+                  onPressed:
+                      remainingPct > 0.05 ? () => _autoBalancePercent() : null,
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                    side: BorderSide(color: remainingPct > 0.05 ? AppColors.p500 : AppColors.n300),
-                    shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
-                    backgroundColor: remainingPct > 0.05 ? AppColors.p50 : AppColors.n100.withOpacity(0.3),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    side: BorderSide(
+                        color: remainingPct > 0.05
+                            ? AppColors.p500
+                            : AppColors.n300),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: AppDimensions.radius12),
+                    backgroundColor: remainingPct > 0.05
+                        ? AppColors.p50
+                        : AppColors.n100.withOpacity(0.3),
                   ),
-                  icon: Icon(Icons.auto_fix_high_rounded, size: 16, color: remainingPct > 0.05 ? AppColors.p500 : AppColors.n400),
-                  label: Text('Tự bù 100%', style: AppTypography.label.copyWith(fontSize: 12, color: remainingPct > 0.05 ? AppColors.p600 : AppColors.n400)),
+                  icon: Icon(Icons.auto_fix_high_rounded,
+                      size: 16,
+                      color: remainingPct > 0.05
+                          ? AppColors.p500
+                          : AppColors.n400),
+                  label: Text('Tự bù 100%',
+                      style: AppTypography.label.copyWith(
+                          fontSize: 12,
+                          color: remainingPct > 0.05
+                              ? AppColors.p600
+                              : AppColors.n400)),
                 ),
               ),
             ],
@@ -1147,7 +1433,8 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                   Checkbox(
                     value: m.isSelected,
                     activeColor: AppColors.p500,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4)),
                     onChanged: (val) {
                       setState(() {
                         m.isSelected = val ?? false;
@@ -1160,32 +1447,45 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                       });
                     },
                   ),
-                  CircleAvatar(radius: 16, backgroundImage: NetworkImage(m.avatarUrl)),
+                  CircleAvatar(
+                      radius: 16,
+                      backgroundImage: m.avatarUrl.isEmpty
+                          ? null
+                          : NetworkImage(m.avatarUrl)),
                   const SizedBox(width: AppDimensions.s8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(m.name, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                        Text(m.name,
+                            style: AppTypography.bodyMedium
+                                .copyWith(fontWeight: FontWeight.w600)),
                         Text(
-                          m.isSelected ? currencyFormatter.format(m.amount) : 'Không tham gia',
+                          m.isSelected
+                              ? currencyFormatter.format(m.amount)
+                              : 'Không tham gia',
                           style: AppTypography.caption.copyWith(
-                            color: m.isSelected ? AppColors.p600 : AppColors.n400,
-                            fontWeight: m.isSelected ? FontWeight.w700 : FontWeight.normal,
+                            color:
+                                m.isSelected ? AppColors.p600 : AppColors.n400,
+                            fontWeight: m.isSelected
+                                ? FontWeight.w700
+                                : FontWeight.normal,
                           ),
                         ),
                       ],
                     ),
                   ),
                   if (m.isSelected) ...[
-                    if (remainingPct > 0.1 && (100.0 - totalPct + m.percentage) > 0)
+                    if (remainingPct > 0.1 &&
+                        (100.0 - totalPct + m.percentage) > 0)
                       Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: InkWell(
                           onTap: () => _autoBalancePercent(m),
                           borderRadius: AppDimensions.radius8,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 4),
                             decoration: BoxDecoration(
                               color: AppColors.p50,
                               borderRadius: AppDimensions.radius8,
@@ -1194,8 +1494,13 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.add_rounded, size: 12, color: AppColors.p600),
-                                Text('Bù', style: AppTypography.caption.copyWith(fontSize: 10, color: AppColors.p600, fontWeight: FontWeight.w700)),
+                                const Icon(Icons.add_rounded,
+                                    size: 12, color: AppColors.p600),
+                                Text('Bù',
+                                    style: AppTypography.caption.copyWith(
+                                        fontSize: 10,
+                                        color: AppColors.p600,
+                                        fontWeight: FontWeight.w700)),
                               ],
                             ),
                           ),
@@ -1206,22 +1511,39 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                       height: 42,
                       child: TextField(
                         controller: ctrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         textAlign: TextAlign.right,
-                        style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700, color: AppColors.p600, fontSize: 15),
+                        style: AppTypography.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.p600,
+                            fontSize: 15),
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'^\d*[\.,]?\d{0,2}')),
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d*[\.,]?\d{0,2}')),
                         ],
                         decoration: InputDecoration(
                           hintText: '0',
                           suffixText: '%',
-                          suffixStyle: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w700, color: AppColors.p500),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          suffixStyle: AppTypography.bodySmall.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.p500),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
                           fillColor: AppColors.n50,
                           filled: true,
-                          border: OutlineInputBorder(borderRadius: AppDimensions.radius12, borderSide: const BorderSide(color: AppColors.n200)),
-                          enabledBorder: OutlineInputBorder(borderRadius: AppDimensions.radius12, borderSide: const BorderSide(color: AppColors.n200)),
-                          focusedBorder: OutlineInputBorder(borderRadius: AppDimensions.radius12, borderSide: const BorderSide(color: AppColors.p500, width: 1.8)),
+                          border: OutlineInputBorder(
+                              borderRadius: AppDimensions.radius12,
+                              borderSide:
+                                  const BorderSide(color: AppColors.n200)),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: AppDimensions.radius12,
+                              borderSide:
+                                  const BorderSide(color: AppColors.n200)),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: AppDimensions.radius12,
+                              borderSide: const BorderSide(
+                                  color: AppColors.p500, width: 1.8)),
                         ),
                         onChanged: (val) => _onPercentChanged(m, val),
                       ),
@@ -1252,14 +1574,22 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
             padding: const EdgeInsets.only(bottom: AppDimensions.s12),
             child: Row(
               children: [
-                CircleAvatar(radius: 16, backgroundImage: NetworkImage(m.avatarUrl)),
+                CircleAvatar(
+                    radius: 16,
+                    backgroundImage:
+                        m.avatarUrl.isEmpty ? null : NetworkImage(m.avatarUrl)),
                 const SizedBox(width: AppDimensions.s8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(m.name, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
-                      Text(currencyFormatter.format(m.amount), style: AppTypography.caption.copyWith(color: AppColors.p600, fontWeight: FontWeight.w700)),
+                      Text(m.name,
+                          style: AppTypography.bodyMedium
+                              .copyWith(fontWeight: FontWeight.w600)),
+                      Text(currencyFormatter.format(m.amount),
+                          style: AppTypography.caption.copyWith(
+                              color: AppColors.p600,
+                              fontWeight: FontWeight.w700)),
                     ],
                   ),
                 ),
@@ -1274,7 +1604,8 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.remove, size: 16, color: AppColors.n700),
+                        icon: const Icon(Icons.remove,
+                            size: 16, color: AppColors.n700),
                         onPressed: () {
                           if (m.weight > 0.5) {
                             setState(() {
@@ -1284,9 +1615,12 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                           }
                         },
                       ),
-                      Text('${m.weight}x', style: AppTypography.label.copyWith(color: AppColors.p600)),
+                      Text('${m.weight}x',
+                          style: AppTypography.label
+                              .copyWith(color: AppColors.p600)),
                       IconButton(
-                        icon: const Icon(Icons.add, size: 16, color: AppColors.p600),
+                        icon: const Icon(Icons.add,
+                            size: 16, color: AppColors.p600),
                         onPressed: () {
                           setState(() {
                             m.weight += 0.5;
@@ -1321,11 +1655,15 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Danh sách món ăn (${_items.length})', style: AppTypography.label),
+              Text('Danh sách món ăn (${_items.length})',
+                  style: AppTypography.label),
               TextButton.icon(
                 onPressed: _addNewItemDialog,
-                icon: const Icon(Icons.add_circle_outline_rounded, size: 16, color: AppColors.p500),
-                label: Text('Thêm món', style: AppTypography.label.copyWith(color: AppColors.p500, fontSize: 13)),
+                icon: const Icon(Icons.add_circle_outline_rounded,
+                    size: 16, color: AppColors.p500),
+                label: Text('Thêm món',
+                    style: AppTypography.label
+                        .copyWith(color: AppColors.p500, fontSize: 13)),
               ),
             ],
           ),
@@ -1334,7 +1672,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Center(
-                child: Text('Bấm "Quét bill" hoặc "Thêm món" để chia từng món ăn!', style: AppTypography.caption),
+                child: Text(
+                    'Bấm "Quét bill" hoặc "Thêm món" để chia từng món ăn!',
+                    style: AppTypography.caption),
               ),
             )
           else
@@ -1353,17 +1693,28 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(item.name, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
-                        Text(currencyFormatter.format(item.price), style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700, color: AppColors.p600)),
+                        Text(item.name,
+                            style: AppTypography.bodyMedium
+                                .copyWith(fontWeight: FontWeight.w700)),
+                        Text(currencyFormatter.format(item.price),
+                            style: AppTypography.bodyMedium.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.p600)),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Wrap(
                       spacing: 6,
                       children: _members.map((m) {
-                        final isAssigned = item.assignedMemberIds.contains(m.id);
+                        final isAssigned =
+                            item.assignedMemberIds.contains(m.id);
                         return FilterChip(
-                          label: Text(m.name, style: TextStyle(fontSize: 11, color: isAssigned ? AppColors.p700 : AppColors.n600)),
+                          label: Text(m.name,
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: isAssigned
+                                      ? AppColors.p700
+                                      : AppColors.n600)),
                           selected: isAssigned,
                           selectedColor: AppColors.p100,
                           onSelected: (val) {
@@ -1403,7 +1754,8 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
             children: [
               TextField(
                 controller: itemNameCtrl,
-                decoration: const InputDecoration(labelText: 'Tên món (Ví dụ: Lẩu thái)'),
+                decoration: const InputDecoration(
+                    labelText: 'Tên món (Ví dụ: Lẩu thái)'),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -1420,7 +1772,8 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
             ),
             ElevatedButton(
               onPressed: () {
-                if (itemNameCtrl.text.isNotEmpty && itemPriceCtrl.text.isNotEmpty) {
+                if (itemNameCtrl.text.isNotEmpty &&
+                    itemPriceCtrl.text.isNotEmpty) {
                   final price = double.tryParse(itemPriceCtrl.text) ?? 0;
                   setState(() {
                     _items.add(ExpenseItemDetail(
@@ -1444,73 +1797,17 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
   // --- thanh NÚT LƯU KHOẢN CHI DƯỚI CÙNG (STICKY SUBMIT BAR) ---
   Widget _buildStickySubmitBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.s20, vertical: AppDimensions.s16),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.s20, vertical: AppDimensions.s16),
       decoration: BoxDecoration(
         color: AppColors.n0,
         boxShadow: AppDimensions.shadowLg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppDimensions.r24)),
+        borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppDimensions.r24)),
       ),
       child: SafeArea(
         child: InkWell(
-          onTap: () {
-            HapticFeedback.mediumImpact();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Row(
-                  children: [
-                    Icon(Icons.check_circle_outline_rounded, color: Colors.white),
-                    SizedBox(width: AppDimensions.s8),
-                    Text('Đã lưu khoản chi thành công!'),
-                  ],
-                ),
-                backgroundColor: AppColors.success,
-                behavior: SnackBarBehavior.floating,
-                margin: const EdgeInsets.only(bottom: 95, left: 16, right: 16),
-                duration: const Duration(seconds: 2),
-                shape: RoundedRectangleBorder(borderRadius: AppDimensions.radius12),
-              ),
-            );
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ExpenseDetailScreen(
-                  expenseData: ExpenseDetailModel(
-                    id: 'exp_${DateTime.now().millisecondsSinceEpoch}',
-                    title: _titleController.text.isEmpty ? 'Khoản chi mới' : _titleController.text,
-                    totalAmount: _totalAmount > 0 ? _totalAmount : 680000,
-                    categoryName: _selectedCategory.name,
-                    categoryIcon: _selectedCategory.icon,
-                    categoryColor: _selectedCategory.color,
-                    payerName: _members.firstWhere((m) => m.id == _payerId).name,
-                    payerAvatar: _members.firstWhere((m) => m.id == _payerId).avatarUrl,
-                    createdAt: DateTime.now(),
-                    groupName: 'Du Lịch Hà Giang',
-                    splitModeName: _splitMode == SplitMode.equal
-                        ? 'Chia đều (EQUAL)'
-                        : _splitMode == SplitMode.amount
-                            ? 'Số tiền (AMOUNT)'
-                            : _splitMode == SplitMode.percent
-                                ? 'Phần trăm (PERCENT)'
-                                : _splitMode == SplitMode.weight
-                                    ? 'Tỷ trọng (WEIGHT)'
-                                    : 'Theo món (ITEM)',
-                    isSettled: false,
-                    receiptUrl: _hasReceipt
-                        ? 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80'
-                        : null,
-                    participants: _members.where((m) => m.isSelected).map((m) {
-                      return ExpenseParticipantDetail(
-                        name: m.name,
-                        avatarUrl: m.avatarUrl,
-                        amount: m.amount,
-                        isPayer: m.id == _payerId,
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-            );
-          },
+          onTap: _saving ? null : _saveExpense,
           borderRadius: AppDimensions.radius20,
           child: Container(
             height: 56,
@@ -1530,7 +1827,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
               children: [
                 const Icon(Icons.check_rounded, color: Colors.white, size: 22),
                 const SizedBox(width: AppDimensions.s8),
-                Text('LƯU KHOẢN CHI', style: AppTypography.title.copyWith(color: Colors.white, fontSize: 16, letterSpacing: 0.5)),
+                Text(_saving ? 'ĐANG LƯU...' : 'LƯU KHOẢN CHI',
+                    style: AppTypography.title.copyWith(
+                        color: Colors.white, fontSize: 16, letterSpacing: 0.5)),
               ],
             ),
           ),
