@@ -68,45 +68,6 @@ public class FcmPushService {
             );
         }
 
-        // --------------------------------------------------------------------
-        // 2. Giữ topic cũ để Android hiện tại vẫn tương thích
-        // trong thời gian chuyển đổi.
-        // Sau khi Android cũng đăng ký token ổn định,
-        // có thể bỏ đoạn này.
-        // --------------------------------------------------------------------
-        try {
-
-            Message topicMessage =
-                    Message.builder()
-                            .setTopic(
-                                    "user_" + userId
-                            )
-                            .setNotification(
-                                    Notification
-                                            .builder()
-                                            .setTitle(title)
-                                            .setBody(body)
-                                            .build()
-                            )
-                            .putAllData(
-                                    data == null
-                                            ? Map.of()
-                                            : data
-                            )
-                            .build();
-
-            FirebaseMessaging
-                    .getInstance()
-                    .send(topicMessage);
-
-        } catch (Exception ex) {
-
-            log.warn(
-                    "Could not send FCM topic user_{}: {}",
-                    userId,
-                    ex.getMessage()
-            );
-        }
     }
 
     private void sendToToken(

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/app/app_keys.dart';
+import 'core/app/mobile_app_frame.dart';
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/splash_screen.dart';
@@ -87,6 +88,7 @@ class SplitDebtApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: scaffoldMessengerKey,
       theme: AppTheme.lightTheme,
+      builder: (context, child) => MobileAppFrame(child: child!),
       home: const SplashScreen(),
     );
   }

@@ -16,30 +16,14 @@ class DebtEdge {
   });
 
   factory DebtEdge.fromJson(
-      Map<String, dynamic> json,
-      ) {
+    Map<String, dynamic> json,
+  ) {
     return DebtEdge(
-      debtorId:
-      (json['debtorId'] as num)
-          .toInt(),
-
-      debtorName:
-      json['debtorName']
-      as String? ??
-          '',
-
-      creditorId:
-      (json['creditorId'] as num)
-          .toInt(),
-
-      creditorName:
-      json['creditorName']
-      as String? ??
-          '',
-
-      amount:
-      (json['amount'] as num)
-          .toDouble(),
+      debtorId: (json['debtorId'] as num).toInt(),
+      debtorName: json['debtorName'] as String? ?? '',
+      creditorId: (json['creditorId'] as num).toInt(),
+      creditorName: json['creditorName'] as String? ?? '',
+      amount: (json['amount'] as num).toDouble(),
     );
   }
 }
@@ -58,22 +42,12 @@ class NetBalance {
   });
 
   factory NetBalance.fromJson(
-      Map<String, dynamic> json,
-      ) {
+    Map<String, dynamic> json,
+  ) {
     return NetBalance(
-      userId:
-      (json['userId'] as num)
-          .toInt(),
-
-      fullName:
-      json['fullName']
-      as String? ??
-          '',
-
-      netBalance:
-      (json['netBalance']
-      as num)
-          .toDouble(),
+      userId: (json['userId'] as num).toInt(),
+      fullName: json['fullName'] as String? ?? '',
+      netBalance: (json['netBalance'] as num).toDouble(),
     );
   }
 }
@@ -87,8 +61,7 @@ class DebtSummary {
 
   final List<DebtEdge> owedToYou;
 
-  final List<NetBalance>
-  netBalances;
+  final List<NetBalance> netBalances;
 
   const DebtSummary({
     required this.totalToPay,
@@ -99,55 +72,31 @@ class DebtSummary {
   });
 
   factory DebtSummary.fromJson(
-      Map<String, dynamic> json,
-      ) {
+    Map<String, dynamic> json,
+  ) {
     return DebtSummary(
-      totalToPay:
-      (json['totalToPay']
-      as num? ??
-          0)
-          .toDouble(),
-
-      totalToReceive:
-      (json['totalToReceive']
-      as num? ??
-          0)
-          .toDouble(),
-
-      youOwe:
-      ((json['youOwe']
-      as List?) ??
-          const [])
+      totalToPay: (json['totalToPay'] as num? ?? 0).toDouble(),
+      totalToReceive: (json['totalToReceive'] as num? ?? 0).toDouble(),
+      youOwe: ((json['youOwe'] as List?) ?? const [])
           .map(
-            (e) =>
-            DebtEdge.fromJson(
+            (e) => DebtEdge.fromJson(
               e as Map<String, dynamic>,
             ),
-      )
+          )
           .toList(),
-
-      owedToYou:
-      ((json['owedToYou']
-      as List?) ??
-          const [])
+      owedToYou: ((json['owedToYou'] as List?) ?? const [])
           .map(
-            (e) =>
-            DebtEdge.fromJson(
+            (e) => DebtEdge.fromJson(
               e as Map<String, dynamic>,
             ),
-      )
+          )
           .toList(),
-
-      netBalances:
-      ((json['netBalances']
-      as List?) ??
-          const [])
+      netBalances: ((json['netBalances'] as List?) ?? const [])
           .map(
-            (e) =>
-            NetBalance.fromJson(
+            (e) => NetBalance.fromJson(
               e as Map<String, dynamic>,
             ),
-      )
+          )
           .toList(),
     );
   }
@@ -167,31 +116,19 @@ class SmartSettlementResult {
   });
 
   factory SmartSettlementResult.fromJson(
-      Map<String, dynamic> json,
-      ) {
+    Map<String, dynamic> json,
+  ) {
     return SmartSettlementResult(
       beforeTransactionCount:
-      (json['beforeTransactionCount']
-      as num? ??
-          0)
-          .toInt(),
-
+          (json['beforeTransactionCount'] as num? ?? 0).toInt(),
       afterTransactionCount:
-      (json['afterTransactionCount']
-      as num? ??
-          0)
-          .toInt(),
-
-      suggestions:
-      ((json['suggestions']
-      as List?) ??
-          const [])
+          (json['afterTransactionCount'] as num? ?? 0).toInt(),
+      suggestions: ((json['suggestions'] as List?) ?? const [])
           .map(
-            (e) =>
-            DebtEdge.fromJson(
+            (e) => DebtEdge.fromJson(
               e as Map<String, dynamic>,
             ),
-      )
+          )
           .toList(),
     );
   }
@@ -208,19 +145,11 @@ class ChartSlice {
   });
 
   factory ChartSlice.fromJson(
-      Map<String, dynamic> json,
-      ) {
+    Map<String, dynamic> json,
+  ) {
     return ChartSlice(
-      label:
-      json['label']
-      as String? ??
-          'Khác',
-
-      amount:
-      (json['amount']
-      as num? ??
-          0)
-          .toDouble(),
+      label: json['label'] as String? ?? 'Khác',
+      amount: (json['amount'] as num? ?? 0).toDouble(),
     );
   }
 }
@@ -230,19 +159,15 @@ class FinancialStats {
 
   final double totalExpense;
 
-  final double
-  totalPaidByCurrentUser;
+  final double totalPaidByCurrentUser;
 
   final double totalDebtToPay;
 
-  final double
-  totalDebtToReceive;
+  final double totalDebtToReceive;
 
-  final List<ChartSlice>
-  byCategory;
+  final List<ChartSlice> byCategory;
 
-  final List<ChartSlice>
-  byMember;
+  final List<ChartSlice> byMember;
 
   const FinancialStats({
     required this.period,
@@ -255,60 +180,28 @@ class FinancialStats {
   });
 
   factory FinancialStats.fromJson(
-      Map<String, dynamic> json,
-      ) {
+    Map<String, dynamic> json,
+  ) {
     return FinancialStats(
-      period:
-      json['period']
-      as String? ??
-          'MONTH',
-
-      totalExpense:
-      (json['totalExpense']
-      as num? ??
-          0)
-          .toDouble(),
-
+      period: json['period'] as String? ?? 'MONTH',
+      totalExpense: (json['totalExpense'] as num? ?? 0).toDouble(),
       totalPaidByCurrentUser:
-      (json['totalPaidByCurrentUser']
-      as num? ??
-          0)
-          .toDouble(),
-
-      totalDebtToPay:
-      (json['totalDebtToPay']
-      as num? ??
-          0)
-          .toDouble(),
-
-      totalDebtToReceive:
-      (json['totalDebtToReceive']
-      as num? ??
-          0)
-          .toDouble(),
-
-      byCategory:
-      ((json['byCategory']
-      as List?) ??
-          const [])
+          (json['totalPaidByCurrentUser'] as num? ?? 0).toDouble(),
+      totalDebtToPay: (json['totalDebtToPay'] as num? ?? 0).toDouble(),
+      totalDebtToReceive: (json['totalDebtToReceive'] as num? ?? 0).toDouble(),
+      byCategory: ((json['byCategory'] as List?) ?? const [])
           .map(
-            (e) =>
-            ChartSlice.fromJson(
+            (e) => ChartSlice.fromJson(
               e as Map<String, dynamic>,
             ),
-      )
+          )
           .toList(),
-
-      byMember:
-      ((json['byMember']
-      as List?) ??
-          const [])
+      byMember: ((json['byMember'] as List?) ?? const [])
           .map(
-            (e) =>
-            ChartSlice.fromJson(
+            (e) => ChartSlice.fromJson(
               e as Map<String, dynamic>,
             ),
-      )
+          )
           .toList(),
     );
   }
@@ -346,47 +239,18 @@ class SettlementRecord {
   });
 
   factory SettlementRecord.fromJson(
-      Map<String, dynamic> json,
-      ) {
+    Map<String, dynamic> json,
+  ) {
     return SettlementRecord(
-      id:
-      (json['id'] as num)
-          .toInt(),
-
-      groupId:
-      (json['groupId'] as num)
-          .toInt(),
-
-      debtorId:
-      (json['debtorId'] as num)
-          .toInt(),
-
-      debtorName:
-      json['debtorName']
-      as String? ??
-          '',
-
-      creditorId:
-      (json['creditorId'] as num)
-          .toInt(),
-
-      creditorName:
-      json['creditorName']
-      as String? ??
-          '',
-
-      amount:
-      (json['amount'] as num)
-          .toDouble(),
-
-      status:
-      json['status']
-      as String? ??
-          'PENDING',
-
-      paymentMethod:
-      json['paymentMethod']
-      as String?,
+      id: (json['id'] as num).toInt(),
+      groupId: (json['groupId'] as num).toInt(),
+      debtorId: (json['debtorId'] as num).toInt(),
+      debtorName: json['debtorName'] as String? ?? '',
+      creditorId: (json['creditorId'] as num).toInt(),
+      creditorName: json['creditorName'] as String? ?? '',
+      amount: (json['amount'] as num).toDouble(),
+      status: json['status'] as String? ?? 'PENDING',
+      paymentMethod: json['paymentMethod'] as String?,
     );
   }
 }

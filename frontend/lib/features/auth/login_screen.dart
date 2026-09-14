@@ -63,14 +63,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 32),
-              
+
               // Email Field
               Text(
                 'Email',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimaryColor,
-                ),
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimaryColor,
+                    ),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -86,9 +86,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Text(
                 'Mật khẩu',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimaryColor,
-                ),
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimaryColor,
+                    ),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -98,7 +98,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   hintText: '••••••••',
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                       color: AppTheme.textSecondaryColor,
                     ),
                     onPressed: () {
@@ -131,38 +133,54 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
               // Login Button
               ElevatedButton(
-                onPressed: authState.isLoading ? null : () async {
-                  final email = _emailController.text.trim();
-                  final password = _passwordController.text.trim();
-                  
-                  if (email.isEmpty || password.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Vui lòng nhập đầy đủ email và mật khẩu')),
-                    );
-                    return;
-                  }
+                onPressed: authState.isLoading
+                    ? null
+                    : () async {
+                        final email = _emailController.text.trim();
+                        final password = _passwordController.text.trim();
 
-                  final success = await ref.read(authProvider.notifier).login(email, password);
-                  if (mounted) {
-                    if (success) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đăng nhập thành công!')),
-                      );
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (_) => const MainLayoutScreen(),
-                        ),
-                      );
-                    } else {
-                      final errorMsg = ref.read(authProvider).error?.toString().replaceAll('Exception: ', '') ?? 'Đăng nhập thất bại';
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(errorMsg)),
-                      );
-                    }
-                  }
-                },
-                child: authState.isLoading 
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        if (email.isEmpty || password.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Vui lòng nhập đầy đủ email và mật khẩu')),
+                          );
+                          return;
+                        }
+
+                        final success = await ref
+                            .read(authProvider.notifier)
+                            .login(email, password);
+                        if (mounted) {
+                          if (success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Đăng nhập thành công!')),
+                            );
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (_) => const MainLayoutScreen(),
+                              ),
+                            );
+                          } else {
+                            final errorMsg = ref
+                                    .read(authProvider)
+                                    .error
+                                    ?.toString()
+                                    .replaceAll('Exception: ', '') ??
+                                'Đăng nhập thất bại';
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(errorMsg)),
+                            );
+                          }
+                        }
+                      },
+                child: authState.isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
                     : const Text('Đăng nhập'),
               ),
               const SizedBox(height: 24),
@@ -192,7 +210,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // TODO: Replace with Google SVG Icon from Figma
-                    const Icon(Icons.g_mobiledata, size: 28, color: Colors.black87),
+                    const Icon(Icons.g_mobiledata,
+                        size: 28, color: Colors.black87),
                     const SizedBox(width: 8),
                     const Text('Tiếp tục với Google'),
                   ],

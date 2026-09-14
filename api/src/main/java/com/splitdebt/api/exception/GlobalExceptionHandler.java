@@ -16,8 +16,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(404).body(ApiResponse.error(404, ex.getMessage()));
     }
 
-    @ExceptionHandler(GroupPermissionException.class)
-    public ResponseEntity<ApiResponse<Object>> handlePermission(GroupPermissionException ex) {
+    @ExceptionHandler({GroupPermissionException.class, org.springframework.security.access.AccessDeniedException.class})
+    public ResponseEntity<ApiResponse<Object>> handlePermission(Exception ex) {
         return ResponseEntity.status(403).body(ApiResponse.error(403, ex.getMessage()));
     }
 

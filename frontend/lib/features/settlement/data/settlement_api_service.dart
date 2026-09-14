@@ -6,19 +6,17 @@ class SettlementApiService {
   final _dio = DioClient().dio;
 
   Map<String, dynamic> _data(
-      dynamic responseData,
-      ) {
-    final map =
-    responseData as Map<String, dynamic>;
+    dynamic responseData,
+  ) {
+    final map = responseData as Map<String, dynamic>;
 
-    return map['data']
-    as Map<String, dynamic>;
+    return map['data'] as Map<String, dynamic>;
   }
 
   Future<DebtSummary> getDebtSummary(
-      int groupId,
-      int userId,
-      ) async {
+    int groupId,
+    int userId,
+  ) async {
     final response = await _dio.get(
       '/groups/$groupId/debts',
       queryParameters: {
@@ -31,11 +29,10 @@ class SettlementApiService {
     );
   }
 
-  Future<SmartSettlementResult>
-  getSmartSettlement(
-      int groupId,
-      int userId,
-      ) async {
+  Future<SmartSettlementResult> getSmartSettlement(
+    int groupId,
+    int userId,
+  ) async {
     final response = await _dio.get(
       '/groups/$groupId/smart-settlement',
       queryParameters: {
@@ -49,10 +46,10 @@ class SettlementApiService {
   }
 
   Future<FinancialStats> getStats(
-      int groupId,
-      int userId,
-      String period,
-      ) async {
+    int groupId,
+    int userId,
+    String period,
+  ) async {
     final response = await _dio.get(
       '/groups/$groupId/stats',
       queryParameters: {
@@ -66,11 +63,10 @@ class SettlementApiService {
     );
   }
 
-  Future<List<SettlementRecord>>
-  getSettlements(
-      int groupId,
-      int userId,
-      ) async {
+  Future<List<SettlementRecord>> getSettlements(
+    int groupId,
+    int userId,
+  ) async {
     final response = await _dio.get(
       '/groups/$groupId/settlements',
       queryParameters: {
@@ -79,23 +75,18 @@ class SettlementApiService {
     );
 
     final data =
-        (response.data
-        as Map<String, dynamic>)['data']
-        as List? ??
-            const [];
+        (response.data as Map<String, dynamic>)['data'] as List? ?? const [];
 
     return data
         .map(
-          (e) =>
-          SettlementRecord.fromJson(
+          (e) => SettlementRecord.fromJson(
             e as Map<String, dynamic>,
           ),
-    )
+        )
         .toList();
   }
 
-  Future<SettlementRecord>
-  createSettlement({
+  Future<SettlementRecord> createSettlement({
     required int groupId,
     required int currentUserId,
     required DebtEdge suggestion,
@@ -106,12 +97,9 @@ class SettlementApiService {
         'userId': currentUserId,
       },
       data: {
-        'debtorId':
-        suggestion.debtorId,
-        'creditorId':
-        suggestion.creditorId,
-        'amount':
-        suggestion.amount,
+        'debtorId': suggestion.debtorId,
+        'creditorId': suggestion.creditorId,
+        'amount': suggestion.amount,
       },
     );
 
@@ -128,12 +116,10 @@ class SettlementApiService {
   }) async {
     final response = await _dio.post(
       '/groups/$groupId/settlements/'
-          '$settlementId/pay',
+      '$settlementId/pay',
       data: {
-        'debtorUserId':
-        debtorUserId,
-        'paymentMethod':
-        paymentMethod,
+        'debtorUserId': debtorUserId,
+        'paymentMethod': paymentMethod,
       },
     );
 
@@ -149,10 +135,9 @@ class SettlementApiService {
   }) async {
     final response = await _dio.post(
       '/groups/$groupId/settlements/'
-          '$settlementId/confirm',
+      '$settlementId/confirm',
       data: {
-        'creditorUserId':
-        creditorUserId,
+        'creditorUserId': creditorUserId,
       },
     );
 

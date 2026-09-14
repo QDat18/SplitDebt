@@ -30,8 +30,7 @@ class DioClient {
           return handler.next(options);
         },
         onError: (DioException e, handler) {
-          if (e.response != null &&
-              e.response?.data is Map<String, dynamic>) {
+          if (e.response != null && e.response?.data is Map<String, dynamic>) {
             final data = e.response!.data as Map<String, dynamic>;
 
             if (data.containsKey('message')) {

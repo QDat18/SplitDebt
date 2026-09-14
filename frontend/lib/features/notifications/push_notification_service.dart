@@ -69,7 +69,11 @@ class PushNotificationService {
       }
     }
     final token = await getToken();
-    if (token != null) await _register(token);
+    if (token == null) {
+      throw Exception(
+          'Hãy cho phép Notifications của trang và dùng hồ sơ trình duyệt thường, sau đó thử lại.');
+    }
+    await _register(token);
   }
 
   Future<void> unsubscribeCurrentUser() async {

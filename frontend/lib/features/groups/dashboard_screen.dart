@@ -34,7 +34,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   late Animation<double> _fadeAnim;
 
   int _unreadNotificationCount = 0;
-  final currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+  final currencyFormatter =
+      NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 
   @override
   void initState() {
@@ -63,7 +64,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           opacity: _fadeAnim,
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: AppDimensions.s20, vertical: AppDimensions.s16),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.s20, vertical: AppDimensions.s16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -109,14 +111,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               ),
               child: const CircleAvatar(
                 radius: 22,
-                backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=11'),
+                backgroundImage:
+                    NetworkImage('https://i.pravatar.cc/150?img=11'),
               ),
             ),
             const SizedBox(width: AppDimensions.s12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Xin chào, Đạt!', style: AppTypography.title.copyWith(fontSize: 18)),
+                Text('Xin chào, Đạt!',
+                    style: AppTypography.title.copyWith(fontSize: 18)),
                 Text('Team IUMAITRUONG', style: AppTypography.caption),
               ],
             ),
@@ -139,7 +143,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             ),
             child: Stack(
               children: [
-                const Icon(Icons.notifications_outlined, color: AppColors.n800, size: 22),
+                const Icon(Icons.notifications_outlined,
+                    color: AppColors.n800, size: 22),
                 if (_unreadNotificationCount > 0)
                   Positioned(
                     right: 0,
@@ -177,43 +182,55 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('TỔNG SỐ DƯ RÒNG KHOẢN CHI', style: AppTypography.caption.copyWith(color: Colors.white.withOpacity(0.8), letterSpacing: 1.0, fontWeight: FontWeight.w700)),
+              Text('TỔNG SỐ DƯ RÒNG KHOẢN CHI',
+                  style: AppTypography.caption.copyWith(
+                      color: Colors.white.withOpacity(0.8),
+                      letterSpacing: 1.0,
+                      fontWeight: FontWeight.w700)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.success,
                   borderRadius: AppDimensions.radius8,
                 ),
-                child: Text('CẦN NHẬN LẠI TIỀN', style: AppTypography.caption.copyWith(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                child: Text('CẦN NHẬN LẠI TIỀN',
+                    style: AppTypography.caption.copyWith(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800)),
               ),
             ],
           ),
-
           const SizedBox(height: 6),
           Text(
             '+340.000 ₫',
-            style: AppTypography.display.copyWith(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900),
+            style: AppTypography.display.copyWith(
+                color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900),
           ),
-
           const SizedBox(height: AppDimensions.s16),
           const Divider(height: 1, color: Colors.white24),
           const SizedBox(height: AppDimensions.s12),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  const Icon(Icons.arrow_upward_rounded, color: AppColors.successTint, size: 16),
+                  const Icon(Icons.arrow_upward_rounded,
+                      color: AppColors.successTint, size: 16),
                   const SizedBox(width: 4),
-                  Text('Bạn đã ứng: 680.000 ₫', style: AppTypography.caption.copyWith(color: Colors.white.withOpacity(0.9))),
+                  Text('Bạn đã ứng: 680.000 ₫',
+                      style: AppTypography.caption
+                          .copyWith(color: Colors.white.withOpacity(0.9))),
                 ],
               ),
               Row(
                 children: [
-                  const Icon(Icons.arrow_downward_rounded, color: AppColors.errorTint, size: 16),
+                  const Icon(Icons.arrow_downward_rounded,
+                      color: AppColors.errorTint, size: 16),
                   const SizedBox(width: 4),
-                  Text('Nợ phải gánh: 340.000 ₫', style: AppTypography.caption.copyWith(color: Colors.white.withOpacity(0.9))),
+                  Text('Nợ phải gánh: 340.000 ₫',
+                      style: AppTypography.caption
+                          .copyWith(color: Colors.white.withOpacity(0.9))),
                 ],
               ),
             ],
@@ -248,15 +265,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       color: AppColors.p50,
                       borderRadius: AppDimensions.radius12,
                     ),
-                    child: const Icon(Icons.add_circle_outline_rounded, color: AppColors.p500, size: 22),
+                    child: const Icon(Icons.add_circle_outline_rounded,
+                        color: AppColors.p500, size: 22),
                   ),
                   const SizedBox(width: AppDimensions.s12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Tạo khoản chi', style: AppTypography.title.copyWith(fontSize: 14)),
-                        Text('Chia tiền tự động', style: AppTypography.caption.copyWith(fontSize: 11)),
+                        Text('Tạo khoản chi',
+                            style: AppTypography.title.copyWith(fontSize: 14)),
+                        Text('Chia tiền tự động',
+                            style:
+                                AppTypography.caption.copyWith(fontSize: 11)),
                       ],
                     ),
                   ),
@@ -289,15 +310,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       color: AppColors.warningTint,
                       borderRadius: AppDimensions.radius12,
                     ),
-                    child: const Icon(Icons.auto_awesome_rounded, color: AppColors.warning, size: 22),
+                    child: const Icon(Icons.auto_awesome_rounded,
+                        color: AppColors.warning, size: 22),
                   ),
                   const SizedBox(width: AppDimensions.s12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Quyết toán', style: AppTypography.title.copyWith(fontSize: 14)),
-                        Text('Min-Cash-Flow', style: AppTypography.caption.copyWith(fontSize: 11)),
+                        Text('Quyết toán',
+                            style: AppTypography.title.copyWith(fontSize: 14)),
+                        Text('Min-Cash-Flow',
+                            style:
+                                AppTypography.caption.copyWith(fontSize: 11)),
                       ],
                     ),
                   ),
@@ -318,10 +343,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Nhóm chi tiêu (1)', style: AppTypography.label.copyWith(fontSize: 15)),
+            Text('Nhóm chi tiêu (1)',
+                style: AppTypography.label.copyWith(fontSize: 15)),
             TextButton(
               onPressed: () {},
-              child: Text('Tất cả', style: AppTypography.label.copyWith(color: AppColors.p600, fontSize: 13)),
+              child: Text('Tất cả',
+                  style: AppTypography.label
+                      .copyWith(color: AppColors.p600, fontSize: 13)),
             ),
           ],
         ),
@@ -345,35 +373,44 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       color: AppColors.p50,
                       borderRadius: AppDimensions.radius16,
                     ),
-                    child: const Icon(Icons.groups_rounded, color: AppColors.p500, size: 24),
+                    child: const Icon(Icons.groups_rounded,
+                        color: AppColors.p500, size: 24),
                   ),
                   const SizedBox(width: AppDimensions.s12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Du Lịch Hà Giang', style: AppTypography.title.copyWith(fontSize: 16)),
-                        Text('4 thành viên • Tiền tệ VND', style: AppTypography.caption),
+                        Text('Du Lịch Hà Giang',
+                            style: AppTypography.title.copyWith(fontSize: 16)),
+                        Text('4 thành viên • Tiền tệ VND',
+                            style: AppTypography.caption),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: AppColors.successTint, borderRadius: AppDimensions.radius8),
-                    child: Text('Đang hoạt động', style: AppTypography.caption.copyWith(color: AppColors.success, fontWeight: FontWeight.w700)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                        color: AppColors.successTint,
+                        borderRadius: AppDimensions.radius8),
+                    child: Text('Đang hoạt động',
+                        style: AppTypography.caption.copyWith(
+                            color: AppColors.success,
+                            fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
-
               const SizedBox(height: AppDimensions.s16),
               const Divider(height: 1, color: AppColors.n100),
               const SizedBox(height: AppDimensions.s12),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Tổng chi tiêu nhóm:', style: AppTypography.caption),
-                  Text('2.450.000 ₫', style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w800, color: AppColors.p600)),
+                  Text('2.450.000 ₫',
+                      style: AppTypography.bodyLarge.copyWith(
+                          fontWeight: FontWeight.w800, color: AppColors.p600)),
                 ],
               ),
             ],
@@ -421,14 +458,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Khoản chi gần đây', style: AppTypography.label.copyWith(fontSize: 15)),
+            Text('Khoản chi gần đây',
+                style: AppTypography.label.copyWith(fontSize: 15)),
             TextButton(
               onPressed: () {},
-              child: Text('Xem lịch sử', style: AppTypography.label.copyWith(color: AppColors.p600, fontSize: 13)),
+              child: Text('Xem lịch sử',
+                  style: AppTypography.label
+                      .copyWith(color: AppColors.p600, fontSize: 13)),
             ),
           ],
         ),
-
         ...recentExpenses.map((exp) {
           final color = exp['color'] as Color;
           final icon = exp['icon'] as IconData;
@@ -441,22 +480,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               boxShadow: AppDimensions.shadowSm,
             ),
             child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               leading: CircleAvatar(
                 backgroundColor: color.withOpacity(0.15),
                 child: Icon(icon, color: color, size: 20),
               ),
-              title: Text(exp['title'] as String, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
-              subtitle: Text('${exp['payer']} • ${exp['time']}', style: AppTypography.caption),
+              title: Text(exp['title'] as String,
+                  style: AppTypography.bodyMedium
+                      .copyWith(fontWeight: FontWeight.w700)),
+              subtitle: Text('${exp['payer']} • ${exp['time']}',
+                  style: AppTypography.caption),
               trailing: Text(
                 currencyFormatter.format(exp['amount']),
-                style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w800, color: AppColors.n900),
+                style: AppTypography.bodyLarge.copyWith(
+                    fontWeight: FontWeight.w800, color: AppColors.n900),
               ),
               onTap: () {
                 HapticFeedback.lightImpact();
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ExpenseDetailScreen()),
+                  MaterialPageRoute(
+                      builder: (_) => const ExpenseDetailScreen()),
                 );
               },
             ),
@@ -469,29 +514,46 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   // --- MODAL THÔNG BÁO PUSH REAL-TIME FCM (BE4-SET-02 & FE4-PAY-01) ---
   Future<void> _showNotificationSheet(BuildContext context) async {
     final future = _loadNotifications();
-    await showModalBottomSheet<void>(context: context, isScrollControlled: true,
-      builder: (context) => SizedBox(height: MediaQuery.sizeOf(context).height * 0.65,
-        child: FutureBuilder<List<Map<String, dynamic>>>(future: future, builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text('Không tải được thông báo: ${snapshot.error}'));
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final notifications = snapshot.data!;
-          if (notifications.isEmpty) return const Center(child: Text('Chưa có thông báo.'));
-          return ListView(children: [
-            const ListTile(title: Text('Thông báo')),
-            for (final item in notifications) ListTile(
-              leading: const Icon(Icons.notifications_outlined),
-              title: Text(item['title']?.toString() ?? ''),
-              subtitle: Text(item['content']?.toString() ?? ''),
-              onTap: () { Navigator.pop(context); widget.onNavigateToSettlement(); },
-            ),
-          ]);
-        })),
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SizedBox(
+          height: MediaQuery.sizeOf(context).height * 0.65,
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: future,
+              builder: (context, snapshot) {
+                if (snapshot.hasError)
+                  return Center(
+                      child:
+                          Text('Không tải được thông báo: ${snapshot.error}'));
+                if (!snapshot.hasData)
+                  return const Center(child: CircularProgressIndicator());
+                final notifications = snapshot.data!;
+                if (notifications.isEmpty)
+                  return const Center(child: Text('Chưa có thông báo.'));
+                return ListView(children: [
+                  const ListTile(title: Text('Thông báo')),
+                  for (final item in notifications)
+                    ListTile(
+                      leading: const Icon(Icons.notifications_outlined),
+                      title: Text(item['title']?.toString() ?? ''),
+                      subtitle: Text(item['content']?.toString() ?? ''),
+                      onTap: () {
+                        Navigator.pop(context);
+                        widget.onNavigateToSettlement();
+                      },
+                    ),
+                ]);
+              })),
     );
   }
 
   Future<List<Map<String, dynamic>>> _loadNotifications() async {
     final userId = await AuthRepository().getCurrentUserId();
-    final response = await dioClient.get('/notifications', queryParameters: {'userId': userId});
-    return (response.data['data'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final response = await dioClient
+        .get('/notifications', queryParameters: {'userId': userId});
+    return (response.data['data'] as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
   }
 }

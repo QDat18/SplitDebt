@@ -22,6 +22,20 @@ public class NotificationController {
 
     private final NotificationRepository notificationRepository;
     private final FcmTokenService fcmTokenService;
+    private final com.splitdebt.api.repository.UserRepository users;
+
+    private Long currentUserId() {
+        String email = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication().getName();
+        return users.findByEmail(email).orElseThrow(() ->
+                new IllegalArgumentException("Không tìm thấy tài khoản")).getId();
+    }
+
+    private void requireCurrentUser(Long userId) {
+        if (!currentUserId().equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Không có quyền truy cập thông báo của tài khoản khác");
+        }
+    }
 
     // =========================================================================
     // Lấy danh sách notification của user
@@ -31,6 +45,7 @@ public class NotificationController {
             @RequestParam Long userId
     ) {
 
+        requireCurrentUser(userId);
         List<NotificationDto> data =
                 notificationRepository
                         .findByUserIdOrderByCreatedAtDesc(
@@ -57,6 +72,7 @@ public class NotificationController {
             @RequestParam Long userId
     ) {
 
+        requireCurrentUser(userId);
         Notification notification =
                 notificationRepository
                         .findById(id)
@@ -109,6 +125,7 @@ public class NotificationController {
             @RequestBody RegisterFcmTokenRequest request
     ) {
 
+        requireCurrentUser(request.getUserId());
         fcmTokenService.registerToken(
                 request.getUserId(),
                 request.getToken(),
@@ -132,6 +149,7 @@ public class NotificationController {
     ) {
 
         fcmTokenService.removeToken(
+                currentUserId(),
                 request.get("token")
         );
 

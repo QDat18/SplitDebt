@@ -7,6 +7,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_typography.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/login_screen.dart';
+import '../notifications/notification_screen.dart';
 
 /// ----------------------------------------------------------------------------
 /// MÀN HÌNH CÀI ĐẶT NHÓM & CÁ NHÂN (SETTINGS SCREEN)
@@ -33,7 +34,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   // Cấu hình Cài đặt Cá nhân
   bool _isDarkMode = false;
   String _language = 'Tiếng Việt';
-  bool _notifyDebtReminder = true;
   bool _biometricsEnabled = true;
 
   @override
@@ -299,19 +299,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           const Divider(height: 1, color: AppColors.n100),
 
           // Thông báo nhắc nợ
-          SwitchListTile(
-            activeColor: AppColors.p500,
-            secondary: const Icon(Icons.notifications_active_rounded,
+          ListTile(
+            leading: const Icon(Icons.notifications_active_rounded,
                 color: AppColors.warning),
             title: Text('Thông báo nhắc nợ & Quyết toán',
                 style: AppTypography.bodyMedium
                     .copyWith(fontWeight: FontWeight.w600)),
-            value: _notifyDebtReminder,
-            onChanged: (val) {
-              setState(() {
-                _notifyDebtReminder = val;
-              });
-            },
+            subtitle: const Text('Xem thông báo và bật thông báo đẩy'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationScreen())),
           ),
         ],
       ),

@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../../core/theme/pdf_components.dart';
+import '../notifications/notification_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -27,7 +29,6 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
   int? _userId;
   int? _groupId;
   DebtSummary? _debt;
-  FinancialStats? _stats;
   SmartSettlementResult? _smart;
   List<SettlementRecord> _settlements = [];
   bool _loading = true;
@@ -108,16 +109,14 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
     try {
       final results = await Future.wait<Object>([
         _api.getDebtSummary(group, user),
-        _api.getStats(group, user, 'ALL'),
         _api.getSmartSettlement(group, user),
         _api.getSettlements(group, user),
       ]);
       if (!mounted || version != _version) return;
       setState(() {
         _debt = results[0] as DebtSummary;
-        _stats = results[1] as FinancialStats;
-        _smart = results[2] as SmartSettlementResult;
-        _settlements = results[3] as List<SettlementRecord>;
+        _smart = results[1] as SmartSettlementResult;
+        _settlements = results[2] as List<SettlementRecord>;
         _loading = false;
       });
     } catch (error) {
@@ -130,13 +129,14 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
   }
 
   Future<void> _openPayment(SettlementRecord record) async {
-    await showDialog<void>(
-        context: context,
-        builder: (_) => PaymentDialog(
-            groupId: record.groupId,
-            currentUserId: _userId!,
-            settlement: record,
-            onUpdated: () {}));
+    await Navigator.push<void>(
+        context,
+        MaterialPageRoute(
+            builder: (_) => PaymentDialog(
+                groupId: record.groupId,
+                currentUserId: _userId!,
+                settlement: record,
+                onUpdated: () {})));
     await _load();
   }
 
@@ -146,7 +146,15 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
     try {
       final record = await _api.createSettlement(
           groupId: _groupId!, currentUserId: _userId!, suggestion: edge);
-      if (mounted) await _openPayment(record);
+      if (mounted && record.debtorId == _userId) {
+        await _openPayment(record);
+      } else {
+        await _load();
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text(
+                  'Đã tạo yêu cầu. Người trả cần mở tài khoản của họ và báo đã thanh toán.')));
+      }
     } catch (error) {
       if (mounted)
         ScaffoldMessenger.of(context)
@@ -158,142 +166,234 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: AppColors.n50,
         appBar: AppBar(
-            title: const Text('Quyết toán Nợ nhóm'),
-            centerTitle: true,
+            title: Text(_tab == 0 ? 'Khoản nợ' : 'Kết quả xén nợ'),
             actions: [
+              const NotificationBell(),
               IconButton(
-                  tooltip: 'Tải lại',
                   onPressed: _loading ? null : _initialize,
-                  icon: const Icon(Icons.refresh))
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Tải lại')
             ]),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
             : _error != null
                 ? Center(
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Text('Không tải được quyết toán: $_error'),
-                    TextButton(
-                        onPressed: _initialize, child: const Text('Thử lại'))
-                  ]))
+                    child: TextButton(
+                        onPressed: _initialize,
+                        child: Text('Không tải được công nợ. Thử lại')))
                 : _groups.isEmpty
                     ? const Center(child: Text('Bạn chưa tham gia nhóm nào.'))
                     : RefreshIndicator(
                         onRefresh: _load,
                         child: ListView(
-                            physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.all(20),
                             children: [
-                              DropdownButton<int>(
-                                  value: _groupId,
-                                  isExpanded: true,
-                                  items: _groups
-                                      .map((g) => DropdownMenuItem<int>(
-                                          value: (g['id'] as num).toInt(),
-                                          child: Text(g['name'] as String)))
-                                      .toList(),
-                                  onChanged: _busy
-                                      ? null
-                                      : (value) {
-                                          _groupId = value;
-                                          _load();
-                                        }),
-                              Card(
-                                  color: AppColors.p500,
-                                  child: Padding(
-                                      padding: const EdgeInsets.all(24),
-                                      child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text('TỔNG CHI TIÊU NHÓM',
-                                                style: TextStyle(
-                                                    color: Colors.white)),
-                                            Text(
-                                                _currency.format(
-                                                    _stats?.totalExpense ?? 0),
-                                                style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 32,
-                                                    fontWeight:
-                                                        FontWeight.bold)),
-                                            const SizedBox(height: 12),
-                                            Text(
-                                                'Bạn cần trả: ${_currency.format(_debt?.totalToPay ?? 0)}\nBạn cần nhận: ${_currency.format(_debt?.totalToReceive ?? 0)}',
-                                                style: const TextStyle(
-                                                    color: Colors.white)),
-                                          ]))),
-                              const SizedBox(height: 16),
-                              SegmentedButton<int>(
-                                  segments: const [
-                                    ButtonSegment(
-                                        value: 0, label: Text('Dư nợ ròng')),
-                                    ButtonSegment(
-                                        value: 1,
-                                        label: Text('Giao dịch tối ưu'))
-                                  ],
-                                  selected: {
-                                    _tab
-                                  },
-                                  onSelectionChanged: (value) =>
-                                      setState(() => _tab = value.first)),
-                              const SizedBox(height: 16),
+                              if (widget.groupId == null) ...[
+                                DropdownButtonFormField<int>(
+                                    initialValue: _groupId,
+                                    items: _groups
+                                        .map((g) => DropdownMenuItem(
+                                            value: (g['id'] as num).toInt(),
+                                            child: Text(g['name'])))
+                                        .toList(),
+                                    onChanged: (v) {
+                                      _groupId = v;
+                                      _load();
+                                    }),
+                                const SizedBox(height: 20)
+                              ],
                               if (_tab == 0) ...[
-                                for (final balance in _debt!.netBalances)
-                                  Card(
-                                      child: ListTile(
-                                          title: Text(
-                                              '${balance.fullName}${balance.userId == _userId ? ' (Tôi)' : ''}'),
-                                          subtitle: Text(balance.netBalance > 0
-                                              ? 'Cần nhận lại từ nhóm'
-                                              : balance.netBalance < 0
-                                                  ? 'Còn thiếu tiền nhóm'
-                                                  : 'Đã cân bằng'),
-                                          trailing: Text(
-                                              _currency
-                                                  .format(balance.netBalance),
-                                              style: TextStyle(
-                                                  color: balance.netBalance < 0
-                                                      ? AppColors.error
-                                                      : AppColors.success)))),
-                              ] else ...[
-                                const Text('GIAO DỊCH THANH TOÁN'),
-                                for (final record in _settlements)
-                                  _recordCard(record),
-                                const SizedBox(height: 16),
-                                const Text('ĐỀ XUẤT THANH TOÁN'),
-                                if (_smart!.suggestions.isEmpty)
+                                Row(children: [
+                                  Expanded(
+                                      child: _totalBox('Tổng bạn cần trả',
+                                          _debt!.totalToPay, pdfRed)),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                      child: _totalBox('Tổng bạn được nhận',
+                                          _debt!.totalToReceive, pdfGreen))
+                                ]),
+                                const SizedBox(height: 28),
+                                const Text('BẠN CẦN TRẢ',
+                                    style: TextStyle(
+                                        color: pdfMuted,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 12),
+                                if (_debt!.youOwe.isEmpty)
                                   const Padding(
                                       padding: EdgeInsets.all(16),
                                       child: Text(
-                                          'Không còn công nợ cần thanh toán.')),
-                                for (final edge in _smart!.suggestions)
+                                          'Bạn không còn khoản phải trả.',
+                                          style: TextStyle(color: pdfMuted))),
+                                for (final e in _debt!.youOwe)
+                                  _debtCard(e.creditorName,
+                                      'Bạn trả ${e.creditorName}', -e.amount),
+                                const SizedBox(height: 20),
+                                const Text('BẠN SẼ NHẬN',
+                                    style: TextStyle(
+                                        color: pdfMuted,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 12),
+                                if (_debt!.owedToYou.isEmpty)
+                                  const Padding(
+                                      padding: EdgeInsets.all(16),
+                                      child: Text(
+                                          'Bạn không còn khoản cần nhận.',
+                                          style: TextStyle(color: pdfMuted))),
+                                for (final e in _debt!.owedToYou)
+                                  _debtCard(e.debtorName,
+                                      '${e.debtorName} trả bạn', e.amount),
+                              ] else ...[
+                                const Center(
+                                    child: CircleAvatar(
+                                        radius: 32,
+                                        backgroundColor: Color(0xFFE7FBF1),
+                                        child: Text('✂️',
+                                            style: TextStyle(fontSize: 28)))),
+                                const SizedBox(height: 18),
+                                const Text('Đã tối ưu giao dịch!',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w800)),
+                                const SizedBox(height: 8),
+                                const Text(
+                                    'Gộp các khoản nợ chéo để giảm số lần thanh toán trong nhóm.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        color: pdfMuted, fontSize: 13)),
+                                const SizedBox(height: 22),
+                                Row(children: [
+                                  Expanded(
+                                      child: _countBox(
+                                          'Trước tối ưu',
+                                          _smart!.beforeTransactionCount,
+                                          false)),
+                                  const Padding(
+                                      padding: EdgeInsets.all(12),
+                                      child: Icon(Icons.arrow_forward,
+                                          color: pdfMuted, size: 18)),
+                                  Expanded(
+                                      child: _countBox('Sau tối ưu',
+                                          _smart!.afterTransactionCount, true))
+                                ]),
+                                const SizedBox(height: 24),
+                                if (_settlements.isNotEmpty) ...[
+                                  const Text('GIAO DỊCH THANH TOÁN',
+                                      style: TextStyle(
+                                          color: pdfMuted,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600)),
+                                  for (final r in _settlements) _recordCard(r),
+                                  const SizedBox(height: 16)
+                                ],
+                                const Text('ĐỀ XUẤT THANH TOÁN',
+                                    style: TextStyle(
+                                        color: pdfMuted,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 12),
+                                if (_smart!.suggestions.isEmpty)
+                                  const Text(
+                                      'Không còn công nợ cần thanh toán.',
+                                      style: TextStyle(color: pdfMuted)),
+                                for (final e in _smart!.suggestions.where((e) =>
+                                    !_settlements.any((s) =>
+                                        (s.status == 'PENDING' ||
+                                            s.status == 'PAID') &&
+                                        s.debtorId == e.debtorId &&
+                                        s.creditorId == e.creditorId)))
                                   Card(
-                                      child: ListTile(
-                                          title: Text(
-                                              '${edge.debtorName} → ${edge.creditorName}'),
-                                          subtitle: Text(
-                                              _currency.format(edge.amount)),
-                                          trailing: (_userId == edge.debtorId ||
-                                                  _userId == edge.creditorId)
-                                              ? TextButton(
-                                                  onPressed: _busy ||
-                                                          _settlements.any((s) =>
-                                                              (s.status ==
-                                                                      'PENDING' ||
-                                                                  s.status ==
-                                                                      'PAID') &&
-                                                              s.debtorId ==
-                                                                  edge.debtorId &&
-                                                              s.creditorId == edge.creditorId)
+                                      child: Padding(
+                                          padding: const EdgeInsets.all(14),
+                                          child: Column(children: [
+                                            Row(children: [
+                                              PersonBadge(e.debtorName),
+                                              const Padding(
+                                                  padding: EdgeInsets.symmetric(
+                                                      horizontal: 8),
+                                                  child: Icon(
+                                                      Icons.arrow_forward,
+                                                      size: 16,
+                                                      color: pdfPurple)),
+                                              PersonBadge(e.creditorName,
+                                                  color: pdfGreen),
+                                              const Spacer(),
+                                              Text(money(e.amount),
+                                                  style: const TextStyle(
+                                                      color: pdfPurple,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 14))
+                                            ]),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                                '${e.debtorName} trả ${e.creditorName}',
+                                                style: const TextStyle(
+                                                    color: pdfMuted,
+                                                    fontSize: 12)),
+                                            if (_userId == e.debtorId ||
+                                                _userId == e.creditorId)
+                                              TextButton(
+                                                  onPressed: _busy
                                                       ? null
-                                                      : () => _create(edge),
-                                                  child: const Text('Tạo thanh toán'))
-                                              : null)),
+                                                      : () => _create(e),
+                                                  child: Text(_userId ==
+                                                          e.debtorId
+                                                      ? 'Thanh toán'
+                                                      : 'Yêu cầu thanh toán'))
+                                          ]))),
                               ],
                             ])),
+        bottomNavigationBar: _loading || _groupId == null
+            ? null
+            : SafeArea(
+                child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: FilledButton(
+                        onPressed: () => setState(() => _tab = 1 - _tab),
+                        child: Text(_tab == 0 ? '✂  Xén nợ' : 'Về khoản nợ')))),
       );
+  Widget _totalBox(String title, double amount, Color color) => Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+          color: color.withValues(alpha: .08),
+          borderRadius: BorderRadius.circular(16)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: TextStyle(fontSize: 11, color: color)),
+        const SizedBox(height: 8),
+        Text(money(amount),
+            style: TextStyle(
+                fontSize: 18, fontWeight: FontWeight.w800, color: color))
+      ]));
+  Widget _countBox(String title, int count, bool after) => Card(
+      color: after ? const Color(0xFFE8FCF3) : Colors.white,
+      child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(children: [
+            Text(title,
+                style: TextStyle(
+                    fontSize: 11, color: after ? pdfGreen : pdfMuted)),
+            const SizedBox(height: 6),
+            Text('$count giao dịch',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: after ? pdfGreen : const Color(0xFF202127)))
+          ])));
+  Widget _debtCard(String name, String subtitle, double amount) => Card(
+      child: ListTile(
+          leading: PersonBadge(name, color: amount < 0 ? pdfRed : pdfGreen),
+          title: Text(name,
+              style:
+                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+          subtitle: Text(subtitle, style: const TextStyle(fontSize: 11)),
+          trailing: Text('${amount > 0 ? '+' : ''}${money(amount)}',
+              style: TextStyle(
+                  color: amount < 0 ? pdfRed : pdfGreen,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700))));
   Widget _recordCard(SettlementRecord record) {
     final canPay = record.status == 'PENDING' && record.debtorId == _userId;
     final canConfirm = record.status == 'PAID' && record.creditorId == _userId;
@@ -303,14 +403,74 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
       'CONFIRMED' => 'Hoàn tất thanh toán',
       _ => record.status,
     };
+    final color = record.status == 'CONFIRMED'
+        ? AppColors.success
+        : record.status == 'PAID'
+            ? Colors.orange
+            : AppColors.p500;
     return Card(
-        child: ListTile(
-            title: Text('${record.debtorName} → ${record.creditorName}'),
-            subtitle: Text('${_currency.format(record.amount)} • $label'),
-            trailing: canPay || canConfirm
-                ? TextButton(
-                    onPressed: () => _openPayment(record),
-                    child: Text(canPay ? 'Tôi đã chuyển tiền' : 'Đã nhận tiền'))
-                : null));
+      color: Colors.white,
+      elevation: 0,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: BorderSide(
+              color: record.status == 'PAID'
+                  ? Colors.orange
+                  : const Color(0xFFEDEDF3))),
+      child: Padding(
+          padding: const EdgeInsets.all(18),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              CircleAvatar(
+                  backgroundColor: const Color(0xFFE5DFFF),
+                  child: Text(
+                      record.debtorName.isEmpty ? '?' : record.debtorName[0])),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: Text(
+                      '${record.debtorName}${record.debtorId == _userId ? ' (Bạn)' : ''} → ${record.creditorName}${record.creditorId == _userId ? ' (Bạn)' : ''}',
+                      style: const TextStyle(fontWeight: FontWeight.w600))),
+            ]),
+            Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(_currency.format(record.amount),
+                    style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.p500))),
+            const Divider(),
+            Wrap(
+                spacing: 16,
+                runSpacing: 10,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(label,
+                      style:
+                          TextStyle(color: color, fontWeight: FontWeight.w600)),
+                  if (canPay || canConfirm)
+                    FilledButton.icon(
+                        onPressed: _busy ? null : () => _openPayment(record),
+                        icon: Icon(canPay
+                            ? Icons.payments_outlined
+                            : Icons.verified_outlined),
+                        label: Text(
+                            canPay ? 'Thanh toán' : 'Xác nhận đã nhận tiền')),
+                ]),
+            if (record.status == 'PENDING' && record.creditorId == _userId)
+              Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                      'Bạn là người nhận. Chờ ${record.debtorName} chọn “Đã thanh toán”, sau đó bạn có thể xác nhận nhận tiền.',
+                      style: const TextStyle(color: Colors.black54))),
+            if (record.status == 'PAID' && record.debtorId == _userId)
+              const Padding(
+                  padding: EdgeInsets.only(top: 10),
+                  child: Text(
+                      'Bạn đã báo thanh toán. Công nợ được cập nhật khi người nhận xác nhận.',
+                      style: TextStyle(color: Colors.black54))),
+          ])),
+    );
   }
 }

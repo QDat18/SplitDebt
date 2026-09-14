@@ -82,6 +82,7 @@ public class FcmTokenService {
 
     @Transactional
     public void removeToken(
+            Long userId,
             String token
     ) {
 
@@ -92,6 +93,7 @@ public class FcmTokenService {
 
         fcmTokenRepository
                 .findByToken(token)
+                .filter(saved -> saved.getUser().getId().equals(userId))
                 .ifPresent(
                         fcmTokenRepository::delete
                 );

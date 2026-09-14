@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../notifications/notification_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../group/models/group_model.dart';
 import '../group/providers/group_provider.dart';
@@ -35,13 +36,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _navigateToGroupDetail(GroupModel group) {
-    Navigator.of(context).push(
+  Future<void> _navigateToGroupDetail(GroupModel group) async {
+    await Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 300),
-        pageBuilder:
-            (context, animation, secondaryAnimation) =>
-                GroupDetailScreen(group: group),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            GroupDetailScreen(group: group),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: animation,
@@ -58,6 +58,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         },
       ),
     );
+    if (mounted) ref.invalidate(groupNetBalanceProvider(group.id));
   }
 
   @override
@@ -85,7 +86,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       const Text(
                         'Nhóm của tôi',
                         style: TextStyle(
-                          fontSize: 26,
+                          fontSize: 22,
                           fontWeight: FontWeight.w900,
                           color: Color(0xFF111827),
                           letterSpacing: -0.5,
@@ -96,10 +97,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         child: TextField(
                           controller: _searchController,
                           autofocus: true,
-                          onChanged:
-                              (val) => setState(
-                                () => _searchQuery = val.trim().toLowerCase(),
-                              ),
+                          onChanged: (val) => setState(
+                            () => _searchQuery = val.trim().toLowerCase(),
+                          ),
                           decoration: InputDecoration(
                             hintText: 'Tìm kiếm nhóm...',
                             prefixIcon: const Icon(Icons.search_rounded),
@@ -116,6 +116,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ),
                       ),
+                    if (!_isSearching) const NotificationBell(),
                     if (!_isSearching)
                       IconButton(
                         icon: const Icon(
@@ -134,16 +135,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Expanded(
                   child: groupsAsync.when(
                     data: (groups) {
-                      final filteredGroups =
-                          _searchQuery.isEmpty
-                              ? groups
-                              : groups
-                                  .where(
-                                    (g) => g.name.toLowerCase().contains(
+                      final filteredGroups = _searchQuery.isEmpty
+                          ? groups
+                          : groups
+                              .where(
+                                (g) => g.name.toLowerCase().contains(
                                       _searchQuery,
                                     ),
-                                  )
-                                  .toList();
+                              )
+                              .toList();
 
                       if (filteredGroups.isEmpty) {
                         if (_searchQuery.isNotEmpty) {
@@ -172,36 +172,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder:
-                                        (_) =>
-                                            GroupSettingsScreen(group: group),
+                                    builder: (_) =>
+                                        GroupSettingsScreen(group: group),
                                   ),
                                 );
                               } else if (action == 'leave') {
                                 final confirm = await showDialog<bool>(
                                   context: context,
-                                  builder:
-                                      (ctx) => AlertDialog(
-                                        title: const Text('Rời khỏi nhóm'),
-                                        content: Text(
-                                          'Bạn có chắc chắn muốn rời nhóm "${group.name}"?',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed:
-                                                () => Navigator.pop(ctx, false),
-                                            child: const Text('Hủy'),
-                                          ),
-                                          ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.red,
-                                            ),
-                                            onPressed:
-                                                () => Navigator.pop(ctx, true),
-                                            child: const Text('Rời nhóm'),
-                                          ),
-                                        ],
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Rời khỏi nhóm'),
+                                    content: Text(
+                                      'Bạn có chắc chắn muốn rời nhóm "${group.name}"?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, false),
+                                        child: const Text('Hủy'),
                                       ),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red,
+                                        ),
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, true),
+                                        child: const Text('Rời nhóm'),
+                                      ),
+                                    ],
+                                  ),
                                 );
                                 if (confirm == true) {
                                   try {
@@ -241,25 +239,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         },
                       );
                     },
-                    loading:
-                        () => ListView.builder(
-                          itemCount: 4,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemBuilder:
-                              (context, index) => const GroupCardSkeleton(),
-                        ),
-                    error:
-                        (error, stack) => ErrorStateWidget(
-                          errorMessage: error.toString().replaceAll(
+                    loading: () => ListView.builder(
+                      itemCount: 4,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemBuilder: (context, index) =>
+                          const GroupCardSkeleton(),
+                    ),
+                    error: (error, stack) => ErrorStateWidget(
+                      errorMessage: error.toString().replaceAll(
                             'Exception: ',
                             '',
                           ),
-                          onRetry:
-                              () =>
-                                  ref
-                                      .read(userGroupsProvider.notifier)
-                                      .fetchGroups(),
-                        ),
+                      onRetry: () =>
+                          ref.read(userGroupsProvider.notifier).fetchGroups(),
+                    ),
                   ),
                 ),
               ],

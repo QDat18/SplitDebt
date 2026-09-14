@@ -69,7 +69,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '280691561510',
     projectId: 'phela-8533d',
     storageBucket: 'phela-8533d.firebasestorage.app',
-    iosClientId: '280691561510-4gq3t07oc9su7bpcs7b9uqthde0gk17o.apps.googleusercontent.com',
+    iosClientId:
+        '280691561510-4gq3t07oc9su7bpcs7b9uqthde0gk17o.apps.googleusercontent.com',
     iosBundleId: 'com.example.splitDebt',
   );
 }

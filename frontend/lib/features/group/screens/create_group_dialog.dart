@@ -49,71 +49,67 @@ class _CreateGroupDialogState extends ConsumerState<CreateGroupDialog> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Row(
-        children: [
-          Icon(Icons.group_add_rounded, color: Color(0xFF6750A4)),
-          SizedBox(width: 10),
-          Text('Tạo Nhóm Mới', style: TextStyle(fontWeight: FontWeight.bold)),
-        ],
-      ),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Tên nhóm *',
-                  hintText: 'Ví dụ: Đi du lịch Đà Lạt, Phòng 302',
-                  prefixIcon: Icon(Icons.drive_file_rename_outline_rounded),
-                ),
-                validator: (val) => val == null || val.trim().isEmpty
-                    ? 'Vui lòng nhập tên nhóm'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Mô tả nhóm (không bắt buộc)',
-                  hintText: 'Mô tả chi tiêu hoặc thông tin thêm',
-                  prefixIcon: Icon(Icons.description_outlined),
-                ),
-                maxLines: 2,
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Hủy'),
-        ),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _submit,
-          style: ElevatedButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              : const Text('Tạo nhóm'),
-        ),
-      ],
-    );
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
+
+  @override
+  Widget build(BuildContext context) => Dialog.fullscreen(
+          child: Scaffold(
+        appBar: AppBar(title: const Text('Tạo nhóm mới')),
+        body: Form(
+            key: _formKey,
+            child: ListView(padding: const EdgeInsets.all(20), children: [
+              const SizedBox(height: 20),
+              const Center(
+                  child: CircleAvatar(
+                      radius: 38,
+                      backgroundColor: Color(0xFFF0EDFF),
+                      child: Text('🌴', style: TextStyle(fontSize: 38)))),
+              const SizedBox(height: 32),
+              const Text('Tên nhóm',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(hintText: 'Hải Phòng Trip'),
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Vui lòng nhập tên nhóm'
+                      : v.trim().length > 150
+                          ? 'Tên nhóm tối đa 150 ký tự'
+                          : null),
+              const SizedBox(height: 20),
+              const Text('Mô tả (Không bắt buộc)',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              TextFormField(
+                  controller: _descriptionController,
+                  decoration:
+                      const InputDecoration(hintText: 'Chuyến đi cuối tuần...'),
+                  maxLines: 3),
+              const SizedBox(height: 26),
+              const Text('Thành viên',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 12),
+              const Card(
+                  child: ListTile(
+                      leading: CircleAvatar(
+                          backgroundColor: Color(0xFFF0EDFF),
+                          child: Icon(Icons.person_outline,
+                              color: Color(0xFF6C5CE7))),
+                      title: Text('Bạn',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle: Text('Trưởng nhóm'))),
+              const Text('Thêm thành viên bằng email sau khi tạo nhóm.',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF778092))),
+            ])),
+        bottomNavigationBar: SafeArea(
+            child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: FilledButton(
+                    onPressed: _isLoading ? null : _submit,
+                    child: Text(_isLoading ? 'Đang tạo...' : 'Tạo nhóm')))),
+      ));
 }

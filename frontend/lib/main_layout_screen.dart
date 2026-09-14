@@ -1,133 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'core/theme/app_colors.dart';
-import 'core/theme/app_dimensions.dart';
-import 'core/theme/app_typography.dart';
 import 'features/home/home_screen.dart';
-import 'features/expenses/create_expense_screen.dart';
-import 'features/settlements/group_settlement_screen.dart';
-import 'features/profile/settings_screen.dart';
+import 'features/home/pdf_overview_screen.dart';
+import 'features/profile/profile_screen.dart';
 
-/// ----------------------------------------------------------------------------
-/// MÀN HÌNH KHUNG ĐIỀU HƯỚNG CHÍNH (MAIN LAYOUT SCREEN WITH BOTTOM NAVBAR)
-/// Tích hợp Bottom Navigation Bar điều chuyển giữa 4 Module ứng dụng
-/// ----------------------------------------------------------------------------
-class MainLayoutScreen extends ConsumerStatefulWidget {
+class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
-
   @override
-  ConsumerState<MainLayoutScreen> createState() => _MainLayoutScreenState();
+  State<MainLayoutScreen> createState() => _MainLayoutScreenState();
 }
 
-class _MainLayoutScreenState extends ConsumerState<MainLayoutScreen> {
-  int _currentIndex = 0;
-  final Set<int> _visitedTabs = {0};
-
-  void _onTabTapped(int index) {
-    HapticFeedback.selectionClick();
-    setState(() {
-      _visitedTabs.add(index);
-      _currentIndex = index;
-    });
-  }
-
+class _MainLayoutScreenState extends State<MainLayoutScreen> {
+  int _index = 1;
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.n50,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          // Tab 0: Trang chủ Dashboard
-          const HomeScreen(),
-
-          // Tab 1: Tạo khoản chi mới
-          if (_visitedTabs.contains(1))
-            CreateExpenseScreen(isActive: _currentIndex == 1)
-          else
-            const SizedBox.shrink(),
-
-          // Tab 2: Quyết toán nợ nhóm (Min-Cash-Flow)
-          if (_visitedTabs.contains(2))
-            GroupSettlementScreen(isActive: _currentIndex == 2)
-          else
-            const SizedBox.shrink(),
-
-          // Tab 3: Cài đặt nhóm & cá nhân
-          if (_visitedTabs.contains(3))
-            const SettingsScreen()
-          else
-            const SizedBox.shrink(),
-        ],
-      ),
-
-      // --- BOTTOM NAVIGATION BAR CHUẨN DESIGN TOKENS ---
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: AppColors.n0,
-          boxShadow: AppDimensions.shadowLg,
-          borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(AppDimensions.r24)),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(
-                    0, Icons.home_rounded, Icons.home_outlined, 'Nhóm'),
-                _buildNavItem(1, Icons.add_circle_rounded,
-                    Icons.add_circle_outline_rounded, 'Tạo chi tiêu'),
-                _buildNavItem(2, Icons.auto_awesome_rounded,
-                    Icons.auto_awesome_outlined, 'Quyết toán'),
-                _buildNavItem(3, Icons.settings_rounded,
-                    Icons.settings_outlined, 'Cài đặt'),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-      int index, IconData activeIcon, IconData inactiveIcon, String label) {
-    final isSelected = _currentIndex == index;
-    return InkWell(
-      onTap: () => _onTabTapped(index),
-      borderRadius: AppDimensions.radius16,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.p50 : Colors.transparent,
-          borderRadius: AppDimensions.radius16,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              isSelected ? activeIcon : inactiveIcon,
-              color: isSelected ? AppColors.p500 : AppColors.n600,
-              size: 22,
-            ),
-            if (isSelected) ...[
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: AppTypography.label.copyWith(
-                  color: AppColors.p600,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+  Widget build(BuildContext context) => Scaffold(
+        body: switch (_index) {
+          0 => const OverviewScreen(),
+          1 => const HomeScreen(),
+          2 => const OverviewScreen(key: ValueKey('history'), history: true),
+          _ => const ProfileScreen()
+        },
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _index,
+          onTap: (i) => setState(() => _index = i),
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          selectedItemColor: const Color(0xFF6C5CE7),
+          unselectedItemColor: const Color(0xFF87909E),
+          selectedFontSize: 10,
+          unselectedFontSize: 10,
+          iconSize: 22,
+          elevation: 0,
+          items: const [
+            BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined), label: 'Trang chủ'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.people_outline), label: 'Nhóm'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.history), label: 'Lịch sử'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline), label: 'Cá nhân'),
           ],
         ),
-      ),
-    );
-  }
+      );
 }

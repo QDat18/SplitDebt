@@ -132,6 +132,7 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
   // Danh sách thành viên nhóm mẫu
   late List<GroupMemberItem> _members;
   String _payerId = '';
+  DateTime _expenseDate = DateTime.now();
   int? _groupId;
   List<Map<String, dynamic>> _groups = [];
   bool _loadingMembers = true;
@@ -281,7 +282,7 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
         'title': _titleController.text.trim(),
         'description': _noteController.text.trim(),
         'totalAmount': _totalAmount,
-        'expenseDate': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        'expenseDate': DateFormat('yyyy-MM-dd').format(_expenseDate),
         'splitType': _splitMode.name.toUpperCase(),
         'participants': selected
             .map((m) => {
@@ -583,6 +584,14 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                                 }),
 
                       // --- 1. NHÓM VÀ TỔNG SỐ TIỀN ---
+                      const Text('Tên khoản chi',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 8),
+                      TextField(
+                          controller: _titleController,
+                          decoration: const InputDecoration(
+                              hintText: 'Ăn tối nhà hàng')),
+                      const SizedBox(height: 18),
                       _buildAmountInputCard(),
                       const SizedBox(height: AppDimensions.s20),
 
@@ -591,7 +600,10 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                       const SizedBox(height: AppDimensions.s20),
 
                       // --- 3. AI SCAN HÓA ĐƠN RECEIPT ---
-                      _buildReceiptSection(),
+                      ExpansionTile(
+                          title: const Text('Ghi chú & hóa đơn',
+                              style: TextStyle(fontSize: 13)),
+                          children: [_buildReceiptSection()]),
                       const SizedBox(height: AppDimensions.s20),
 
                       // --- 4. NGƯỜI TRẢ TIỀN (PAYER) ---
@@ -616,141 +628,29 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
   }
 
   // --- APP BAR VỚI BADGE NHÓM DU LỊCH ---
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: AppColors.n50,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      leading: IconButton(
-        icon: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.n0,
-            shape: BoxShape.circle,
-            boxShadow: AppDimensions.shadowSm,
-          ),
-          child: const Icon(Icons.arrow_back_ios_new_rounded,
-              size: 16, color: AppColors.n800),
-        ),
-        onPressed: () => Navigator.maybePop(context),
-      ),
-      title: Column(
-        children: [
-          Text('Tạo khoản chi mới',
-              style: AppTypography.title.copyWith(fontSize: 16)),
-          const SizedBox(height: 2),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: AppColors.p50,
-              borderRadius: AppDimensions.radius8,
-              border: Border.all(color: AppColors.p200),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.groups_rounded,
-                    size: 12, color: AppColors.p500),
-                const SizedBox(width: 4),
-                Text(
-                    _groups.firstWhere((g) => g['id'] == _groupId)['name']
-                        as String,
-                    style: AppTypography.caption.copyWith(
-                        color: AppColors.p700, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-        ],
-      ),
-      centerTitle: true,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.more_vert_rounded, color: AppColors.n700),
-          onPressed: () {},
-        ),
-      ],
-    );
-  }
+  PreferredSizeWidget _buildAppBar(BuildContext context) =>
+      AppBar(title: const Text('Thêm khoản chi'));
 
   // --- CARD Ô NHẬP TỔNG SỐ TIỀN & PHÍM NGHỆ THUẬT ---
-  Widget _buildAmountInputCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppDimensions.s20),
-      decoration: BoxDecoration(
-        color: AppColors.n0,
-        borderRadius: AppDimensions.radius24,
-        boxShadow: AppDimensions.shadowMd,
-        border: Border.all(color: AppColors.p100.withOpacity(0.5)),
-      ),
-      child: Column(
-        children: [
-          Text('TỔNG SỐ TIỀN',
-              style: AppTypography.caption.copyWith(
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.n500)),
-          const SizedBox(height: AppDimensions.s8),
-
-          // Ô nhập số tiền lớn
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Flexible(
-                child: IntrinsicWidth(
-                  child: TextField(
-                    controller: _amountController,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    style: AppTypography.display.copyWith(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.p500,
-                    ),
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      hintText: '0',
-                      hintStyle: TextStyle(color: AppColors.n300),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    onChanged: (val) {
-                      setState(() {
-                        _recalculateSplit();
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text('₫',
-                  style: AppTypography.h2.copyWith(
-                      color: AppColors.p500, fontWeight: FontWeight.w700)),
-            ],
-          ),
-
-          const SizedBox(height: AppDimensions.s16),
-
-          // Chips cộng nhanh tiền
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildQuickAmountChip('+50K', 50000),
-                _buildQuickAmountChip('+100K', 100000),
-                _buildQuickAmountChip('+200K', 200000),
-                _buildQuickAmountChip('+500K', 500000),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildAmountInputCard() =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Số tiền', style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        TextField(
+            controller: _amountController,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(
+                color: Color(0xFF6C5CE7),
+                fontSize: 26,
+                fontWeight: FontWeight.w800),
+            decoration:
+                const InputDecoration(hintText: '0', suffixText: 'VND')),
+        const SizedBox(height: 8),
+        Wrap(children: [
+          _buildQuickAmountChip('+50K', 50000),
+          _buildQuickAmountChip('+100K', 100000)
+        ]),
+      ]);
 
   Widget _buildQuickAmountChip(String label, double amount) {
     return Padding(
@@ -774,98 +674,26 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
   }
 
   // --- CARD TIÊU ĐỀ KHOẢN CHI & DANH MỤC HORIZONTAL SCROLL ---
-  Widget _buildTitleAndCategoryCard() {
-    return Container(
-      padding: const EdgeInsets.all(AppDimensions.s16),
-      decoration: BoxDecoration(
-        color: AppColors.n0,
-        borderRadius: AppDimensions.radius20,
-        boxShadow: AppDimensions.shadowSm,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Tiêu đề khoản chi
-          TextField(
-            controller: _titleController,
-            style:
-                AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
-            decoration: InputDecoration(
-              hintText: 'Nhập tên khoản chi (Ví dụ: Ăn lẩu nướng)',
-              hintStyle:
-                  AppTypography.bodyLarge.copyWith(color: AppColors.n400),
-              prefixIcon:
-                  const Icon(Icons.edit_note_rounded, color: AppColors.p500),
-              border: InputBorder.none,
-            ),
-          ),
-
-          const Divider(height: 20, color: AppColors.n100),
-
-          // Chọn Danh Mục
-          Text('Danh mục',
-              style: AppTypography.label
-                  .copyWith(fontSize: 13, color: AppColors.n600)),
-          const SizedBox(height: AppDimensions.s12),
-
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: _categories.map((cat) {
-                final isSelected = cat.id == _selectedCategory.id;
-                return Padding(
-                  padding: const EdgeInsets.only(right: AppDimensions.s12),
-                  child: InkWell(
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      setState(() {
-                        _selectedCategory = cat;
-                      });
-                    },
-                    borderRadius: AppDimensions.radius16,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeOutCubic,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? cat.color.withOpacity(0.15)
-                            : AppColors.n50,
-                        borderRadius: AppDimensions.radius16,
-                        border: Border.all(
-                          color: isSelected ? cat.color : AppColors.n200,
-                          width: isSelected ? 2.0 : 1.0,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(cat.icon,
-                              size: 18,
-                              color: isSelected ? cat.color : AppColors.n600),
-                          const SizedBox(width: 8),
-                          Text(
-                            cat.name,
-                            style: AppTypography.bodyMedium.copyWith(
-                              fontWeight: isSelected
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              color: isSelected ? cat.color : AppColors.n700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildTitleAndCategoryCard() =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Danh mục', style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: _categories
+                .map((cat) => ChoiceChip(
+                    label: Text(cat.name, style: const TextStyle(fontSize: 11)),
+                    avatar: Icon(cat.icon, size: 14),
+                    selected: _selectedCategory.id == cat.id,
+                    onSelected: (_) => setState(() => _selectedCategory = cat),
+                    selectedColor: const Color(0xFFE6E0FF),
+                    backgroundColor: Colors.white,
+                    showCheckmark: false,
+                    side: const BorderSide(color: Color(0xFFE8E9EF)),
+                    padding: const EdgeInsets.symmetric(horizontal: 4)))
+                .toList()),
+      ]);
 
   // --- KHU VỰC AI SCAN HÓA ĐƠN OCR ---
   Widget _buildReceiptSection() {
@@ -966,148 +794,78 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
   }
 
   // --- CARD CHỌN NGƯỜI TRẢ TIỀN (PAYER) ---
-  Widget _buildPayerSelectorCard() {
-    final currentPayer = _members.firstWhere((m) => m.id == _payerId);
-
-    return Container(
-      padding: const EdgeInsets.all(AppDimensions.s16),
-      decoration: BoxDecoration(
-        color: AppColors.n0,
-        borderRadius: AppDimensions.radius20,
-        boxShadow: AppDimensions.shadowSm,
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundImage: currentPayer.avatarUrl.isEmpty
-                ? null
-                : NetworkImage(currentPayer.avatarUrl),
-          ),
-          const SizedBox(width: AppDimensions.s12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Người ứng tiền trước',
-                    style:
-                        AppTypography.caption.copyWith(color: AppColors.n500)),
-                Text(currentPayer.name,
-                    style: AppTypography.title.copyWith(fontSize: 15)),
-              ],
-            ),
-          ),
-          DropdownButton<String>(
-            value: _payerId,
-            underline: const SizedBox(),
-            icon: const Icon(Icons.swap_vert_rounded, color: AppColors.p500),
-            items: _members.map((m) {
-              return DropdownMenuItem<String>(
-                value: m.id,
-                child: Text(m.name,
-                    style: AppTypography.bodyMedium
-                        .copyWith(fontWeight: FontWeight.w600)),
-              );
-            }).toList(),
-            onChanged: (val) {
-              if (val != null) {
-                setState(() {
-                  _payerId = val;
-                });
-              }
-            },
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildPayerSelectorCard() =>
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Người trả',
+              style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+              initialValue: _payerId,
+              isExpanded: true,
+              items: _members
+                  .map((m) => DropdownMenuItem(
+                      value: m.id,
+                      child: Text(m.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12))))
+                  .toList(),
+              onChanged: (v) => setState(() => _payerId = v!))
+        ])),
+        const SizedBox(width: 12),
+        Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Ngày', style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+              onPressed: () async {
+                final d = await showDatePicker(
+                    context: context,
+                    initialDate: _expenseDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime.now().add(const Duration(days: 365)));
+                if (d != null && mounted) setState(() => _expenseDate = d);
+              },
+              icon: const Icon(Icons.calendar_today_outlined, size: 15),
+              label: Text(DateFormat('dd/MM/yyyy').format(_expenseDate),
+                  style: const TextStyle(fontSize: 11)))
+        ])),
+      ]);
 
   // --- PHẦN CHỌN CHẾ ĐỘ CHIA TIỀN (5 MODES) VỚI TAB CHUYỂN ĐỘNG ---
-  Widget _buildSplitModeSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('CHẾ ĐỘ CHIA TIỀN',
-            style: AppTypography.label.copyWith(
-                fontSize: 13, letterSpacing: 0.8, color: AppColors.n600)),
-        const SizedBox(height: AppDimensions.s12),
+  Widget _buildSplitModeSection() =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Chia cho', style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        Wrap(spacing: 4, runSpacing: 6, children: [
+          _buildSplitTabItem(
+              'Chia đều', SplitMode.equal, Icons.pie_chart_outline),
+          _buildSplitTabItem(
+              'Số tiền', SplitMode.amount, Icons.payments_outlined),
+          _buildSplitTabItem('%', SplitMode.percent, Icons.percent),
+          _buildSplitTabItem('Hệ số', SplitMode.weight, Icons.balance),
+          _buildSplitTabItem('Theo món', SplitMode.item, Icons.restaurant)
+        ]),
+        const SizedBox(height: 14),
+        _buildActiveSplitContent()
+      ]);
 
-        // Thanh Tab chuyển chế độ chia
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.n200.withOpacity(0.5),
-            borderRadius: AppDimensions.radius16,
-          ),
-          padding: const EdgeInsets.all(4),
-          child: Row(
-            children: [
-              _buildSplitTabItem(
-                  'Chia đều', SplitMode.equal, Icons.pie_chart_rounded),
-              _buildSplitTabItem(
-                  'Số tiền', SplitMode.amount, Icons.attach_money_rounded),
-              _buildSplitTabItem('%', SplitMode.percent, Icons.percent_rounded),
-              _buildSplitTabItem(
-                  'Hệ số', SplitMode.weight, Icons.balance_rounded),
-              _buildSplitTabItem(
-                  'Theo món', SplitMode.item, Icons.fastfood_rounded),
-            ],
-          ),
-        ),
+  Widget _buildSplitTabItem(String label, SplitMode mode, IconData icon) =>
+      ChoiceChip(
+          label: Text(label, style: const TextStyle(fontSize: 11)),
+          selected: _splitMode == mode,
+          showCheckmark: false,
+          onSelected: (_) => setState(() {
+                _splitMode = mode;
+                _recalculateSplit();
+              }),
+          selectedColor: const Color(0xFFE6E0FF),
+          backgroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 3));
 
-        const SizedBox(height: AppDimensions.s16),
-
-        // Nội dung từng chế độ chia
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          child: _buildActiveSplitContent(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSplitTabItem(String label, SplitMode mode, IconData icon) {
-    final isSelected = _splitMode == mode;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          setState(() {
-            _splitMode = mode;
-            _recalculateSplit();
-          });
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.n0 : Colors.transparent,
-            borderRadius: AppDimensions.radius12,
-            boxShadow: isSelected ? AppDimensions.shadowSm : null,
-          ),
-          child: Column(
-            children: [
-              Icon(icon,
-                  size: 16,
-                  color: isSelected ? AppColors.p500 : AppColors.n600),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: AppTypography.caption.copyWith(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? AppColors.p600 : AppColors.n600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Nội dung render tương ứng với Split Mode đang chọn
   Widget _buildActiveSplitContent() {
     switch (_splitMode) {
       case SplitMode.equal:
@@ -1795,46 +1553,12 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
   }
 
   // --- thanh NÚT LƯU KHOẢN CHI DƯỚI CÙNG (STICKY SUBMIT BAR) ---
-  Widget _buildStickySubmitBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.s20, vertical: AppDimensions.s16),
-      decoration: BoxDecoration(
-        color: AppColors.n0,
-        boxShadow: AppDimensions.shadowLg,
-        borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppDimensions.r24)),
-      ),
-      child: SafeArea(
-        child: InkWell(
-          onTap: _saving ? null : _saveExpense,
-          borderRadius: AppDimensions.radius20,
-          child: Container(
-            height: 56,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: AppDimensions.radius20,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.p500.withOpacity(0.4),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.check_rounded, color: Colors.white, size: 22),
-                const SizedBox(width: AppDimensions.s8),
-                Text(_saving ? 'ĐANG LƯU...' : 'LƯU KHOẢN CHI',
-                    style: AppTypography.title.copyWith(
-                        color: Colors.white, fontSize: 16, letterSpacing: 0.5)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildStickySubmitBar() => SafeArea(
+      child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                  onPressed: _saving ? null : _saveExpense,
+                  child: Text(_saving ? 'Đang lưu...' : 'Lưu khoản chi')))));
 }

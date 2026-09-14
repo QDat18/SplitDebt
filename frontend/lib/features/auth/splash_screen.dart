@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'onboarding_screen.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,9 +50,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         ),
       );
     } else {
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+      final seen = prefs.getBool('onboarding_complete') ?? false;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => const LoginScreen(),
+          builder: (_) => seen ? const LoginScreen() : const OnboardingScreen(),
         ),
       );
     }

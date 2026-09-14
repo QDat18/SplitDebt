@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../models/group_model.dart';
+import '../../auth/data/auth_repository.dart';
 import '../models/group_member_model.dart';
 
 class GroupListNotifier extends StateNotifier<AsyncValue<List<GroupModel>>> {
@@ -111,4 +112,14 @@ final groupMembersProvider = FutureProvider.autoDispose
   return data
       .map((json) => GroupMemberModel.fromJson(json as Map<String, dynamic>))
       .toList();
+});
+
+final _currentAccountId = FutureProvider.autoDispose<int>(
+    (ref) => AuthRepository().getCurrentUserId());
+final groupNetBalanceProvider =
+    FutureProvider.autoDispose.family<double, String>((ref, groupId) async {
+  final user = await ref.watch(_currentAccountId.future);
+  final result = await ApiClient.get('/groups/$groupId/debts?userId=$user');
+  return (result['totalToReceive'] as num? ?? 0).toDouble() -
+      (result['totalToPay'] as num? ?? 0).toDouble();
 });

@@ -1,6 +1,11 @@
 
 firebase-admin.json
 
+# Local validation artifacts
+/docs/fcm-validation.md
+/docs/pdf-ui-validation.md
+/frontend/test/mobile_app_frame_test.dart
+
 backup-dev2-settlement/
 pom-dev2.txt
 pom-dev4.txt

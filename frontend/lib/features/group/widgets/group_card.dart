@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/theme/pdf_components.dart';
+import '../providers/group_provider.dart';
 import '../models/group_model.dart';
 
-class GroupCard extends StatelessWidget {
+class GroupCard extends ConsumerWidget {
   final GroupModel group;
   final VoidCallback onTap;
   final Function(String action)? onActionSelected;
@@ -14,7 +17,10 @@ class GroupCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final balance =
+        ref.watch(groupNetBalanceProvider(group.id)).asData?.value ??
+            group.userBalance;
     // Determine category icon emoji
     String emoji = group.categoryIcon ?? '👥';
     if (emoji == '👥') {
@@ -40,15 +46,15 @@ class GroupCard extends StatelessWidget {
     }
 
     // Determine balance text & color matching Figma design
-    String balanceText = group.formattedBalance ?? 'Xem công nợ trong nhóm';
+    String balanceText = group.formattedBalance ?? 'Xem nợ';
     Color balanceColor = const Color(0xFF6B7280);
 
-    if (group.userBalance != null) {
-      if (group.userBalance! > 0) {
-        balanceText = '+${group.userBalance!.toStringAsFixed(0)}đ';
+    if (balance != null) {
+      if (balance > 0) {
+        balanceText = '+${money(balance)}';
         balanceColor = const Color(0xFF10B981);
-      } else if (group.userBalance! < 0) {
-        balanceText = '${group.userBalance!.toStringAsFixed(0)}đ';
+      } else if (balance < 0) {
+        balanceText = money(balance);
         balanceColor = const Color(0xFFEF4444);
       } else {
         balanceText = 'Đã cân bằng';
@@ -101,7 +107,7 @@ class GroupCard extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3F4F6),
+                    color: const Color(0xFFF0EDFF),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Center(
@@ -148,7 +154,7 @@ class GroupCard extends StatelessWidget {
                     Text(
                       balanceText,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: balanceColor,
                       ),

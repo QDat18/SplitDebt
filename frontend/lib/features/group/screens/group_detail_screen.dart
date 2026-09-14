@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/group_model.dart';
 import '../models/group_member_model.dart';
 import '../providers/group_provider.dart';
-import '../widgets/member_tile.dart';
-import '../widgets/member_list_skeleton.dart';
+
+import '../../../core/network/dio_client.dart';
+import '../../../core/theme/pdf_components.dart';
+import '../../auth/data/auth_repository.dart';
+import '../../expenses/pdf_expense_detail.dart';
 import 'add_member_dialog.dart';
 import 'group_settings_screen.dart';
 import '../../settlements/group_settlement_screen.dart';
@@ -118,265 +121,249 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     }
   }
 
+  int _tab = 0;
+  int? _user;
+  List<Map<String, dynamic>> _expenses = [];
+  Map<String, dynamic> _debt = {};
+  bool _loading = true;
+  String? _error;
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      _user = await AuthRepository().getCurrentUserId();
+      final result = await Future.wait([
+        dioClient.get('/v1/expenses/group/${widget.group.id}'),
+        dioClient.get('/groups/${widget.group.id}/debts',
+            queryParameters: {'userId': _user})
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _expenses = (result[0].data['data'] as List)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+        _debt = Map<String, dynamic>.from(result[1].data['data']);
+        _loading = false;
+        _error = null;
+      });
+    } catch (_) {
+      if (mounted)
+        setState(() {
+          _error = 'Không tải được khoản chi.';
+          _loading = false;
+        });
+    }
+  }
+
+  Future<void> _open(Widget screen) async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+    if (mounted) _load();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final membersAsync = ref.watch(groupMembersProvider(widget.group.id));
-
+    final members = ref.watch(groupMembersProvider(widget.group.id));
+    final total =
+        _expenses.fold<num>(0, (sum, e) => sum + (e['totalAmount'] as num));
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 200.0,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                widget.group.name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
-                ),
-              ),
-              background: Container(
+      appBar: AppBar(title: Text(widget.group.name), actions: [
+        PopupMenuButton<String>(
+            onSelected: (v) {
+              if (v == 'leave') {
+                _leaveGroup();
+              } else {
+                _open(GroupSettingsScreen(group: widget.group));
+              }
+            },
+            itemBuilder: (_) => [
+                  if (widget.group.isAdminOrOwner)
+                    const PopupMenuItem(
+                        value: 'settings', child: Text('Cài đặt nhóm')),
+                  const PopupMenuItem(value: 'leave', child: Text('Rời nhóm'))
+                ])
+      ]),
+      body: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(padding: const EdgeInsets.all(20), children: [
+            Container(
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary,
-                      theme.colorScheme.primary.withOpacity(0.8),
-                      theme.colorScheme.primaryContainer,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Center(
-                  child: Hero(
-                    tag: 'group_icon_${widget.group.id}',
-                    child: Icon(
-                      Icons.groups_rounded,
-                      size: 80,
-                      color: Colors.white.withOpacity(0.3),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            actions: [
-              if (widget.group.isAdminOrOwner)
-                IconButton(
-                  icon: const Icon(
-                    Icons.settings_outlined,
-                    color: Colors.white,
-                  ),
-                  tooltip: 'Cài đặt nhóm',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            GroupSettingsScreen(group: widget.group),
-                      ),
-                    );
-                  },
-                ),
-              IconButton(
-                tooltip: 'Thêm khoản chi',
-                icon: const Icon(Icons.add, color: Colors.white),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => CreateExpenseScreen(groupId: int.parse(widget.group.id)))),
-              ),
-              IconButton(
-                tooltip: 'Quyết toán nhóm',
-                icon: const Icon(Icons.payments_outlined, color: Colors.white),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => GroupSettlementScreen(groupId: int.parse(widget.group.id)))),
-              ),
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-                onSelected: (val) {
-                  if (val == 'leave') _leaveGroup();
-                },
-                itemBuilder: (ctx) => [
-                  const PopupMenuItem(
-                    value: 'leave',
-                    child: Row(
-                      children: [
-                        Icon(Icons.exit_to_app_rounded, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text(
-                          'Rời nhóm',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Group Summary Card
-                  Card(
-                    elevation: 1,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Mô tả nhóm',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  widget.group.currentUserRole == 'OWNER'
-                                      ? 'Trưởng nhóm'
-                                      : widget.group.currentUserRole == 'ADMIN'
-                                          ? 'Quản trị'
-                                          : 'Thành viên',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: theme.colorScheme.onPrimaryContainer,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            (widget.group.description != null &&
-                                    widget.group.description!.isNotEmpty)
-                                ? widget.group.description!
-                                : 'Chưa có mô tả cho nhóm này.',
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const Divider(height: 24),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.person_pin_rounded,
-                                size: 18,
-                                color: theme.colorScheme.primary,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Tạo bởi: ${widget.group.createdByName ?? 'Admin'}',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey.shade700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Members Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    color: const Color(0xFF261C60),
+                    borderRadius: BorderRadius.circular(20)),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Danh sách thành viên',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (widget.group.isAdminOrOwner)
-                        TextButton.icon(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (_) =>
-                                  AddMemberDialog(groupId: widget.group.id),
-                            );
-                          },
-                          icon: const Icon(Icons.add_rounded),
-                          label: const Text('Thêm'),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Members List
-                  membersAsync.when(
-                    data: (members) {
-                      if (members.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Center(child: Text('Chưa có thành viên nào.')),
-                        );
-                      }
-                      return Card(
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: members.length,
-                          separatorBuilder: (ctx, idx) =>
-                              const Divider(height: 1),
-                          itemBuilder: (ctx, idx) {
-                            final m = members[idx];
-                            return MemberTile(
-                              member: m,
-                              canManage: widget.group.isAdminOrOwner,
-                              onRemove: () => _removeMember(m),
-                            );
-                          },
-                        ),
-                      );
+                      const Text('TỔNG CHI TIÊU',
+                          style: TextStyle(
+                              fontSize: 11, color: Color(0xFFC4BAEF))),
+                      const SizedBox(height: 6),
+                      Text(_loading ? '…' : money(total),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 18),
+                      const Divider(color: Color(0xFF433783)),
+                      Row(children: [
+                        Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              const Text('Bạn đang nợ',
+                                  style: TextStyle(
+                                      color: Color(0xFFC4BAEF), fontSize: 11)),
+                              Text(money(_debt['totalToPay'] ?? 0),
+                                  style: const TextStyle(
+                                      color: pdfRed,
+                                      fontWeight: FontWeight.bold))
+                            ])),
+                        Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              const Text('Bạn được nhận',
+                                  style: TextStyle(
+                                      color: Color(0xFFC4BAEF), fontSize: 11)),
+                              Text(money(_debt['totalToReceive'] ?? 0),
+                                  style: const TextStyle(
+                                      color: pdfGreen,
+                                      fontWeight: FontWeight.bold))
+                            ]))
+                      ]),
+                      const SizedBox(height: 16),
+                      Row(children: [
+                        Expanded(
+                            child: FilledButton.icon(
+                                onPressed: () => _open(CreateExpenseScreen(
+                                    groupId: int.parse(widget.group.id))),
+                                icon: const Icon(Icons.add, size: 18),
+                                label: const Text('Thêm chi'))),
+                        const SizedBox(width: 10),
+                        Expanded(
+                            child: FilledButton(
+                                style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFF493D7E)),
+                                onPressed: () => _open(GroupSettlementScreen(
+                                    groupId: int.parse(widget.group.id))),
+                                child: const Text('Thanh toán')))
+                      ]),
+                    ])),
+            const SizedBox(height: 20),
+            PdfTabs(
+                labels: const ['Chi tiêu', 'Thành viên', 'Nợ'],
+                selected: _tab,
+                onChanged: (v) => setState(() => _tab = v)),
+            const SizedBox(height: 20),
+            if (_loading)
+              const Center(child: CircularProgressIndicator())
+            else if (_error != null)
+              TextButton(onPressed: _load, child: Text(_error!))
+            else if (_tab == 0) ...[
+              if (_expenses.isEmpty)
+                const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text(
+                        'Chưa có khoản chi. Nhấn “Thêm chi” để bắt đầu.',
+                        textAlign: TextAlign.center)),
+              for (final e in _expenses)
+                Card(
+                    child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        leading: const PersonBadge('🍲'),
+                        title: Text(e['title'] ?? '',
+                            style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w700)),
+                        subtitle: Text(
+                            '${e['payerName']} đã trả • ${e['expenseDate']}',
+                            style: const TextStyle(fontSize: 10)),
+                        trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(money(e['totalAmount']),
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 4),
+                              Text(
+                                  'Bạn: ${money((e['participants'] as List).where((p) => p['userId'] == _user).fold<num>(0, (sum, p) => sum + (p['amount'] as num)))}',
+                                  style: const TextStyle(
+                                      fontSize: 10, color: Color(0xFFFFA000)))
+                            ]),
+                        onTap: () => _open(ExpenseReadScreen(expense: e)))),
+            ] else if (_tab == 1) ...[
+              members.when(
+                  data: (list) => Column(children: [
+                        for (final m in list)
+                          Card(
+                              child: ListTile(
+                                  leading: PersonBadge(m.fullName),
+                                  title: Text(
+                                      '${m.fullName}${m.userId == _user.toString() ? ' (Bạn)' : ''}',
+                                      style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700)),
+                                  subtitle: Text(
+                                      m.role == 'OWNER'
+                                          ? 'Trưởng nhóm'
+                                          : 'Thành viên',
+                                      style: const TextStyle(fontSize: 12)),
+                                  trailing:
+                                      widget.group.isAdminOrOwner && !m.isOwner
+                                          ? IconButton(
+                                              tooltip: 'Xóa thành viên',
+                                              icon: const Icon(
+                                                  Icons.person_remove_outlined,
+                                                  size: 18),
+                                              onPressed: () => _removeMember(m))
+                                          : null))
+                      ]),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Text('$e')),
+              if (widget.group.isAdminOrOwner)
+                OutlinedButton(
+                    onPressed: () async {
+                      await showDialog(
+                          context: context,
+                          builder: (_) =>
+                              AddMemberDialog(groupId: widget.group.id));
+                      ref.invalidate(groupMembersProvider(widget.group.id));
                     },
-                    loading: () => const MemberListSkeleton(),
-                    error: (err, st) => Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'Lỗi tải danh sách thành viên: $err',
-                        style: TextStyle(color: Colors.red.shade800),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+                    child: const Text('Thêm thành viên')),
+            ] else ...[
+              for (final b in _debt['netBalances'] as List? ?? [])
+                Card(
+                    child: ListTile(
+                        leading: PersonBadge(b['fullName']),
+                        title: Text(b['fullName'],
+                            style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600)),
+                        subtitle: Text(
+                            b['netBalance'] > 0
+                                ? 'Được nhận'
+                                : b['netBalance'] < 0
+                                    ? 'Đang nợ'
+                                    : 'Đã cân bằng',
+                            style: const TextStyle(fontSize: 12)),
+                        trailing: Text(
+                            '${b['netBalance'] > 0 ? '+' : ''}${money(b['netBalance'])}',
+                            style: TextStyle(
+                                color: b['netBalance'] < 0 ? pdfRed : pdfGreen,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold)))),
+              FilledButton.icon(
+                  onPressed: () => _open(GroupSettlementScreen(
+                      groupId: int.parse(widget.group.id))),
+                  icon: const Text('✂', style: TextStyle(fontSize: 20)),
+                  label: const Text('Xén nợ')),
+            ],
+          ])),
     );
   }
 }

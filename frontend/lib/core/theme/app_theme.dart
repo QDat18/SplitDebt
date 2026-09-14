@@ -3,11 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Colors based on Figma design
-  static const Color primaryColor = Color(0xFF6C63FF); // Adjust based on exact Figma hex
-  static const Color backgroundColor = Color(0xFFF8F9FA);
+  static const Color primaryColor = Color(0xFF6C5CE7);
+  static const Color backgroundColor = Color(0xFFF8F9FC);
   static const Color surfaceColor = Colors.white;
-  static const Color textPrimaryColor = Color(0xFF1E1E1E);
-  static const Color textSecondaryColor = Color(0xFF757575);
+  static const Color textPrimaryColor = Color(0xFF202127);
+  static const Color textSecondaryColor = Color(0xFF778092);
   static const Color errorColor = Color(0xFFE53935);
   static const Color successColor = Color(0xFF43A047);
 
@@ -21,6 +21,35 @@ class AppTheme {
         error: errorColor,
       ),
       scaffoldBackgroundColor: backgroundColor,
+      appBarTheme: const AppBarTheme(
+          backgroundColor: backgroundColor,
+          foregroundColor: textPrimaryColor,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: false,
+          titleTextStyle: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: textPrimaryColor)),
+      cardTheme: CardThemeData(
+          color: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: const BorderSide(color: Color(0xFFE8E9EF)))),
+      filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 50),
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+              textStyle:
+                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))),
+      dividerTheme:
+          const DividerThemeData(color: Color(0xFFECECF2), thickness: 1),
       textTheme: GoogleFonts.interTextTheme().copyWith(
         displayLarge: GoogleFonts.inter(
           fontSize: 32,
@@ -38,11 +67,12 @@ class AppTheme {
         ),
         bodyMedium: GoogleFonts.inter(
           fontSize: 14,
-          color: textSecondaryColor,
+          color: textPrimaryColor,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
+          minimumSize: const Size(0, 50),
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
           elevation: 0,
@@ -73,7 +103,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceColor,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFE0E0E0)),

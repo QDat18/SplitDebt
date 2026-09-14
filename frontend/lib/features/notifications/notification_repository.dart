@@ -28,18 +28,15 @@ class NotificationRepository {
       );
     } on DioException catch (e) {
       if (e.response?.data is Map) {
-        final dynamic data =
-            e.response?.data;
+        final dynamic data = e.response?.data;
 
         throw Exception(
-          data['message']?.toString() ??
-              'Không thể đăng ký FCM token',
+          data['message']?.toString() ?? 'Không thể đăng ký FCM token',
         );
       }
 
       throw Exception(
-        e.message ??
-            'Không thể đăng ký FCM token',
+        e.message ?? 'Không thể đăng ký FCM token',
       );
     }
   }
@@ -59,18 +56,15 @@ class NotificationRepository {
       );
     } on DioException catch (e) {
       if (e.response?.data is Map) {
-        final dynamic data =
-            e.response?.data;
+        final dynamic data = e.response?.data;
 
         throw Exception(
-          data['message']?.toString() ??
-              'Không thể xóa FCM token',
+          data['message']?.toString() ?? 'Không thể xóa FCM token',
         );
       }
 
       throw Exception(
-        e.message ??
-            'Không thể xóa FCM token',
+        e.message ?? 'Không thể xóa FCM token',
       );
     }
   }
