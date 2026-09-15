@@ -36,6 +36,10 @@ public class GroupSetting extends BaseEntity {
     @Builder.Default
     private Boolean smartSettlementEnabled = true;
 
+    @Column(name = "require_approval", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean requireApproval = false;
+
     @Column(name = "monthly_budget_limit", precision = 15, scale = 2)
     private BigDecimal monthlyBudgetLimit;
 

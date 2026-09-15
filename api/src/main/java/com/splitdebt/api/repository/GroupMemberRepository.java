@@ -15,6 +15,9 @@ public interface GroupMemberRepository
     int countByGroupId(Long groupId);
     int countByGroupIdAndRole(Long groupId, com.splitdebt.api.entity.enums.GroupRole role);
 
+    @org.springframework.data.jpa.repository.Query("SELECT gm.group.id, count(gm) FROM GroupMember gm WHERE gm.group.id IN :groupIds GROUP BY gm.group.id")
+    List<Object[]> countMembersByGroupIds(@org.springframework.data.repository.query.Param("groupIds") List<Long> groupIds);
+
     boolean existsByGroupIdAndUserIdAndStatus(
             Long groupId,
             Long userId,

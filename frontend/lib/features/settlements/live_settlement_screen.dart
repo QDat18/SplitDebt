@@ -191,7 +191,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                             children: [
                               if (widget.groupId == null) ...[
                                 DropdownButtonFormField<int>(
-                                    initialValue: _groupId,
+                                    value: _groupId,
                                     items: _groups
                                         .map((g) => DropdownMenuItem(
                                             value: (g['id'] as num).toInt(),

@@ -803,7 +803,7 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
               style: TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-              initialValue: _payerId,
+              value: _payerId,
               isExpanded: true,
               items: _members
                   .map((m) => DropdownMenuItem(

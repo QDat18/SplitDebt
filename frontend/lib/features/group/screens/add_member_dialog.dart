@@ -89,7 +89,7 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              initialValue: _selectedRole,
+              value: _selectedRole,
               decoration: const InputDecoration(
                 labelText: 'Vai trò trong nhóm',
                 prefixIcon: Icon(Icons.admin_panel_settings_outlined),

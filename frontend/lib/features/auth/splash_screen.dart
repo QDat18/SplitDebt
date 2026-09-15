@@ -36,13 +36,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Future<void> _checkAuthAndNavigate() async {
     // Giữ nguyên AuthNotifier của dev1-huy.
     // Gọi lại checkToken để chắc chắn trạng thái auth đã được xác định.
-    await ref.read(authProvider.notifier).checkToken();
+    final isAuthenticated = await ref.read(authProvider.notifier).checkToken();
 
     if (!mounted) return;
 
-    final authState = ref.read(authProvider);
-
-    if (authState == AuthState.authenticated) {
+    if (isAuthenticated) {
       unawaited(_restorePush());
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(

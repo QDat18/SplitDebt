@@ -9,8 +9,10 @@ class GroupListNotifier extends StateNotifier<AsyncValue<List<GroupModel>>> {
     fetchGroups();
   }
 
-  Future<void> fetchGroups() async {
-    state = const AsyncValue.loading();
+  Future<void> fetchGroups({bool silent = false}) async {
+    if (!state.hasValue && !silent) {
+      state = const AsyncValue.loading();
+    }
     try {
       final List<dynamic> data = await ApiClient.get('/groups');
       final groups = data
@@ -18,7 +20,9 @@ class GroupListNotifier extends StateNotifier<AsyncValue<List<GroupModel>>> {
           .toList();
       state = AsyncValue.data(groups);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (!state.hasValue) {
+        state = AsyncValue.error(e, st);
+      }
     }
   }
 
@@ -99,7 +103,7 @@ class GroupListNotifier extends StateNotifier<AsyncValue<List<GroupModel>>> {
   }
 }
 
-final userGroupsProvider = StateNotifierProvider.autoDispose<GroupListNotifier,
+final userGroupsProvider = StateNotifierProvider<GroupListNotifier,
     AsyncValue<List<GroupModel>>>((
   ref,
 ) {

@@ -21,6 +21,8 @@ public class UserSettingResponse {
 
     private String language;
 
+    private String currency;
+
     private Boolean notifyOnNewExpense;
 
     private Boolean notifyOnDebtReminder;

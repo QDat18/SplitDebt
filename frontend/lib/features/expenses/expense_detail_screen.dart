@@ -340,8 +340,17 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
           Row(
             children: [
               CircleAvatar(
-                  radius: 18,
-                  backgroundImage: NetworkImage(_expense.payerAvatar)),
+                radius: 18,
+                backgroundColor: AppColors.p600,
+                child: Text(
+                  _expense.payerName.isNotEmpty ? _expense.payerName[0] : 'U',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
               const SizedBox(width: AppDimensions.s12),
               Expanded(
                 child: Column(
@@ -411,7 +420,18 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
               child: Row(
                 children: [
                   CircleAvatar(
-                      radius: 18, backgroundImage: NetworkImage(p.avatarUrl)),
+                    radius: 18,
+                    backgroundColor:
+                        p.isPayer ? AppColors.p600 : AppColors.p100,
+                    child: Text(
+                      p.name.isNotEmpty ? p.name[0] : 'U',
+                      style: TextStyle(
+                        color: p.isPayer ? Colors.white : AppColors.p700,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: AppDimensions.s12),
                   Expanded(
                     child: Column(

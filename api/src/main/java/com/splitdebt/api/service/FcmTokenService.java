@@ -73,7 +73,7 @@ public class FcmTokenService {
                 fcmToken
         );
 
-        log.info(
+        log.debug(
                 "Registered FCM token. userId={}, platform={}",
                 userId,
                 normalizedPlatform

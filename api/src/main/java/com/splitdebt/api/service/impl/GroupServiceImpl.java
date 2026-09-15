@@ -31,6 +31,7 @@ public class GroupServiceImpl implements GroupService {
     private final GroupRepository groupRepository;
     private final GroupMemberRepository groupMemberRepository;
     private final UserRepository userRepository;
+    private final com.splitdebt.api.service.DebtCalculationService debtCalculationService;
 
     @Override
     @Transactional
@@ -125,11 +126,42 @@ public class GroupServiceImpl implements GroupService {
         requireUser(currentUserId);
 
         List<GroupMember> userMemberships = groupMemberRepository.findByUserId(currentUserId);
+        if (userMemberships.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        List<Long> groupIds = userMemberships.stream()
+                .map(m -> m.getGroup().getId())
+                .distinct()
+                .collect(Collectors.toList());
+
+        java.util.Map<Long, Integer> memberCounts = new java.util.HashMap<>();
+        try {
+            List<Object[]> counts = groupMemberRepository.countMembersByGroupIds(groupIds);
+            for (Object[] row : counts) {
+                Long gId = (Long) row[0];
+                int c = ((Number) row[1]).intValue();
+                memberCounts.put(gId, c);
+            }
+        } catch (Exception ignored) {}
 
         return userMemberships.stream().map(membership -> {
             Group group = membership.getGroup();
-            int count = groupMemberRepository.countByGroupId(group.getId());
-            return mapToGroupResponseDto(group, membership.getRole(), count);
+            int count = memberCounts.getOrDefault(group.getId(), 1);
+            java.math.BigDecimal userBalance = java.math.BigDecimal.ZERO;
+            try {
+                var snapshot = debtCalculationService.calculate(group.getId());
+                if (snapshot != null && snapshot.netBalances() != null) {
+                    userBalance = snapshot.netBalances().stream()
+                            .filter(nb -> java.util.Objects.equals(nb.userId(), currentUserId))
+                            .map(com.splitdebt.api.dto.settlement.NetBalanceDto::netBalance)
+                            .findFirst()
+                            .orElse(java.math.BigDecimal.ZERO);
+                }
+            } catch (Exception e) {
+                // Fallback to ZERO
+            }
+            return mapToGroupResponseDto(group, membership.getRole(), count, userBalance);
         }).collect(Collectors.toList());
     }
 
@@ -249,16 +281,11 @@ public class GroupServiceImpl implements GroupService {
                 .orElseThrow(() -> new UserNotFoundException("Không tìm thấy tài khoản"));
     }
 
-    private String extractNameFromEmail(String email) {
-        if (email == null) return "Member";
-        int atIndex = email.indexOf('@');
-        if (atIndex > 0) {
-            return email.substring(0, atIndex);
-        }
-        return email;
+    private GroupResponseDto mapToGroupResponseDto(Group group, GroupRole currentUserRole, int memberCount) {
+        return mapToGroupResponseDto(group, currentUserRole, memberCount, null);
     }
 
-    private GroupResponseDto mapToGroupResponseDto(Group group, GroupRole currentUserRole, int memberCount) {
+    private GroupResponseDto mapToGroupResponseDto(Group group, GroupRole currentUserRole, int memberCount, java.math.BigDecimal userBalance) {
         User creator = group.getOwner();
         return GroupResponseDto.builder()
                 .id(group.getId())
@@ -268,6 +295,7 @@ public class GroupServiceImpl implements GroupService {
                 .createdByName(creator != null ? creator.getFullName() : "Unknown")
                 .currentUserRole(currentUserRole)
                 .memberCount(memberCount)
+                .userBalance(userBalance)
                 .createdAt(group.getCreatedAt())
                 .updatedAt(group.getUpdatedAt())
                 .build();

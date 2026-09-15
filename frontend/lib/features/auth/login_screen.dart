@@ -48,7 +48,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Center(
-                    child: Text('✂️', style: TextStyle(fontSize: 28)),
+                    child: Icon(Icons.account_balance_wallet_rounded,
+                        size: 30, color: AppTheme.primaryColor),
                   ),
                 ),
               ),
@@ -202,19 +203,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 24),
 
               // Google Login
-              OutlinedButton(
+              OutlinedButton.icon(
                 onPressed: () {
                   // Perform Google login
                 },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // TODO: Replace with Google SVG Icon from Figma
-                    const Icon(Icons.g_mobiledata,
-                        size: 28, color: Colors.black87),
-                    const SizedBox(width: 8),
-                    const Text('Tiếp tục với Google'),
-                  ],
+                icon: const Icon(Icons.g_mobiledata,
+                    size: 28, color: Colors.black87),
+                label: const Text(
+                  'Tiếp tục với Google',
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(height: 32),

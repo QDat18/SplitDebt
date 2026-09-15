@@ -30,6 +30,10 @@ public class UserSetting extends BaseEntity {
     @Builder.Default
     private String language = "VI"; // VI vs EN
 
+    @Column(name = "currency", nullable = false, length = 10, columnDefinition = "varchar(10) default 'VND'")
+    @Builder.Default
+    private String currency = "VND";
+
     @Column(name = "notify_on_new_expense", nullable = false)
     @Builder.Default
     private Boolean notifyOnNewExpense = true;

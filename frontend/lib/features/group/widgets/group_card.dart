@@ -18,9 +18,8 @@ class GroupCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final balance =
-        ref.watch(groupNetBalanceProvider(group.id)).asData?.value ??
-            group.userBalance;
+    final balance = group.userBalance ??
+        ref.watch(groupNetBalanceProvider(group.id)).asData?.value;
     // Determine category icon emoji
     String emoji = group.categoryIcon ?? '👥';
     if (emoji == '👥') {

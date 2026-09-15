@@ -19,6 +19,8 @@ public class GroupSettingRequest {
 
     private Boolean smartSettlementEnabled;
 
+    private Boolean requireApproval;
+
     private BigDecimal monthlyBudgetLimit;
 
     private Integer autoFreezeDay;

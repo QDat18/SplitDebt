@@ -2,13 +2,13 @@ package com.splitdebt.api.controller;
 
 import com.splitdebt.api.dto.GroupSettingsDto;
 import com.splitdebt.api.dto.UserPreferencesDto;
-import com.splitdebt.api.entity.Group;
-import com.splitdebt.api.entity.GroupSettings;
+import com.splitdebt.api.dto.request.GroupSettingRequest;
+import com.splitdebt.api.dto.request.UserSettingRequest;
+import com.splitdebt.api.dto.response.GroupSettingResponse;
+import com.splitdebt.api.dto.response.UserSettingResponse;
 import com.splitdebt.api.entity.User;
-import com.splitdebt.api.entity.UserPreferences;
-import com.splitdebt.api.repository.GroupSettingsRepository;
-import com.splitdebt.api.repository.UserPreferencesRepository;
 import com.splitdebt.api.repository.UserRepository;
+import com.splitdebt.api.service.SettingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -20,74 +20,65 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class SettingsController {
 
-    private final UserPreferencesRepository userPreferencesRepository;
-    private final GroupSettingsRepository groupSettingsRepository;
+    private final SettingService settingService;
     private final UserRepository userRepository;
-    
-    // In a real scenario, you'd also need a GroupRepository to verify if group exists when creating group settings
-    
+
     @GetMapping("/user/me")
     public ResponseEntity<UserPreferencesDto> getMyPreferences() {
         User user = getCurrentUser();
-        UserPreferences prefs = userPreferencesRepository.findByUserId(user.getId())
-                .orElseGet(() -> createDefaultPreferences(user));
+        UserSettingResponse setting = settingService.getUserSetting(user.getId());
 
         UserPreferencesDto dto = new UserPreferencesDto();
-        dto.setLanguage(prefs.getLanguage());
-        dto.setCurrency(prefs.getCurrency());
-        dto.setTheme(prefs.getTheme());
+        dto.setLanguage(setting.getLanguage());
+        dto.setCurrency(setting.getCurrency());
+        dto.setTheme(setting.getTheme());
         return ResponseEntity.ok(dto);
     }
 
     @PutMapping("/user/me")
     public ResponseEntity<UserPreferencesDto> updateMyPreferences(@RequestBody UserPreferencesDto dto) {
         User user = getCurrentUser();
-        UserPreferences prefs = userPreferencesRepository.findByUserId(user.getId())
-                .orElseGet(() -> createDefaultPreferences(user));
+        UserSettingRequest request = UserSettingRequest.builder()
+                .language(dto.getLanguage())
+                .currency(dto.getCurrency())
+                .theme(dto.getTheme())
+                .build();
+        UserSettingResponse updated = settingService.updateUserSetting(user.getId(), request);
 
-        if (dto.getLanguage() != null) prefs.setLanguage(dto.getLanguage());
-        if (dto.getCurrency() != null) prefs.setCurrency(dto.getCurrency());
-        if (dto.getTheme() != null) prefs.setTheme(dto.getTheme());
-
-        userPreferencesRepository.save(prefs);
-        return ResponseEntity.ok(dto);
+        UserPreferencesDto resDto = new UserPreferencesDto();
+        resDto.setLanguage(updated.getLanguage());
+        resDto.setCurrency(updated.getCurrency());
+        resDto.setTheme(updated.getTheme());
+        return ResponseEntity.ok(resDto);
     }
 
     @GetMapping("/group/{groupId}")
     public ResponseEntity<GroupSettingsDto> getGroupSettings(@PathVariable Long groupId) {
-        GroupSettings settings = groupSettingsRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("Group settings not found for id: " + groupId));
+        GroupSettingResponse setting = settingService.getGroupSetting(groupId);
 
         GroupSettingsDto dto = new GroupSettingsDto();
-        dto.setRequireApproval(settings.getRequireApproval());
-        dto.setDefaultCurrency(settings.getDefaultCurrency());
+        dto.setRequireApproval(setting.getRequireApproval());
+        dto.setDefaultCurrency(setting.getCurrencyCode());
         return ResponseEntity.ok(dto);
     }
 
     @PutMapping("/group/{groupId}")
     public ResponseEntity<GroupSettingsDto> updateGroupSettings(@PathVariable Long groupId, @RequestBody GroupSettingsDto dto) {
-        GroupSettings settings = groupSettingsRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("Group settings not found for id: " + groupId));
+        GroupSettingRequest request = GroupSettingRequest.builder()
+                .requireApproval(dto.getRequireApproval())
+                .currencyCode(dto.getDefaultCurrency())
+                .build();
+        GroupSettingResponse updated = settingService.updateGroupSetting(groupId, request);
 
-        if (dto.getRequireApproval() != null) settings.setRequireApproval(dto.getRequireApproval());
-        if (dto.getDefaultCurrency() != null) settings.setDefaultCurrency(dto.getDefaultCurrency());
-
-        groupSettingsRepository.save(settings);
-        return ResponseEntity.ok(dto);
+        GroupSettingsDto resDto = new GroupSettingsDto();
+        resDto.setRequireApproval(updated.getRequireApproval());
+        resDto.setDefaultCurrency(updated.getCurrencyCode());
+        return ResponseEntity.ok(resDto);
     }
 
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-    }
-
-    private UserPreferences createDefaultPreferences(User user) {
-        UserPreferences prefs = new UserPreferences();
-        prefs.setUser(user);
-        prefs.setLanguage("en");
-        prefs.setCurrency("USD");
-        prefs.setTheme("light");
-        return userPreferencesRepository.save(prefs);
     }
 }

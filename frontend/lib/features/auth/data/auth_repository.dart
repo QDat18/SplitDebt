@@ -6,6 +6,16 @@ import '../../../core/network/dio_client.dart';
 class AuthRepository {
   final Dio _dio;
 
+  static int? _cachedUserId;
+
+  static void clearCache() {
+    _cachedUserId = null;
+  }
+
+  static void setCachedUserId(int id) {
+    _cachedUserId = id;
+  }
+
   AuthRepository({
     Dio? dio,
   }) : _dio = dio ?? dioClient;
@@ -109,7 +119,11 @@ class AuthRepository {
   // ===========================================================================
   // CURRENT USER
   // ===========================================================================
-  Future<int> getCurrentUserId() async {
+  Future<int> getCurrentUserId({bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedUserId != null) {
+      return _cachedUserId!;
+    }
+
     try {
       final response = await _dio.get(
         '/users/me',
@@ -144,6 +158,7 @@ class AuthRepository {
         );
 
         if (id != null) {
+          _cachedUserId = id;
           return id;
         }
 
@@ -155,6 +170,7 @@ class AuthRepository {
           );
 
           if (nestedId != null) {
+            _cachedUserId = nestedId;
             return nestedId;
           }
         }
@@ -171,6 +187,7 @@ class AuthRepository {
       );
 
       if (directId != null) {
+        _cachedUserId = directId;
         return directId;
       }
 
@@ -190,6 +207,7 @@ class AuthRepository {
         );
 
         if (nestedId != null) {
+          _cachedUserId = nestedId;
           return nestedId;
         }
       }

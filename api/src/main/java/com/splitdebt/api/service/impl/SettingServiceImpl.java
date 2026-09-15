@@ -58,6 +58,10 @@ public class SettingServiceImpl implements SettingService {
             setting.setSmartSettlementEnabled(request.getSmartSettlementEnabled());
         }
 
+        if (request.getRequireApproval() != null) {
+            setting.setRequireApproval(request.getRequireApproval());
+        }
+
         if (request.getMonthlyBudgetLimit() != null) {
             setting.setMonthlyBudgetLimit(request.getMonthlyBudgetLimit());
         }
@@ -100,6 +104,10 @@ public class SettingServiceImpl implements SettingService {
             setting.setLanguage(request.getLanguage());
         }
 
+        if (request.getCurrency() != null) {
+            setting.setCurrency(request.getCurrency());
+        }
+
         if (request.getNotifyOnNewExpense() != null) {
             setting.setNotifyOnNewExpense(request.getNotifyOnNewExpense());
         }
@@ -137,6 +145,7 @@ public class SettingServiceImpl implements SettingService {
                 .currencyCode("VND")
                 .decimalScale(0)
                 .smartSettlementEnabled(true)
+                .requireApproval(false)
                 .imageOptimizationEnabled(true)
                 .cloudStorageSync("FULL")
                 .build();
@@ -152,6 +161,7 @@ public class SettingServiceImpl implements SettingService {
                 .user(user)
                 .theme("LIGHT")
                 .language("VI")
+                .currency("VND")
                 .notifyOnNewExpense(true)
                 .notifyOnDebtReminder(true)
                 .notifyOnSettlement(true)
@@ -168,6 +178,7 @@ public class SettingServiceImpl implements SettingService {
                 .currencyCode(s.getCurrencyCode())
                 .decimalScale(s.getDecimalScale())
                 .smartSettlementEnabled(s.getSmartSettlementEnabled())
+                .requireApproval(s.getRequireApproval())
                 .monthlyBudgetLimit(s.getMonthlyBudgetLimit())
                 .autoFreezeDay(s.getAutoFreezeDay())
                 .imageOptimizationEnabled(s.getImageOptimizationEnabled())
@@ -183,6 +194,7 @@ public class SettingServiceImpl implements SettingService {
                 .userId(s.getUser().getId())
                 .theme(s.getTheme())
                 .language(s.getLanguage())
+                .currency(s.getCurrency())
                 .notifyOnNewExpense(s.getNotifyOnNewExpense())
                 .notifyOnDebtReminder(s.getNotifyOnDebtReminder())
                 .notifyOnSettlement(s.getNotifyOnSettlement())

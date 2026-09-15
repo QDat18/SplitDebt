@@ -15,7 +15,12 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  static Map<String, dynamic>? _cachedProfile;
   bool _loading = true;
 
   String _name = 'Người dùng';
@@ -24,6 +29,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    if (_cachedProfile != null) {
+      _name = _cachedProfile!['fullName']?.toString() ?? 'Người dùng';
+      _email = _cachedProfile!['email']?.toString() ?? '';
+      _loading = false;
+    }
     _loadProfile();
   }
 
@@ -37,6 +47,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final data = raw is Map && raw['data'] is Map ? raw['data'] : raw;
 
       if (data is Map<String, dynamic> && mounted) {
+        _cachedProfile = data;
         setState(() {
           _name = data['fullName']?.toString() ?? 'Người dùng';
 
@@ -55,6 +66,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _logout() async {
+    _cachedProfile = null;
     await ref.read(authProvider.notifier).logout();
 
     if (!mounted) return;
@@ -99,7 +111,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         onTap: tap,
       );
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    super.build(context);
+    return Scaffold(
       body: SafeArea(
           child: _loading
               ? const Center(child: CircularProgressIndicator())
@@ -179,4 +193,5 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   color: Color(0xFFFF5261),
                                   fontWeight: FontWeight.w700)))),
                 ])));
+  }
 }

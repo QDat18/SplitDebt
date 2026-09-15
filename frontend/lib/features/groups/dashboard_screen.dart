@@ -29,7 +29,10 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
 
@@ -57,6 +60,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: AppColors.n50,
       body: SafeArea(
@@ -111,8 +115,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               ),
               child: const CircleAvatar(
                 radius: 22,
-                backgroundImage:
-                    NetworkImage('https://i.pravatar.cc/150?img=11'),
+                backgroundColor: AppColors.p600,
+                child: Icon(Icons.person, color: Colors.white, size: 24),
               ),
             ),
             const SizedBox(width: AppDimensions.s12),
