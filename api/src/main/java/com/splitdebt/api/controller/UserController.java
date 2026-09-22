@@ -3,6 +3,8 @@ package com.splitdebt.api.controller;
 import com.splitdebt.api.dto.UserDto;
 import com.splitdebt.api.entity.User;
 import com.splitdebt.api.repository.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "6. Users", description = "Các API thông tin người dùng")
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -18,6 +21,7 @@ public class UserController {
 
     private final UserRepository userRepository;
 
+    @Operation(summary = "Lấy thông tin người dùng đang đăng nhập", description = "Dựa trên JWT Token để lấy thông tin cá nhân của user.")
     @GetMapping("/me")
     public ResponseEntity<UserDto> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

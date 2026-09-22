@@ -9,12 +9,14 @@ import com.splitdebt.api.dto.response.UserSettingResponse;
 import com.splitdebt.api.entity.User;
 import com.splitdebt.api.repository.UserRepository;
 import com.splitdebt.api.service.SettingService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "8. Settings", description = "Các API cài đặt tùy chọn cá nhân và cấu hình nhóm")
 @RestController
 @RequestMapping("/api/settings")
 @RequiredArgsConstructor

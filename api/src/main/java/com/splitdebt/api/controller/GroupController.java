@@ -6,6 +6,7 @@ import com.splitdebt.api.dto.GroupMemberResponseDto;
 import com.splitdebt.api.dto.GroupRequestDto;
 import com.splitdebt.api.dto.GroupResponseDto;
 import com.splitdebt.api.service.GroupService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-
+@Tag(name = "2. Groups", description = "Các API quản lý nhóm và thành viên nhóm")
 @RestController
 @RequestMapping("/api/groups")
 @RequiredArgsConstructor

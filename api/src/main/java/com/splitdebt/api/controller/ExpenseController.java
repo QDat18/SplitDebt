@@ -4,6 +4,7 @@ import com.splitdebt.api.dto.ApiResponse;
 import com.splitdebt.api.dto.request.CreateExpenseRequest;
 import com.splitdebt.api.dto.response.ExpenseResponse;
 import com.splitdebt.api.service.ExpenseService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "3. Expenses", description = "Các API quản lý khoản chi tiêu và các thuật toán chia tiền")
 @RestController
 @RequestMapping("/api/v1/expenses")
 @RequiredArgsConstructor

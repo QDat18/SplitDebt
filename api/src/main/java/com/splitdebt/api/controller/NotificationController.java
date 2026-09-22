@@ -7,6 +7,7 @@ import com.splitdebt.api.entity.Notification;
 import com.splitdebt.api.repository.NotificationRepository;
 import com.splitdebt.api.service.FcmTokenService;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "5. Notifications", description = "Các API nhận thông báo và đăng ký FCM Token")
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor

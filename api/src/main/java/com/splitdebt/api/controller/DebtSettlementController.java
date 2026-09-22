@@ -13,6 +13,7 @@ import com.splitdebt.api.service.GroupAccessService;
 import com.splitdebt.api.service.SettlementService;
 import com.splitdebt.api.service.SmartSettlementService;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "4. Settlements & Debts", description = "Các API tính toán công nợ, quyết toán nợ thông minh (Smart Settlement)")
 @RestController
 @RequestMapping("/api/groups/{groupId}")
 @RequiredArgsConstructor
