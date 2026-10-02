@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "534922111462",
+    "project_id": "splitdebt-8c3fa",
+    "storage_bucket": "splitdebt-8c3fa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:534922111462:android:cfb4ee1a8e84391a5f4e27",
+        "android_client_info": {
+          "package_name": "com.example.split_debt"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBIDBXRlrbAkJnE-7ixBt37CdbmvXTQy-M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
