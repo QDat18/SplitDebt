@@ -1,3 +1,5 @@
+// Trách nhiệm file: Giới hạn và căn bố cục ứng dụng phù hợp cho màn hình mobile.
+
 import 'package:flutter/material.dart';
 
 /// Constrain the navigator during build, before route/overlay layout begins.

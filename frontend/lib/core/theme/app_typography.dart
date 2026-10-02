@@ -1,3 +1,5 @@
+// Trách nhiệm file: Định nghĩa thành phần thiết kế app typography dùng thống nhất trong toàn ứng dụng.
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';

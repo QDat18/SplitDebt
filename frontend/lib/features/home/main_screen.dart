@@ -1,3 +1,5 @@
+// Trách nhiệm file: Xây dựng màn hình main screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
 

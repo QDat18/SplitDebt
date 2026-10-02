@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Mô tả và kiểm tra payload yêu cầu Item Participant Request nhận từ API.
+ */
+
 package com.splitdebt.api.dto.request;
 
 import lombok.AllArgsConstructor;

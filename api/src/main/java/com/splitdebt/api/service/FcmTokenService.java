@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Định nghĩa hoặc thực thi nghiệp vụ FCM Token Service dùng chung cho các controller backend.
+ */
+
 package com.splitdebt.api.service;
 
 import com.splitdebt.api.entity.FcmToken;

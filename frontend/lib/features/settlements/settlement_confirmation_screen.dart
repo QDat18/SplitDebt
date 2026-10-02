@@ -1,3 +1,5 @@
+// Trách nhiệm file: Xây dựng màn hình settlement confirmation screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -409,7 +411,6 @@ class _SettlementConfirmationScreenState
                               await _repo.markPaid(
                                 groupId: widget.groupId!,
                                 settlementId: widget.settlementId!,
-                                debtorUserId: widget.currentUserId!,
                               );
                             } catch (e) {
                               if (mounted) {
@@ -479,7 +480,6 @@ class _SettlementConfirmationScreenState
                               await _repo.confirmPaid(
                                 groupId: widget.groupId!,
                                 settlementId: widget.settlementId!,
-                                creditorUserId: widget.currentUserId!,
                               );
                             } catch (e) {
                               if (mounted) {

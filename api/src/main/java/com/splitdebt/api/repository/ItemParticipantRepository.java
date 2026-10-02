@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Khai báo truy vấn và thao tác lưu trữ cho Item Participant Repository bằng Spring Data JPA.
+ */
+
 package com.splitdebt.api.repository;
 
 import com.splitdebt.api.entity.ItemParticipant;

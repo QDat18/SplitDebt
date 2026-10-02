@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Mô tả dữ liệu phản hồi Item Participant Response trả về cho client.
+ */
+
 package com.splitdebt.api.dto.response;
 
 import lombok.AllArgsConstructor;

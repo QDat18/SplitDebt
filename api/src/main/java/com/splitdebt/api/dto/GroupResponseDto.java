@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Mô tả dữ liệu phản hồi Group Response DTO trả về cho client.
+ */
+
 package com.splitdebt.api.dto;
 
 import com.splitdebt.api.entity.enums.GroupRole;

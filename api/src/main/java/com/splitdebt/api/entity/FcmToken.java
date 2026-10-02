@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Ánh xạ thực thể FCM Token với dữ liệu được lưu trong cơ sở dữ liệu.
+ */
+
 package com.splitdebt.api.entity;
 
 import jakarta.persistence.*;

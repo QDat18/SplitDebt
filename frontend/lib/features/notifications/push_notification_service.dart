@@ -1,15 +1,16 @@
+// Trách nhiệm file: Xử lý phần push notification service của luồng thông báo và Firebase Messaging.
+
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../core/constants/app_constants.dart';
 import 'notification_repository.dart';
 
 class PushNotificationService {
   PushNotificationService._();
   static final instance = PushNotificationService._();
-  static const _webVapidKey = String.fromEnvironment('FCM_WEB_VAPID_KEY',
-      defaultValue:
-          'BJYhLXwvrXGySDDzjR9Gx3i0BeYeGBqAkjGdtpLNlUjEpFW1WDZjsnbx-SK6diq7chYuNX3oEFFjSVLISvL00f0');
+  static String get _webVapidKey => AppConstants.fcmWebVapidKey;
   final _repository = NotificationRepository();
   StreamSubscription<RemoteMessage>? _messageSubscription;
   StreamSubscription<String>? _tokenSubscription;

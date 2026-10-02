@@ -1,3 +1,5 @@
+// Trách nhiệm file: Xây dựng màn hình dashboard screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +10,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_typography.dart';
 import '../expenses/expense_detail_screen.dart';
 import '../../core/network/dio_client.dart';
-import '../auth/data/auth_repository.dart';
+import '../../data/repositories/auth_repository.dart';
 
 /// ----------------------------------------------------------------------------
 /// MÀN HÌNH DASHBOARD TRANG CHỦ (MAIN DASHBOARD SCREEN)

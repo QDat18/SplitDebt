@@ -1,3 +1,5 @@
+// Trách nhiệm file: Xây dựng màn hình onboarding screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';

@@ -1,85 +1,165 @@
-Sao chép toàn bộ nội dung dưới đây và lưu vào file `SplitDebt/api/README.md`.
+# SplitDebt Backend API
 
-```markdown
-# ⚙️ SplitDebt API - Backend
+REST API cho hệ thống SplitDebt, được viết hoàn toàn bằng Java 21 và Spring Boot. Backend chịu trách nhiệm xác thực, phân quyền, nhóm, khoản chi, tính công nợ, quyết toán, thống kê, cài đặt và thông báo.
 
-Phân hệ Backend (RESTful API) của dự án **SplitDebt**, được phát triển bởi **Team IUMAITRUONG**. Hệ thống đóng vai trò trung tâm xử lý dữ liệu, quản lý bảo mật và thực thi thuật toán tối ưu hóa công nợ (Smart Settlement).
+## Công nghệ
 
-## 🛠 Công nghệ sử dụng
+- Java 21
+- Spring Boot 3.3
+- Spring Web và Spring Security
+- Spring Data JPA/Hibernate
+- PostgreSQL; H2 chỉ dùng cho test
+- JWT với JJWT
+- Firebase Admin SDK cho FCM
+- Springdoc OpenAPI/Swagger
+- Maven Wrapper
 
-*   **Ngôn ngữ:** Java 21
-*   **Framework:** Spring Boot 3.3.0
-*   **Database:** PostgreSQL (Vận hành trên Supabase)
-*   **ORM:** Spring Data JPA / Hibernate 6.5
-*   **Build Tool:** Maven
-*   **Tiện ích:** Lombok, Spring Dotenv (Native Config)
+## Yêu cầu môi trường
 
-## 📂 Kiến trúc thư mục
+- JDK 21.
+- PostgreSQL local hoặc PostgreSQL managed service.
+- Không cần cài Maven toàn cục vì repository có `mvnw.cmd`.
+
+Kiểm tra Java:
+
+```powershell
+java -version
+$env:JAVA_HOME='C:\Program Files\Java\jdk-21'
+```
+
+## Cấu hình `.env`
+
+Tạo cấu hình local:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+| Biến | Bắt buộc | Mục đích |
+|---|---:|---|
+| `DB_URL` | Có | JDBC URL của PostgreSQL |
+| `DB_USERNAME` | Có | Tài khoản database |
+| `DB_PASSWORD` | Có | Mật khẩu database |
+| `JWT_SECRET` | Có | Khóa ký JWT, tối thiểu 32 byte ngẫu nhiên |
+| `JWT_EXPIRATION_MS` | Không | Thời hạn token, mặc định 24 giờ |
+| `CORS_ALLOWED_ORIGINS` | Không | Danh sách web origin, phân tách bằng dấu phẩy |
+| `FIREBASE_ENABLED` | Không | Bật Firebase Admin, mặc định `false` |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Khi bật FCM | Đường dẫn service-account JSON ngoài Git |
+
+Spring Boot nạp file `.env` qua `spring.config.import`. Biến môi trường của hệ điều hành có thể được dùng để ghi đè khi deploy.
+
+Không commit `.env`, service-account JSON, database password hoặc JWT secret.
+
+## Chạy backend
+
+```powershell
+$env:JAVA_HOME='C:\Program Files\Java\jdk-21'
+.\mvnw.cmd spring-boot:run
+```
+
+Các địa chỉ mặc định:
+
+- API: `http://localhost:8081/api`
+- Health check: `http://localhost:8081/api/health`
+- Swagger UI: `http://localhost:8081/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:8081/v3/api-docs`
+
+## Kiến trúc mã nguồn
 
 ```text
 src/main/java/com/splitdebt/api/
-├── config/       # Cấu hình hệ thống (CORS, Security)
-├── controller/   # (Presentation) Tiếp nhận HTTP Requests và trả về JSON
-├── dto/          # (Data Transfer Objects) Định dạng dữ liệu giao tiếp FE-BE
-├── entity/       # (Domain Model) Ánh xạ trực tiếp với bảng PostgreSQL
-├── exception/    # Xử lý ngoại lệ tập trung (@ControllerAdvice)
-├── repository/   # (Data Access) Thao tác với cơ sở dữ liệu qua JPA
-└── service/      # (Business Logic) Xử lý thuật toán chia tiền, xén nợ
-
+├── config/       # Firebase Admin và OpenAPI
+├── controller/   # HTTP endpoint và lấy danh tính từ SecurityContext
+├── dto/          # Request/response contract
+├── entity/       # JPA entity và enum nghiệp vụ
+├── exception/    # Exception nghiệp vụ và error mapping tập trung
+├── repository/   # Spring Data JPA
+├── security/     # JWT filter, access denied và security policy
+├── service/      # Nghiệp vụ, authorization và transaction
+└── util/         # Thuật toán chia tiền
 ```
 
-## 🚀 Hướng dẫn cài đặt & Khởi chạy
+Luồng xử lý:
 
-### 1. Yêu cầu hệ thống
-
-* JDK 21 trở lên.
-* IDE hỗ trợ Java (VS Code, IntelliJ IDEA).
-
-### 2. Thiết lập biến môi trường
-
-Tạo file `.env` tại thư mục gốc của backend (`SplitDebt/api/.env`), đặt ngang hàng với file `pom.xml`:
-
-```env
-# Kết nối qua Supabase Connection Pooler (Hỗ trợ IPv4 - Cổng 5432 hoặc 6543)
-DB_URL=jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require
-DB_USERNAME=postgres.[YOUR_PROJECT_REF]
-DB_PASSWORD=[YOUR_DB_PASSWORD]
+```text
+HTTP Request
+    ↓
+JWT Filter → SecurityContext
+    ↓
+Controller → Service/Authorization → Repository → PostgreSQL
+    ↓
+ApiResponse/GlobalExceptionHandler
 ```
 
-*(Lưu ý: Không commit file `.env` lên Git).*
+## Nhóm API chính
 
-### 3. Khởi chạy Server
+| Prefix | Chức năng |
+|---|---|
+| `/api/auth` | Đăng ký và đăng nhập |
+| `/api/users` | Thông tin người dùng hiện tại |
+| `/api/groups` | Nhóm và thành viên |
+| `/api/v1/expenses` | Khoản chi và người tham gia |
+| `/api/groups/{groupId}/debts` | Công nợ trong nhóm |
+| `/api/groups/{groupId}/smart-settlement` | Tối ưu giao dịch thanh toán |
+| `/api/groups/{groupId}/settlements` | Tạo và xác nhận thanh toán |
+| `/api/groups/{groupId}/stats` | Thống kê tài chính |
+| `/api/settings` | Thiết lập user/nhóm |
+| `/api/notifications` | Thông báo và FCM token |
 
-Mở Terminal tại thư mục `api` và chạy lệnh sau để tải thư viện và khởi động máy chủ:
+Chi tiết request/response được xem trực tiếp tại Swagger hoặc trong `API_DOCUMENTATION.md`.
 
-* **Windows:**
-```bash
-.\mvnw clean spring-boot:run
+## Xác thực và phân quyền
 
+Các endpoint bảo vệ sử dụng header:
+
+```http
+Authorization: Bearer <JWT>
 ```
 
+Nguyên tắc bắt buộc:
 
-* **macOS / Linux:**
-```bash
-./mvnw clean spring-boot:run
+- Server lấy danh tính từ JWT, không tin `userId` do client gửi.
+- Người dùng phải là thành viên `ACTIVE` mới được đọc dữ liệu nhóm.
+- Chỉ payer, `OWNER` hoặc `ADMIN` được sửa/xóa khoản chi.
+- Payer và participant phải thuộc đúng nhóm.
+- Thành viên không được tạo hoặc xác nhận settlement thay cho người khác.
+- CORS chỉ áp dụng cho browser; Android/iOS native không dựa vào CORS.
 
+## Quy tắc dữ liệu tiền
+
+- Tổng tiền phải dương.
+- Không chấp nhận participant trùng nhau.
+- Số tiền, phần trăm và trọng số phải dương.
+- Tổng phần trăm/số tiền chia phải khớp tổng khoản chi theo quy tắc làm tròn.
+- Với chia theo món, số lượng và đơn giá phải hợp lệ; tổng các món phải khớp tổng khoản chi.
+- Tiền dùng `BigDecimal`; không sử dụng số thực nhị phân cho tính toán nghiệp vụ.
+
+## Quy ước comment
+
+- Mỗi file Java có Javadoc `Trách nhiệm file` ở đầu file.
+- Comment tập trung vào nghiệp vụ, phân quyền, transaction và lý do của thuật toán.
+- Không ghi secret, token hoặc dữ liệu người dùng vào comment/log.
+
+## Kiểm thử
+
+```powershell
+$env:JAVA_HOME='C:\Program Files\Java\jdk-21'
+.\mvnw.cmd test
 ```
 
+Test dùng profile `test` và H2, không ghi vào PostgreSQL thật. Các nhóm test hiện có bao phủ context, controller, thiết lập, nhóm, settlement và thuật toán chia tiền.
 
+Build file JAR:
 
-### 4. Nghiệm thu kết nối
-
-Khi console báo `Tomcat started on port 8080`, hãy mở trình duyệt và gọi API Health Check để xác nhận đường truyền:
-
-* **Endpoint:** `GET http://localhost:8080/api/health`
-* **Phản hồi:** `Backend SplitDebt đang chạy tốt và sẵn sàng!`
-
-## 🧩 Luồng nghiệp vụ chính
-
-1. **Xác thực (Auth):** Kết hợp xác thực Token JWT sinh ra từ Supabase Auth.
-2. **Quản lý giao dịch:** Tính toán tỷ lệ chia tiền (Equally, Exact, Percent) và ghi nhận nợ chéo.
-3. **Thuật toán Smart Settlement:** Áp dụng lý thuyết đồ thị (Directed Graph) để triệt tiêu các khoản nợ vòng tròn, trả về danh sách chuyển khoản tối giản nhất cho người dùng.
-
+```powershell
+.\mvnw.cmd clean package
 ```
 
-```
+## Trước khi triển khai production
+
+- Tạo `JWT_SECRET` mới bằng nguồn ngẫu nhiên an toàn.
+- Dùng database account có quyền tối thiểu và bật TLS.
+- Chỉ cho phép CORS origin thật của frontend web.
+- Đặt Firebase service-account ngoài repository và quản lý bằng secret manager.
+- Chạy migration có kiểm soát thay vì phụ thuộc lâu dài vào `ddl-auto=update`.
+- Chạy đầy đủ test và kiểm tra Swagger contract trước khi release.

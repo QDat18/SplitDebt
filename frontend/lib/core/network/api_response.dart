@@ -1,3 +1,5 @@
+// Trách nhiệm file: Chứa thành phần Flutter API response và trách nhiệm giao diện tương ứng.
+
 class ApiResponse<T> {
   final int status;
   final String message;

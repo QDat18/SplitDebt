@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Cung cấp thuật toán tiện ích Money Split Calculator dùng cho nghiệp vụ tiền và chia chi phí.
+ */
+
 package com.splitdebt.api.util;
 
 import java.math.BigDecimal;
@@ -17,6 +21,8 @@ public class MoneySplitCalculator {
 
     // chia đều hỗ trợ scale linh hoạt (ví dụ: scale = 0 cho VNĐ, scale = 2 cho USD)
     public static List<BigDecimal> calculateEqualSplit(BigDecimal totalAmount, int count, int scale) {
+        requirePositiveTotal(totalAmount);
+        requireValidScale(scale);
         if (count <= 0) {
             throw new IllegalArgumentException("Số lượng người tham gia phải lớn hơn 0");
         }
@@ -46,6 +52,9 @@ public class MoneySplitCalculator {
 
     // chia theo phần trăm hỗ trợ scale linh hoạt
     public static List<BigDecimal> calculatePercentSplit(BigDecimal totalAmount, List<BigDecimal> percentages, int scale) {
+        requirePositiveTotal(totalAmount);
+        requireValidScale(scale);
+        requirePositiveValues(percentages, "Phần trăm");
         BigDecimal totalPercent = percentages.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
 
         if (totalPercent.setScale(scale, ROUNDING_MODE).compareTo(BigDecimal.valueOf(100).setScale(scale, ROUNDING_MODE)) != 0) {
@@ -85,6 +94,9 @@ public class MoneySplitCalculator {
 
     // chia theo trọng số hỗ trợ scale linh hoạt
     public static List<BigDecimal> calculateWeightSplit(BigDecimal totalAmount, List<BigDecimal> weights, int scale) {
+        requirePositiveTotal(totalAmount);
+        requireValidScale(scale);
+        requirePositiveValues(weights, "Trọng số");
         BigDecimal totalWeight = weights.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
 
         if (totalWeight.compareTo(BigDecimal.ZERO) <= 0) {
@@ -124,9 +136,31 @@ public class MoneySplitCalculator {
 
     // chia theo số tiền cụ thể hỗ trợ scale linh hoạt
     public static void validateAmountSplit(BigDecimal totalAmount, List<BigDecimal> amounts, int scale) {
+        requirePositiveTotal(totalAmount);
+        requireValidScale(scale);
+        requirePositiveValues(amounts, "Số tiền chia");
         BigDecimal sum = amounts.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
         if (sum.setScale(scale, ROUNDING_MODE).compareTo(totalAmount.setScale(scale, ROUNDING_MODE)) != 0) {
             throw new IllegalArgumentException("Tổng số tiền phân chia (" + sum + ") không khớp với tổng tiền chi tiêu (" + totalAmount + ")");
+        }
+    }
+
+    private static void requirePositiveTotal(BigDecimal totalAmount) {
+        if (totalAmount == null || totalAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Tổng tiền phải lớn hơn 0");
+        }
+    }
+
+    private static void requireValidScale(int scale) {
+        if (scale < 0 || scale > 6) {
+            throw new IllegalArgumentException("Số chữ số thập phân không hợp lệ");
+        }
+    }
+
+    private static void requirePositiveValues(List<BigDecimal> values, String fieldName) {
+        if (values == null || values.isEmpty()
+                || values.stream().anyMatch(value -> value == null || value.compareTo(BigDecimal.ZERO) <= 0)) {
+            throw new IllegalArgumentException(fieldName + " phải gồm các giá trị lớn hơn 0");
         }
     }
 }

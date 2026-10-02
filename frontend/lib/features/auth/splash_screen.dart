@@ -1,3 +1,5 @@
+// Trách nhiệm file: Xây dựng màn hình splash screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'onboarding_screen.dart';
@@ -9,7 +11,7 @@ import '../../core/providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../main_layout_screen.dart';
 import 'login_screen.dart';
-import 'data/auth_repository.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../notifications/push_notification_service.dart';
 import '../../core/app/app_keys.dart';
 

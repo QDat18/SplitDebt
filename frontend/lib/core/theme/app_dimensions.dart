@@ -1,3 +1,5 @@
+// Trách nhiệm file: Định nghĩa thành phần thiết kế app dimensions dùng thống nhất trong toàn ứng dụng.
+
 import 'package:flutter/material.dart';
 
 /// QUY CHUẨN KHOẢNG CÁCH, BO GÓC & BÓNG ĐỔ DESIGN SYSTEM v1.0.0

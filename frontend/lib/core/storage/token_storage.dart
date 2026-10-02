@@ -1,3 +1,5 @@
+// Trách nhiệm file: Lưu và đọc JWT bằng vùng lưu trữ bảo mật của thiết bị.
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TokenStorage {

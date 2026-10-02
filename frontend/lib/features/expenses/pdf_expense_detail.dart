@@ -1,3 +1,5 @@
+// Trách nhiệm file: Thực hiện phần PDF expense detail của nghiệp vụ tạo, xem và chia khoản chi.
+
 import 'package:flutter/material.dart';
 import '../../core/theme/pdf_components.dart';
 import '../../core/network/dio_client.dart';

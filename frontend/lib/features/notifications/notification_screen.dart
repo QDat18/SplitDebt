@@ -1,10 +1,12 @@
+// Trách nhiệm file: Xây dựng màn hình notification screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/app/app_keys.dart';
-import '../auth/data/auth_repository.dart';
+import '../../data/repositories/auth_repository.dart';
 import 'push_notification_service.dart';
 
 class NotificationScreen extends StatefulWidget {

@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Cung cấp các HTTP endpoint của Settings Controller, nhận request đã xác thực và chuyển xử lý xuống tầng nghiệp vụ.
+ */
+
 package com.splitdebt.api.controller;
 
 import com.splitdebt.api.dto.GroupSettingsDto;

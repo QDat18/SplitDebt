@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Triển khai nghiệp vụ Expense Service Impl, điều phối repository, phân quyền và các quy tắc dữ liệu liên quan.
+ */
+
 package com.splitdebt.api.service.impl;
 
 import com.splitdebt.api.dto.request.*;
@@ -5,8 +9,12 @@ import com.splitdebt.api.dto.response.*;
 import com.splitdebt.api.entity.*;
 import com.splitdebt.api.entity.enums.SettlementStatus;
 import com.splitdebt.api.entity.enums.SplitType;
+import com.splitdebt.api.entity.enums.GroupMemberStatus;
+import com.splitdebt.api.entity.enums.GroupRole;
+import com.splitdebt.api.exception.GroupPermissionException;
 import com.splitdebt.api.repository.*;
 import com.splitdebt.api.service.ExpenseService;
+import com.splitdebt.api.service.GroupAccessService;
 import com.splitdebt.api.service.SettingService;
 import com.splitdebt.api.service.SettlementEngineService;
 import com.splitdebt.api.util.MoneySplitCalculator;
@@ -33,10 +41,16 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final SettlementRepository settlementRepository;
     private final SettlementEngineService settlementEngineService;
     private final SettingService settingService;
+    private final GroupAccessService groupAccessService;
+    private final GroupMemberRepository groupMemberRepository;
 
     @Override
     @Transactional
-    public ExpenseResponse createExpense(CreateExpenseRequest request) {
+    public ExpenseResponse createExpense(CreateExpenseRequest request, Long currentUserId) {
+        validateRequest(request);
+        groupAccessService.requireActiveMember(request.getGroupId(), currentUserId);
+        requireExpenseUsersBelongToGroup(request, request.getGroupId());
+
         Group group = groupRepository.findById(request.getGroupId())
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay nhom voi ID: " + request.getGroupId()));
         User payer = userRepository.findById(request.getPayerId())
@@ -45,10 +59,6 @@ public class ExpenseServiceImpl implements ExpenseService {
         Category category = null;
         if (request.getCategoryId() != null) {
             category = categoryRepository.findById(request.getCategoryId()).orElse(null);
-        }
-
-        if (request.getTotalAmount() == null || request.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Tong so tien chi tieu phai lon hon 0");
         }
 
         Expense expense = Expense.builder()
@@ -231,9 +241,11 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     @Transactional(readOnly = true)
-    public ExpenseResponse getExpenseById(Long id) {
+    public ExpenseResponse getExpenseById(Long id, Long currentUserId) {
         Expense expense = expenseRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay khoản chi tieu voi ID: " + id));
+
+        groupAccessService.requireActiveMember(expense.getGroup().getId(), currentUserId);
 
         List<ExpenseParticipant> participants = expenseParticipantRepository.findByExpenseId(id);
         List<ExpenseItem> items = expenseItemRepository.findByExpenseId(id);
@@ -243,7 +255,8 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ExpenseResponse> getExpensesByGroupId(Long groupId) {
+    public List<ExpenseResponse> getExpensesByGroupId(Long groupId, Long currentUserId) {
+        groupAccessService.requireActiveMember(groupId, currentUserId);
         List<Expense> expenses = expenseRepository.findByGroupIdOrderByExpenseDateDesc(groupId);
         List<ExpenseResponse> responses = new ArrayList<>();
 
@@ -258,9 +271,17 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     @Transactional
-    public ExpenseResponse updateExpense(Long id, CreateExpenseRequest request) {
+    public ExpenseResponse updateExpense(Long id, CreateExpenseRequest request, Long currentUserId) {
         Expense expense = expenseRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay khoản chi tieu voi ID: " + id));
+
+        requireCanManageExpense(expense, currentUserId);
+        if (request.getGroupId() != null && !request.getGroupId().equals(expense.getGroup().getId())) {
+            throw new IllegalArgumentException("Không thể chuyển khoản chi sang nhóm khác");
+        }
+        request.setGroupId(expense.getGroup().getId());
+        validateRequest(request);
+        requireExpenseUsersBelongToGroup(request, expense.getGroup().getId());
 
         // TASK BE2-EXP-02: Lock logic for settled expenses
         checkIfExpenseIsLocked(expense);
@@ -270,6 +291,8 @@ public class ExpenseServiceImpl implements ExpenseService {
         expense.setTotalAmount(request.getTotalAmount());
         expense.setExpenseDate(request.getExpenseDate());
         expense.setReceiptUrl(request.getReceiptUrl());
+        expense.setPayer(userRepository.findById(request.getPayerId())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người thanh toán")));
 
         if (request.getCategoryId() != null) {
             Category cat = categoryRepository.findById(request.getCategoryId()).orElse(null);
@@ -296,9 +319,11 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     @Override
     @Transactional
-    public void deleteExpense(Long id) {
+    public void deleteExpense(Long id, Long currentUserId) {
         Expense expense = expenseRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay khoản chi tieu voi ID: " + id));
+
+        requireCanManageExpense(expense, currentUserId);
 
         // TASK BE2-EXP-02: Lock logic for settled expenses
         checkIfExpenseIsLocked(expense);
@@ -314,6 +339,119 @@ public class ExpenseServiceImpl implements ExpenseService {
 
         if (!confirmedSettlements.isEmpty()) {
             throw new IllegalArgumentException("Nhom nay da co giao dich quyet toan da chot (CONFIRMED). Khoan chi tieu khong thể sửa/xóa!");
+        }
+    }
+
+    private void requireCanManageExpense(Expense expense, Long currentUserId) {
+        GroupMember member = groupMemberRepository
+                .findByGroupIdAndUserId(expense.getGroup().getId(), currentUserId)
+                .filter(value -> value.getStatus() == GroupMemberStatus.ACTIVE)
+                .orElseThrow(() -> new GroupPermissionException(
+                        "Bạn không phải thành viên đang hoạt động của nhóm"));
+
+        boolean isPayer = expense.getPayer().getId().equals(currentUserId);
+        boolean isManager = member.getRole() == GroupRole.OWNER || member.getRole() == GroupRole.ADMIN;
+        if (!isPayer && !isManager) {
+            throw new GroupPermissionException(
+                    "Chỉ người thanh toán, chủ nhóm hoặc quản trị viên được sửa/xóa khoản chi");
+        }
+    }
+
+    private void requireExpenseUsersBelongToGroup(CreateExpenseRequest request, Long groupId) {
+        Set<Long> userIds = new HashSet<>();
+        userIds.add(request.getPayerId());
+        request.getParticipants().forEach(participant -> userIds.add(participant.getUserId()));
+        if (request.getItems() != null) {
+            request.getItems().stream()
+                    .filter(Objects::nonNull)
+                    .filter(item -> item.getParticipants() != null)
+                    .flatMap(item -> item.getParticipants().stream())
+                    .forEach(participant -> userIds.add(participant.getUserId()));
+        }
+        userIds.forEach(userId -> groupAccessService.requireActiveMember(groupId, userId));
+    }
+
+    private void validateRequest(CreateExpenseRequest request) {
+        if (request == null || request.getGroupId() == null) {
+            throw new IllegalArgumentException("Nhóm không được để trống");
+        }
+        if (request.getPayerId() == null) {
+            throw new IllegalArgumentException("Người thanh toán không được để trống");
+        }
+        if (request.getTitle() == null || request.getTitle().isBlank()
+                || request.getTitle().trim().length() > 200) {
+            throw new IllegalArgumentException("Tên khoản chi phải có từ 1 đến 200 ký tự");
+        }
+        request.setTitle(request.getTitle().trim());
+        if (request.getTotalAmount() == null
+                || request.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Tổng số tiền chi tiêu phải lớn hơn 0");
+        }
+        if (request.getExpenseDate() == null) {
+            throw new IllegalArgumentException("Ngày chi tiêu không được để trống");
+        }
+        if (request.getSplitType() == null) {
+            throw new IllegalArgumentException("Kiểu chia tiền không được để trống");
+        }
+        if (request.getParticipants() == null || request.getParticipants().isEmpty()) {
+            throw new IllegalArgumentException("Danh sách người tham gia không được để trống");
+        }
+
+        Set<Long> participantIds = new HashSet<>();
+        for (ExpenseParticipantRequest participant : request.getParticipants()) {
+            if (participant == null || participant.getUserId() == null) {
+                throw new IllegalArgumentException("Người tham gia không hợp lệ");
+            }
+            if (!participantIds.add(participant.getUserId())) {
+                throw new IllegalArgumentException("Danh sách người tham gia bị trùng");
+            }
+            switch (request.getSplitType()) {
+                case AMOUNT -> requirePositive(participant.getAmount(), "Số tiền chia");
+                case PERCENT -> requirePositive(participant.getPercentage(), "Phần trăm chia");
+                case WEIGHT -> requirePositive(participant.getWeight(), "Trọng số chia");
+                default -> { }
+            }
+        }
+
+        if (request.getSplitType() == SplitType.ITEM) {
+            validateItems(request);
+        }
+    }
+
+    private void validateItems(CreateExpenseRequest request) {
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Danh sách món không được để trống khi chia theo món");
+        }
+        BigDecimal itemTotal = BigDecimal.ZERO;
+        for (ExpenseItemRequest item : request.getItems()) {
+            if (item == null || item.getItemName() == null || item.getItemName().isBlank()) {
+                throw new IllegalArgumentException("Tên món không được để trống");
+            }
+            requirePositive(item.getQuantity(), "Số lượng món");
+            requirePositive(item.getUnitPrice(), "Đơn giá món");
+            if (item.getParticipants() == null || item.getParticipants().isEmpty()) {
+                throw new IllegalArgumentException("Mỗi món phải có ít nhất một người tham gia");
+            }
+            Set<Long> itemParticipantIds = new HashSet<>();
+            for (ItemParticipantRequest participant : item.getParticipants()) {
+                if (participant == null || participant.getUserId() == null
+                        || !itemParticipantIds.add(participant.getUserId())) {
+                    throw new IllegalArgumentException("Người tham gia món không hợp lệ hoặc bị trùng");
+                }
+                if (participant.getShareAmount() != null) {
+                    requirePositive(participant.getShareAmount(), "Phần tiền của món");
+                }
+            }
+            itemTotal = itemTotal.add(item.getQuantity().multiply(item.getUnitPrice()));
+        }
+        if (itemTotal.compareTo(request.getTotalAmount()) != 0) {
+            throw new IllegalArgumentException("Tổng tiền các món phải bằng tổng khoản chi");
+        }
+    }
+
+    private void requirePositive(BigDecimal value, String fieldName) {
+        if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException(fieldName + " phải lớn hơn 0");
         }
     }
 

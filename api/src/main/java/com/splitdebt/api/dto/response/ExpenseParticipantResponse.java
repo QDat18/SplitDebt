@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Mô tả dữ liệu phản hồi Expense Participant Response trả về cho client.
+ */
+
 package com.splitdebt.api.dto.response;
 
 import com.splitdebt.api.entity.enums.SplitType;

@@ -9,8 +9,8 @@
 
 Server Backend đã tích hợp sẵn **Springdoc OpenAPI 3.0**. Khi khởi chạy dự án (`mvn spring-boot:run`), tất cả các Dev có thể truy cập tài liệu API trực tiếp trên trình duyệt:
 
-- 🔗 **Swagger UI Document**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
-- 📄 **OpenAPI JSON Spec**: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+- 🔗 **Swagger UI Document**: [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html)
+- 📄 **OpenAPI JSON Spec**: [http://localhost:8081/v3/api-docs](http://localhost:8081/v3/api-docs)
 
 ---
 
@@ -23,7 +23,7 @@ Server Backend đã tích hợp sẵn **Springdoc OpenAPI 3.0**. Khi khởi ch�
 1. Mở ứng dụng **Postman**.
 2. Bấm nút **Import** (ở góc trên bên trái).
 3. Chọn tệp `SplitDebt_API.postman_collection.json`.
-4. Toàn bộ các Request mẫu (Chi tiêu 4 thuật toán, Dư nợ ròng, Quyết toán 2 chiều, Cài đặt) sẽ tự động hiển thị với sẵn biến `{{baseUrl}} = http://localhost:8080`.
+4. Toàn bộ các Request mẫu (Chi tiêu 4 thuật toán, Dư nợ ròng, Quyết toán 2 chiều, Cài đặt) sẽ tự động hiển thị với sẵn biến `{{baseUrl}} = http://localhost:8081`.
 
 ---
 

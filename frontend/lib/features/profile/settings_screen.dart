@@ -1,3 +1,5 @@
+// Trách nhiệm file: Xây dựng màn hình settings screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

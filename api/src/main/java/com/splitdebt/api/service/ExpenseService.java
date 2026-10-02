@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Định nghĩa hoặc thực thi nghiệp vụ Expense Service dùng chung cho các controller backend.
+ */
+
 package com.splitdebt.api.service;
 
 import com.splitdebt.api.dto.request.CreateExpenseRequest;
@@ -7,13 +11,13 @@ import java.util.List;
 
 public interface ExpenseService {
 
-    ExpenseResponse createExpense(CreateExpenseRequest request);
+    ExpenseResponse createExpense(CreateExpenseRequest request, Long currentUserId);
 
-    ExpenseResponse getExpenseById(Long id);
+    ExpenseResponse getExpenseById(Long id, Long currentUserId);
 
-    List<ExpenseResponse> getExpensesByGroupId(Long groupId);
+    List<ExpenseResponse> getExpensesByGroupId(Long groupId, Long currentUserId);
 
-    ExpenseResponse updateExpense(Long id, CreateExpenseRequest request);
+    ExpenseResponse updateExpense(Long id, CreateExpenseRequest request, Long currentUserId);
 
-    void deleteExpense(Long id);
+    void deleteExpense(Long id, Long currentUserId);
 }

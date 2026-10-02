@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Cấu hình hoặc hỗ trợ bảo mật JWT Authentication Filter, gồm xác thực JWT và xử lý truy cập HTTP.
+ */
+
 package com.splitdebt.api.security;
 
 import jakarta.servlet.FilterChain;

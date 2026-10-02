@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Mô tả và kiểm tra payload yêu cầu Group Request DTO nhận từ API.
+ */
+
 package com.splitdebt.api.dto;
 
 import lombok.AllArgsConstructor;

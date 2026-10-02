@@ -1,3 +1,5 @@
+// Trách nhiệm file: Xây dựng màn hình create expense screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/api/api_client.dart';
-import '../auth/data/auth_repository.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../settlements/group_settlement_screen.dart';
 
 /// ----------------------------------------------------------------------------
