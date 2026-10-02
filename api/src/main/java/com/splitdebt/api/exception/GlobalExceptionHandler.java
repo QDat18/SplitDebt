@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Biểu diễn hoặc xử lý lỗi nghiệp vụ Global Exception Handler theo phản hồi API thống nhất.
+ */
+
 package com.splitdebt.api.exception;
 
 import com.splitdebt.api.dto.ApiResponse;

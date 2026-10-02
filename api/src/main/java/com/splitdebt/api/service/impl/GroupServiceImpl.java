@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Triển khai nghiệp vụ Group Service Impl, điều phối repository, phân quyền và các quy tắc dữ liệu liên quan.
+ */
+
 package com.splitdebt.api.service.impl;
 
 import com.splitdebt.api.dto.AddMemberRequestDto;

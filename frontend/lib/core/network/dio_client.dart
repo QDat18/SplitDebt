@@ -1,3 +1,5 @@
+// Trách nhiệm file: Cấu hình HTTP client dùng chung, gắn JWT và chuẩn hóa xử lý lỗi/phiên hết hạn.
+
 import 'package:dio/dio.dart';
 
 import '../constants/app_constants.dart';
@@ -29,7 +31,11 @@ class DioClient {
 
           return handler.next(options);
         },
-        onError: (DioException e, handler) {
+        onError: (DioException e, handler) async {
+          if (e.response?.statusCode == 401 &&
+              !e.requestOptions.path.contains('/auth/')) {
+            await tokenStorage.deleteToken();
+          }
           if (e.response != null && e.response?.data is Map<String, dynamic>) {
             final data = e.response!.data as Map<String, dynamic>;
 

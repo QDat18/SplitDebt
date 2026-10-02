@@ -1,3 +1,5 @@
+// Trách nhiệm file: Chứa thành phần Flutter API client và trách nhiệm giao diện tương ứng.
+
 import '../network/dio_client.dart';
 
 class ApiClient {

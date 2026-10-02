@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Ánh xạ thực thể Group Member với dữ liệu được lưu trong cơ sở dữ liệu.
+ */
+
 package com.splitdebt.api.entity;
 
 import com.splitdebt.api.entity.enums.GroupMemberStatus;

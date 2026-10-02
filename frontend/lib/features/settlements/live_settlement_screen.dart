@@ -1,3 +1,5 @@
+// Trách nhiệm file: Xây dựng màn hình live settlement screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+
 import 'dart:async';
 import '../../core/theme/pdf_components.dart';
 import '../notifications/notification_screen.dart';
@@ -6,10 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/theme/app_colors.dart';
-import '../auth/data/auth_repository.dart';
-import '../settlement/data/settlement_api_service.dart';
-import '../settlement/models/settlement_models.dart';
-import '../settlement/presentation/payment_dialog.dart';
+import '../../data/repositories/auth_repository.dart';
+import 'data/settlement_api_service.dart';
+import 'models/settlement_models.dart';
+import 'presentation/payment_dialog.dart';
 
 class GroupSettlementScreen extends StatefulWidget {
   final int? groupId;
@@ -108,9 +110,9 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
     });
     try {
       final results = await Future.wait<Object>([
-        _api.getDebtSummary(group, user),
-        _api.getSmartSettlement(group, user),
-        _api.getSettlements(group, user),
+        _api.getDebtSummary(group),
+        _api.getSmartSettlement(group),
+        _api.getSettlements(group),
       ]);
       if (!mounted || version != _version) return;
       setState(() {
@@ -144,8 +146,8 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      final record = await _api.createSettlement(
-          groupId: _groupId!, currentUserId: _userId!, suggestion: edge);
+      final record =
+          await _api.createSettlement(groupId: _groupId!, suggestion: edge);
       if (mounted && record.debtorId == _userId) {
         await _openPayment(record);
       } else {

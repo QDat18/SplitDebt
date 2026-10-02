@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Cấu hình thành phần hạ tầng Open API Config cho ứng dụng Spring Boot.
+ */
+
 package com.splitdebt.api.config;
 
 import io.swagger.v3.oas.models.Components;

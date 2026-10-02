@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Mô hình hóa dữ liệu trao đổi User DTO giữa các tầng và qua API.
+ */
+
 package com.splitdebt.api.dto;
 
 import lombok.AllArgsConstructor;

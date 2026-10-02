@@ -44,8 +44,12 @@ logging:
 
 app:
   jwt:
-    secret: aVeryLongSecretKeyForJwtAuthenticationWhichMustBeAtLeast256BitsLong1234567890
-    expirationMs: 86400000
+    secret: ${JWT_SECRET}
+    expirationMs: ${JWT_EXPIRATION_MS:86400000}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
 
 springdoc:
   api-docs:

@@ -1,10 +1,12 @@
+// Trách nhiệm file: Quản lý trạng thái đăng nhập và phát trạng thái đó cho giao diện.
+
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/app_keys.dart';
 import '../storage/token_storage.dart';
-import '../../features/auth/data/auth_repository.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../../features/notifications/push_notification_service.dart';
 
 enum AuthState { loading, authenticated, unauthenticated }
@@ -58,7 +60,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
       PushNotificationService.instance.bindMessenger(scaffoldMessengerKey);
       final int userId = await _authRepository.getCurrentUserId();
       await PushNotificationService.instance.subscribeToUser(userId);
-      debugPrint('FCM background init & subscribe successful for user: $userId');
+      debugPrint(
+          'FCM background init & subscribe successful for user: $userId');
     } catch (fcmError) {
       debugPrint('FCM background init warning (non-fatal): $fcmError');
     }

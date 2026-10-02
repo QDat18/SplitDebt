@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Ánh xạ thực thể User Setting với dữ liệu được lưu trong cơ sở dữ liệu.
+ */
+
 package com.splitdebt.api.entity;
 
 import jakarta.persistence.*;

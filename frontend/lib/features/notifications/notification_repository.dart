@@ -1,3 +1,5 @@
+// Trách nhiệm file: Đóng gói truy cập dữ liệu notification repository, tách API và lưu trữ khỏi giao diện.
+
 import 'package:dio/dio.dart';
 
 import '../../core/network/dio_client.dart';

@@ -1,3 +1,5 @@
+// Trách nhiệm file: Đóng gói truy cập dữ liệu settlement repository, tách API và lưu trữ khỏi giao diện.
+
 import 'package:dio/dio.dart';
 
 import '../../../core/network/dio_client.dart';
@@ -12,14 +14,12 @@ class SettlementRepository {
   Future<void> markPaid({
     required int groupId,
     required int settlementId,
-    required int debtorUserId,
     String paymentMethod = 'BANK_TRANSFER',
   }) async {
     try {
       await _dio.post(
         '/groups/$groupId/settlements/$settlementId/pay',
         data: {
-          'debtorUserId': debtorUserId,
           'paymentMethod': paymentMethod,
         },
       );
@@ -39,12 +39,11 @@ class SettlementRepository {
   Future<void> confirmPaid({
     required int groupId,
     required int settlementId,
-    required int creditorUserId,
   }) async {
     try {
       await _dio.post(
         '/groups/$groupId/settlements/$settlementId/confirm',
-        data: {'creditorUserId': creditorUserId},
+        data: const <String, dynamic>{},
       );
     } on DioException catch (e) {
       final dynamic d = e.response?.data;

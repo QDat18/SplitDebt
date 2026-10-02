@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Mô tả và kiểm tra payload yêu cầu Add Member Request DTO nhận từ API.
+ */
+
 package com.splitdebt.api.dto;
 
 import com.splitdebt.api.entity.enums.GroupRole;

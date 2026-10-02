@@ -1,56 +1,166 @@
-# 💸 SplitDebt - Smart Group Expense & Debt Management
+# SplitDebt Frontend
 
-Ứng dụng quản lý chi tiêu nhóm tích hợp sổ công nợ, tự động phân chia chi phí và tối ưu hóa các khoản nợ bằng thuật toán Smart Settlement.
+Ứng dụng mobile quản lý chi tiêu nhóm, chia khoản chi, theo dõi công nợ và xác nhận thanh toán. Toàn bộ mã nghiệp vụ frontend được viết bằng Dart với Flutter; thư mục `android/` chỉ chứa hạ tầng build do Flutter/Gradle sử dụng.
 
-**Phát triển bởi team ErrorAtLine1**
+## Công nghệ
 
----
+- Dart 3 và Flutter 3.47+
+- Riverpod cho state management
+- Dio cho HTTP client
+- `flutter_secure_storage` cho JWT
+- Firebase Core và Firebase Cloud Messaging
+- `shared_preferences` cho trạng thái onboarding
+- `fl_chart` cho biểu đồ tài chính
 
-## 🛠 Yêu cầu hệ thống (Prerequisites)
+## Chức năng
 
-Trước khi chạy project, hãy đảm bảo máy tính của bạn đã cài đặt:
-* **Flutter SDK**: Phiên bản ổn định mới nhất (stable channel).
-* **Android Studio** hoặc **Visual Studio Code** (có cài đặt Flutter & Dart plugins).
-* **Git** để quản lý mã nguồn.
+- Đăng ký, đăng nhập và duy trì phiên bằng JWT.
+- Tạo nhóm, quản lý thành viên và thiết lập nhóm.
+- Tạo khoản chi với các kiểu chia đều, số tiền, phần trăm, trọng số hoặc theo món.
+- Xem tổng quan thu chi, số dư và lịch sử nhóm.
+- Tối ưu công nợ, báo đã thanh toán và xác nhận thanh toán hai chiều.
+- Nhận và quản lý thông báo Firebase.
+- Xuất nội dung tổng quan và chi tiết khoản chi dạng PDF.
 
----
+## Yêu cầu môi trường
 
-## 🚀 Hướng dẫn cài đặt & Chạy dự án
+- Flutter stable 3.47 hoặc mới hơn.
+- Android Studio, Android SDK và JDK 21.
+- Backend chạy tại cổng `8081`.
+- Android Emulator hoặc thiết bị Android thật.
 
-**Bước 1: Clone mã nguồn về máy**
-Mở Terminal/Git Bash tại thư mục muốn lưu project và chạy lệnh:
-`git clone https://github.com/QDat18/SplitDebt.git`
-`cd SplitDebt`
+Kiểm tra môi trường:
 
-**Bước 2: Cài đặt các thư viện (Dependencies)**
-Project sử dụng các thư viện cốt lõi như `flutter_riverpod`, `supabase_flutter`, `firebase_messaging`. Để tải toàn bộ thư viện, chạy lệnh:
-`flutter pub get`
+```powershell
+flutter doctor -v
+flutter devices
+```
 
-**Bước 3: Chạy ứng dụng**
-Kết nối máy ảo (Emulator) hoặc thiết bị thật (Android/iOS) và chạy:
-`flutter run`
+## Cấu hình `.env`
 
----
+Tạo file cấu hình local:
 
-## 📂 Cấu trúc thư mục (Project Structure)
+```powershell
+Copy-Item .env.example .env
+```
 
-Dự án áp dụng kiến trúc phân lớp (Layered Architecture) kết hợp quản lý trạng thái bằng **Riverpod**. Mọi code logic và UI đều nằm trong thư mục `lib/`:
+Các nhóm biến cần cấu hình:
 
-* **`core/`**: Chứa các cấu hình dùng chung toàn hệ thống (theme, màu sắc, constants, routes, utilities).
-* **`data/`**: Chứa các model map với Database, thao tác API (datasources) và kho lưu trữ (repositories).
-* **`features/`**: Chứa các module chức năng riêng biệt. Mỗi feature sẽ có UI và Provider tương ứng:
-    * `auth/`: Đăng nhập, đăng ký.
-    * `groups/`: Quản lý nhóm, thành viên.
-    * `expenses/`: Thêm, sửa, chia khoản chi.
-    * `debts/`: Sổ công nợ tổng quan.
-    * `settlements/`: Thuật toán Xén nợ (Smart Settlement) và thanh toán.
-    * `statistics/`: Thống kê chi tiêu.
-    * `notifications/`: Thông báo đẩy.
-    * `profile/`: Thông tin cá nhân.
+| Nhóm | Mục đích |
+|---|---|
+| `API_BASE_URL` | Base URL của SplitDebt API |
+| `FIREBASE_ANDROID_*` | Firebase client cho Android |
+| `FIREBASE_WEB_*` | Firebase client cho web |
+| `FIREBASE_IOS_*` | Firebase client cho iOS nếu sử dụng |
+| `FCM_WEB_VAPID_KEY` | VAPID public key cho FCM web |
 
----
+Không đặt database password, JWT secret hoặc Firebase service-account trong frontend.
 
-## 🔑 Lưu ý về Môi trường (Environment Variables)
+URL theo môi trường:
 
-*(Sẽ cập nhật sau)*
-Hiện tại cấu hình **Supabase** (URL, Anon Key) và **Firebase** đang được thiết lập cứng hoặc chờ bổ sung. Khi có file `.env` hoặc file cấu hình bảo mật, các thành viên không push file đó lên GitHub mà sẽ được cấp phát riêng qua kênh nội bộ.
+- Android Emulator: `http://10.0.2.2:8081/api`
+- Flutter Web: `http://localhost:8081/api`
+- Thiết bị thật: `http://<IP-LAN-MAY-CHAY-BACKEND>:8081/api`
+
+`API_BASE_URL` cũng có thể được ghi đè khi chạy:
+
+```powershell
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8081/api
+```
+
+## Cài đặt và chạy
+
+```powershell
+flutter pub get
+flutter run
+```
+
+Chạy trên AVD đã tạo cho dự án:
+
+```powershell
+flutter emulators --launch SplitDebt_API_35
+flutter devices
+flutter run -d emulator-5554
+```
+
+Trong Android Studio:
+
+1. Mở thư mục `frontend`.
+2. Chờ Flutter và Gradle đồng bộ dependency.
+3. Mở Device Manager và khởi động `SplitDebt_API_35` hoặc một AVD khác.
+4. Chọn thiết bị rồi chạy `lib/main.dart`.
+
+## Kiến trúc mã nguồn
+
+```text
+lib/
+├── core/
+│   ├── api/             # API client cơ sở
+│   ├── app/             # Global keys và khung hiển thị mobile
+│   ├── constants/       # Cấu hình đọc từ .env/dart-define
+│   ├── network/         # Dio, interceptor và response envelope
+│   ├── providers/       # Trạng thái dùng chung
+│   ├── storage/         # Lưu JWT bảo mật
+│   └── theme/           # Màu, typography, spacing và PDF components
+├── data/
+│   └── repositories/    # Repository dùng chung nhiều feature
+├── features/
+│   ├── auth/            # Onboarding, đăng ký, đăng nhập, splash
+│   ├── expenses/        # Tạo và xem khoản chi
+│   ├── groups/          # Nhóm, thành viên, model, provider và widget
+│   ├── home/            # Tổng quan và lịch sử
+│   ├── notifications/   # Inbox và Firebase Messaging
+│   ├── profile/         # Hồ sơ và thiết lập cá nhân
+│   └── settlements/     # Công nợ, thống kê và thanh toán
+├── firebase_options.dart
+├── main_layout_screen.dart
+└── main.dart
+```
+
+Luồng phụ thuộc chính:
+
+```text
+Screen/Widget → Provider/Repository → DioClient → Spring Boot API
+                                       ↓
+                                TokenStorage (JWT)
+```
+
+Danh tính đăng nhập do JWT quyết định. Client không gửi `userId` để backend dùng làm căn cứ phân quyền.
+
+## Quy ước comment
+
+- Mỗi file Dart có phần `Trách nhiệm file` ở đầu file.
+- Comment giải thích mục đích, quy tắc nghiệp vụ hoặc quyết định khó hiểu.
+- Không comment lại cú pháp hiển nhiên và không ghi key/secret trong comment.
+
+## Kiểm thử và build
+
+```powershell
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze
+flutter test
+flutter build apk --debug
+```
+
+APK debug được tạo tại:
+
+```text
+build/app/outputs/flutter-apk/app-debug.apk
+```
+
+## Bảo mật
+
+- JWT được lưu bằng `flutter_secure_storage`.
+- Phản hồi xác thực không được ghi nguyên văn ra log.
+- Android release chặn cleartext HTTP; debug cho phép HTTP để kết nối backend local.
+- `.env`, `google-services.json` và `firebase.json` không được commit.
+- Firebase client identifiers vẫn có thể được quan sát trong ứng dụng đã build; dữ liệu phải được bảo vệ bằng backend authorization và Firebase Security Rules.
+
+## Xử lý lỗi thường gặp
+
+- Không gọi được backend trên emulator: kiểm tra backend cổng `8081` và dùng host `10.0.2.2`, không dùng `localhost`.
+- Dừng ở màn hình splash: kiểm tra đầy đủ các biến `FIREBASE_ANDROID_*` trong `.env`, sau đó build lại APK.
+- Không nhận FCM: kiểm tra quyền notification, Firebase project và token đăng ký trên backend.
+- Gradle dùng sai Java: chọn JDK 21 trong Android Studio và kiểm tra `android/gradle.properties`.
+
+Không chỉnh sửa hoặc commit key thật vào source. Chỉ cập nhật tên biến mẫu trong `.env.example`.

@@ -1,3 +1,5 @@
+// Trách nhiệm file: Điều phối bố cục chính và thanh điều hướng giữa các khu vực sau đăng nhập.
+
 import 'package:flutter/material.dart';
 import 'features/groups/dashboard_screen.dart';
 import 'features/home/home_screen.dart';

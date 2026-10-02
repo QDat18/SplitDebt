@@ -1,3 +1,5 @@
+// Trách nhiệm file: Định nghĩa thành phần thiết kế app colors dùng thống nhất trong toàn ứng dụng.
+
 import 'package:flutter/material.dart';
 
 /// BẢNG MÀU XÉN NỢ DESIGN SYSTEM v1.0.0 (Design Tokens)

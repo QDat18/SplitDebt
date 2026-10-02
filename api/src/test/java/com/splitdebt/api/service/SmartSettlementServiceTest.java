@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Kiểm thử hành vi của Smart Settlement Service Test, bao gồm các trường hợp thành công và biên quan trọng.
+ */
+
 package com.splitdebt.api.service;
 
 import com.splitdebt.api.dto.settlement.NetBalanceDto;

@@ -1,15 +1,17 @@
+// Trách nhiệm file: Xây dựng màn hình home screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+
 import 'package:flutter/material.dart';
 import '../notifications/notification_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../group/models/group_model.dart';
-import '../group/providers/group_provider.dart';
-import '../group/widgets/group_card.dart';
-import '../group/widgets/group_card_skeleton.dart';
-import '../group/widgets/empty_group_state.dart';
-import '../group/widgets/error_state.dart';
-import '../group/screens/create_group_dialog.dart';
-import '../group/screens/group_detail_screen.dart';
-import '../group/screens/group_settings_screen.dart';
+import '../groups/models/group_model.dart';
+import '../groups/providers/group_provider.dart';
+import '../groups/widgets/group_card.dart';
+import '../groups/widgets/group_card_skeleton.dart';
+import '../groups/widgets/empty_group_state.dart';
+import '../groups/widgets/error_state.dart';
+import '../groups/screens/create_group_dialog.dart';
+import '../groups/screens/group_detail_screen.dart';
+import '../groups/screens/group_settings_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -62,7 +64,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         },
       ),
     );
-    if (mounted) ref.invalidate(groupNetBalanceProvider(group.id));
   }
 
   @override

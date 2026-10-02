@@ -11,10 +11,10 @@ Dự án được phân tách thành 2 phân hệ độc lập để dễ dàng 
 
 ## 🚀 Công nghệ sử dụng
 
-*   **Frontend:** Flutter, Riverpod, Google Fonts, Supabase Flutter.
+*   **Frontend:** Flutter, Riverpod, Dio, Firebase Messaging.
 *   **Backend:** Java 21, Spring Boot 3.3.0, Spring Data JPA, Lombok.
 *   **Database:** PostgreSQL (Lưu trữ trên Supabase).
-*   **Authentication:** Supabase Auth.
+*   **Authentication:** JWT do Spring Boot phát hành và lưu bằng secure storage.
 
 ## ⚙️ Hướng dẫn cài đặt chung
 

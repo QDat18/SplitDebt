@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Cung cấp các HTTP endpoint của Debt Settlement Controller, nhận request đã xác thực và chuyển xử lý xuống tầng nghiệp vụ.
+ */
+
 package com.splitdebt.api.controller;
 
 import com.splitdebt.api.dto.ApiResponse;
@@ -46,9 +50,10 @@ public class DebtSettlementController {
     @GetMapping("/debts")
     public ResponseEntity<ApiResponse<DebtSummaryDto>>
     getDebts(
-            @PathVariable Long groupId,
-            @RequestParam Long userId
+            @PathVariable Long groupId
     ) {
+
+        Long userId = currentUserId();
 
         groupAccessService.requireActiveMember(
                 groupId,
@@ -77,9 +82,10 @@ public class DebtSettlementController {
     @GetMapping("/smart-settlement")
     public ResponseEntity<ApiResponse<SmartSettlementDto>>
     smartSettlement(
-            @PathVariable Long groupId,
-            @RequestParam Long userId
+            @PathVariable Long groupId
     ) {
+
+        Long userId = currentUserId();
 
         groupAccessService.requireActiveMember(
                 groupId,
@@ -111,9 +117,10 @@ public class DebtSettlementController {
     public ResponseEntity<
             ApiResponse<List<SettlementDto>>
             > getSettlements(
-            @PathVariable Long groupId,
-            @RequestParam Long userId
+            @PathVariable Long groupId
     ) {
+
+        Long userId = currentUserId();
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -130,9 +137,10 @@ public class DebtSettlementController {
     public ResponseEntity<ApiResponse<SettlementDto>>
     createSettlement(
             @PathVariable Long groupId,
-            @RequestParam Long userId,
             @RequestBody CreateSettlementRequest request
     ) {
+
+        Long userId = currentUserId();
 
         return ResponseEntity.ok(
                 ApiResponse.success(

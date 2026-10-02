@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Cấu hình thành phần hạ tầng Firebase Config cho ứng dụng Spring Boot.
+ */
+
 package com.splitdebt.api.config;
 
 import com.google.auth.oauth2.GoogleCredentials;

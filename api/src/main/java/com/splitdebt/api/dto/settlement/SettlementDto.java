@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Mô hình hóa dữ liệu trao đổi Settlement DTO giữa các tầng và qua API.
+ */
+
 package com.splitdebt.api.dto.settlement;
 
 import com.splitdebt.api.entity.enums.SettlementStatus;

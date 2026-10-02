@@ -1,10 +1,11 @@
+// Trách nhiệm file: Cung cấp các hằng số cấu hình ứng dụng được đọc từ biến môi trường.
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConstants {
-  static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
-
-  static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+  static String get fcmWebVapidKey =>
+      dotenv.env['FCM_WEB_VAPID_KEY']?.trim() ?? '';
 
   static String get apiBaseUrl {
     const override = String.fromEnvironment('API_BASE_URL');

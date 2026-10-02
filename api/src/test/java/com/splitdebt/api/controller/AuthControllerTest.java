@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Kiểm thử hành vi của Auth Controller Test, bao gồm các trường hợp thành công và biên quan trọng.
+ */
+
 package com.splitdebt.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
