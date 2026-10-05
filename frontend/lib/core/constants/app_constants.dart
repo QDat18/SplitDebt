@@ -7,6 +7,10 @@ class AppConstants {
   static String get fcmWebVapidKey =>
       dotenv.env['FCM_WEB_VAPID_KEY']?.trim() ?? '';
 
+  /// OAuth Web client ID dùng làm server client ID và audience ở backend.
+  static String get googleWebClientId =>
+      dotenv.env['GOOGLE_WEB_CLIENT_ID']?.trim() ?? '';
+
   static String get apiBaseUrl {
     const override = String.fromEnvironment('API_BASE_URL');
     final url = override.isNotEmpty

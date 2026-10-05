@@ -107,6 +107,20 @@
             </exclusions>
         </dependency>
 
+        <!-- Xác minh chữ ký và audience của Google ID token ở backend. -->
+        <dependency>
+            <groupId>com.google.api-client</groupId>
+            <artifactId>google-api-client</artifactId>
+            <version>2.6.0</version>
+        </dependency>
+
+        <!-- JSON factory dùng bởi GoogleIdTokenVerifier. -->
+        <dependency>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client-gson</artifactId>
+            <version>1.44.2</version>
+        </dependency>
+
 
         <!-- ==================== SWAGGER / OPENAPI - DEV2 ==================== -->
 

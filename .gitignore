@@ -10,8 +10,13 @@ backup-dev2-settlement/
 pom-dev2.txt
 pom-dev4.txt
 .idea/
+.vscode/
 *.env
 api/data/
 frontend/android/build/
 *.docx
 *.pdf
+
+# Local runtime validation captures
+plans/*.png
+plans/runtime-*.xml

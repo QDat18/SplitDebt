@@ -1,30 +1,16 @@
-// Trách nhiệm file: Khởi tạo Flutter, nạp biến môi trường, cấu hình Firebase và dựng cây ứng dụng gốc.
+// Trách nhiệm file: Nạp môi trường, dựng khung hình đầu và khởi tạo Firebase không chặn giao diện.
 
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/app/app_keys.dart';
+import 'core/app/firebase_bootstrap.dart';
 import 'core/app/mobile_app_frame.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/splash_screen.dart';
-import 'firebase_options.dart';
-
-@pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(
-  RemoteMessage message,
-) async {
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  debugPrint(
-    'FCM background message: ${message.messageId}',
-  );
-}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,36 +19,19 @@ Future<void> main() async {
     fileName: '.env',
   );
 
-  // ================================================================
-  // Firebase Core
-  // ================================================================
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  debugPrint(
-    'Firebase initialized: '
-    '${DefaultFirebaseOptions.currentPlatform.projectId}',
-  );
-
-  // Web dùng firebase-messaging-sw.js.
-  // Chỉ Android/mobile mới đăng ký background handler Dart.
-  if (!kIsWeb) {
-    FirebaseMessaging.onBackgroundMessage(
-      firebaseMessagingBackgroundHandler,
-    );
-  }
-
-  // ================================================================
-  // KHÔNG initialize PushNotificationService ở main.
-  //
-  // Chỉ initialize FCM sau khi user login thành công.
-  // ================================================================
+  FirebaseBootstrap.registerBackgroundHandler();
 
   runApp(
     const ProviderScope(
       child: SplitDebtApp(),
     ),
+  );
+
+  // Firebase có thể chậm trên emulator/thiết bị yếu; không chặn khung hình đầu.
+  unawaited(
+    FirebaseBootstrap.ensureInitialized().catchError((Object error) {
+      debugPrint('Firebase initialization failed: $error');
+    }),
   );
 }
 

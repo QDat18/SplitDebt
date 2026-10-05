@@ -6,6 +6,7 @@ package com.splitdebt.api.controller;
 
 import com.splitdebt.api.dto.ApiResponse;
 import com.splitdebt.api.dto.AuthResponse;
+import com.splitdebt.api.dto.GoogleLoginRequest;
 import com.splitdebt.api.dto.LoginRequest;
 import com.splitdebt.api.dto.RegisterRequest;
 import com.splitdebt.api.service.AuthService;
@@ -33,5 +34,16 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(ApiResponse.success(authService.login(request), "Dang nhap thanh cong"));
+    }
+
+    @Operation(
+            summary = "Đăng nhập bằng Google",
+            description = "Backend xác minh Google ID token rồi phát JWT nội bộ cho ứng dụng.")
+    @PostMapping("/google")
+    public ResponseEntity<ApiResponse<AuthResponse>> googleLogin(
+            @RequestBody GoogleLoginRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                authService.googleLogin(request),
+                "Dang nhap Google thanh cong"));
     }
 }

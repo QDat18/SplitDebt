@@ -11,6 +11,7 @@ REST API cho hệ thống SplitDebt, được viết hoàn toàn bằng Java 21 
 - PostgreSQL; H2 chỉ dùng cho test
 - JWT với JJWT
 - Firebase Admin SDK cho FCM
+- Google API Client để xác minh Google ID token
 - Springdoc OpenAPI/Swagger
 - Maven Wrapper
 
@@ -45,6 +46,7 @@ Copy-Item .env.example .env
 | `CORS_ALLOWED_ORIGINS` | Không | Danh sách web origin, phân tách bằng dấu phẩy |
 | `FIREBASE_ENABLED` | Không | Bật Firebase Admin, mặc định `false` |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Khi bật FCM | Đường dẫn service-account JSON ngoài Git |
+| `GOOGLE_WEB_CLIENT_ID` | Khi dùng Google login | OAuth Web client ID, phải giống frontend |
 
 Spring Boot nạp file `.env` qua `spring.config.import`. Biến môi trường của hệ điều hành có thể được dùng để ghi đè khi deploy.
 
@@ -95,7 +97,7 @@ ApiResponse/GlobalExceptionHandler
 
 | Prefix | Chức năng |
 |---|---|
-| `/api/auth` | Đăng ký và đăng nhập |
+| `/api/auth` | Đăng ký, đăng nhập email và đăng nhập Google |
 | `/api/users` | Thông tin người dùng hiện tại |
 | `/api/groups` | Nhóm và thành viên |
 | `/api/v1/expenses` | Khoản chi và người tham gia |
@@ -115,6 +117,8 @@ Các endpoint bảo vệ sử dụng header:
 ```http
 Authorization: Bearer <JWT>
 ```
+
+Đăng nhập Google gọi `POST /api/auth/google` với Google ID token. API kiểm tra chữ ký, issuer, thời hạn, trạng thái email đã xác minh và `audience` khớp `GOOGLE_WEB_CLIENT_ID` trước khi phát JWT nội bộ. Không nhận email/tên do client tự khai báo làm căn cứ xác thực.
 
 Nguyên tắc bắt buộc:
 
@@ -161,5 +165,6 @@ Build file JAR:
 - Dùng database account có quyền tối thiểu và bật TLS.
 - Chỉ cho phép CORS origin thật của frontend web.
 - Đặt Firebase service-account ngoài repository và quản lý bằng secret manager.
+- Dùng đúng OAuth Web client ID ở frontend/backend; đăng ký SHA-1/SHA-256 của keystore Android trong Google Cloud/Firebase.
 - Chạy migration có kiểm soát thay vì phụ thuộc lâu dài vào `ddl-auto=update`.
 - Chạy đầy đủ test và kiểm tra Swagger contract trước khi release.

@@ -50,6 +50,9 @@ app:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   firebase:
     enabled: ${FIREBASE_ENABLED:false}
+  google:
+    # OAuth Web client ID phải khớp audience của Google ID token từ ứng dụng.
+    web-client-id: ${GOOGLE_WEB_CLIENT_ID:}
 
 springdoc:
   api-docs:

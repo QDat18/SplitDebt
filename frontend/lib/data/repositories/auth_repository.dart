@@ -4,9 +4,11 @@ import 'package:dio/dio.dart';
 
 import '../../core/network/api_response.dart';
 import '../../core/network/dio_client.dart';
+import '../../features/auth/google_sign_in_service.dart';
 
 class AuthRepository {
   final Dio _dio;
+  final GoogleSignInService _googleSignInService;
 
   static int? _cachedUserId;
 
@@ -20,7 +22,9 @@ class AuthRepository {
 
   AuthRepository({
     Dio? dio,
-  }) : _dio = dio ?? dioClient;
+    GoogleSignInService? googleSignInService,
+  })  : _dio = dio ?? dioClient,
+        _googleSignInService = googleSignInService ?? GoogleSignInService();
 
   // ===========================================================================
   // LOGIN
@@ -67,6 +71,45 @@ class AuthRepository {
         e.message ?? 'Không thể kết nối đến máy chủ',
       );
     }
+  }
+
+  // ===========================================================================
+  // GOOGLE LOGIN
+  // ===========================================================================
+  Future<String> loginWithGoogle() async {
+    final idToken = await _googleSignInService.getIdToken();
+
+    try {
+      final response = await _dio.post(
+        '/auth/google',
+        data: {'idToken': idToken},
+      );
+      final apiResponse = ApiResponse<String>.fromJson(
+        response.data as Map<String, dynamic>,
+        (json) => (json as Map<String, dynamic>)['token'] as String,
+      );
+
+      if (apiResponse.status == 200 && apiResponse.data != null) {
+        return apiResponse.data!;
+      }
+      throw Exception(apiResponse.message);
+    } on DioException catch (error) {
+      await _googleSignInService.signOut();
+      final responseData = error.response?.data;
+      if (responseData is Map) {
+        throw Exception(
+          responseData['message']?.toString() ?? 'Đăng nhập Google thất bại',
+        );
+      }
+      throw Exception(
+        error.message ?? 'Không thể kết nối đến máy chủ',
+      );
+    }
+  }
+
+  /// Xóa phiên Google cục bộ khi người dùng đăng xuất khỏi ứng dụng.
+  Future<void> signOutGoogle() async {
+    await _googleSignInService.signOut();
   }
 
   // ===========================================================================

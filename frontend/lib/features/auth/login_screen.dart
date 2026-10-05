@@ -27,6 +27,71 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  /// Gọi Google Sign-In và chỉ chuyển màn hình khi backend đã cấp JWT.
+  Future<void> _loginWithGoogle() async {
+    final success = await ref.read(authProvider.notifier).loginWithGoogle();
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đăng nhập Google thành công!')),
+      );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainLayoutScreen()),
+      );
+      return;
+    }
+
+    final message = ref
+            .read(authProvider)
+            .error
+            ?.toString()
+            .replaceFirst('Exception: ', '')
+            .replaceFirst('Bad state: ', '') ??
+        'Đăng nhập Google thất bại';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  /// Kiểm tra dữ liệu rồi đăng nhập email; tách khỏi build để dùng State.context an toàn.
+  Future<void> _loginWithEmail() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập đầy đủ email và mật khẩu'),
+        ),
+      );
+      return;
+    }
+
+    final success =
+        await ref.read(authProvider.notifier).login(email, password);
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đăng nhập thành công!')),
+      );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainLayoutScreen()),
+      );
+      return;
+    }
+
+    final message = ref
+            .read(authProvider)
+            .error
+            ?.toString()
+            .replaceFirst('Exception: ', '') ??
+        'Đăng nhập thất bại';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -121,7 +186,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
-                    // Navigate to forgot password
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Tính năng đặt lại mật khẩu chưa được cấu hình',
+                        ),
+                      ),
+                    );
                   },
                   child: const Text(
                     'Quên mật khẩu?',
@@ -136,48 +207,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
               // Login Button
               ElevatedButton(
-                onPressed: authState.isLoading
-                    ? null
-                    : () async {
-                        final email = _emailController.text.trim();
-                        final password = _passwordController.text.trim();
-
-                        if (email.isEmpty || password.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    'Vui lòng nhập đầy đủ email và mật khẩu')),
-                          );
-                          return;
-                        }
-
-                        final success = await ref
-                            .read(authProvider.notifier)
-                            .login(email, password);
-                        if (mounted) {
-                          if (success) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Đăng nhập thành công!')),
-                            );
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(
-                                builder: (_) => const MainLayoutScreen(),
-                              ),
-                            );
-                          } else {
-                            final errorMsg = ref
-                                    .read(authProvider)
-                                    .error
-                                    ?.toString()
-                                    .replaceAll('Exception: ', '') ??
-                                'Đăng nhập thất bại';
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(errorMsg)),
-                            );
-                          }
-                        }
-                      },
+                onPressed: authState.isLoading ? null : _loginWithEmail,
                 child: authState.isLoading
                     ? const SizedBox(
                         height: 20,
@@ -206,9 +236,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
               // Google Login
               OutlinedButton.icon(
-                onPressed: () {
-                  // Perform Google login
-                },
+                onPressed: authState.isLoading ? null : _loginWithGoogle,
                 icon: const Icon(Icons.g_mobiledata,
                     size: 28, color: Colors.black87),
                 label: const Text(

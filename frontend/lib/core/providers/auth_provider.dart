@@ -53,6 +53,21 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
     }
   }
 
+  /// Đăng nhập Google, nhận JWT nội bộ từ backend rồi lưu như luồng email.
+  Future<bool> loginWithGoogle() async {
+    state = const AsyncValue.loading();
+    try {
+      final token = await _authRepository.loginWithGoogle();
+      await tokenStorage.saveToken(token);
+      state = const AsyncValue.data(AuthState.authenticated);
+      unawaited(_initFcmInBackground());
+      return true;
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      return false;
+    }
+  }
+
   /// Khởi tạo FCM và đăng ký nhận tin ở background (không chặn đăng nhập)
   Future<void> _initFcmInBackground() async {
     try {
@@ -92,6 +107,11 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
       // Bỏ qua nếu FCM cleanup lỗi
     }
     await tokenStorage.deleteToken();
+    try {
+      await _authRepository.signOutGoogle();
+    } catch (_) {
+      // Phiên JWT vẫn phải được xóa dù Google SDK không dọn được phiên cục bộ.
+    }
     AuthRepository.clearCache();
     state = const AsyncValue.data(AuthState.unauthenticated);
   }

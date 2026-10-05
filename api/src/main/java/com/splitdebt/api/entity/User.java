@@ -34,4 +34,8 @@ public class User extends BaseEntity {
 
     @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;
+
+    /** Định danh `sub` ổn định từ Google; email không được dùng làm định danh OAuth. */
+    @Column(name = "google_subject", unique = true, length = 255)
+    private String googleSubject;
 }

@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../core/app/firebase_bootstrap.dart';
 import '../../core/constants/app_constants.dart';
 import 'notification_repository.dart';
 
@@ -19,6 +20,7 @@ class PushNotificationService {
   ScaffoldMessengerState? Function()? scaffoldMessengerResolver;
 
   Future<void> initialize() async {
+    await FirebaseBootstrap.ensureInitialized();
     if (!await FirebaseMessaging.instance.isSupported()) return;
     _messageSubscription ??=
         FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
@@ -36,6 +38,7 @@ class PushNotificationService {
 
   Future<String?> getToken() async {
     try {
+      await FirebaseBootstrap.ensureInitialized();
       if (!await FirebaseMessaging.instance.isSupported()) return null;
       final settings =
           await FirebaseMessaging.instance.getNotificationSettings();
@@ -78,6 +81,7 @@ class PushNotificationService {
   }
 
   Future<void> unsubscribeCurrentUser() async {
+    await FirebaseBootstrap.ensureInitialized();
     _subscribedUserId = null;
     final token = _registeredToken;
     _registeredToken = null;
