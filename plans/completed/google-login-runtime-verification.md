@@ -26,7 +26,7 @@
 
 ## Kết quả kiểm chứng
 
-- Backend: 25/25 test đạt; riêng 6/6 test auth đạt sau khi bổ sung ca chống chiếm tài khoản bằng Google subject khác.
+- Backend: 26/26 test đạt; riêng 6/6 test auth đạt sau khi bổ sung ca chống chiếm tài khoản bằng Google subject khác.
 - Frontend: 3/3 test đạt; `flutter analyze` không có error/warning, còn lint mức `info` có sẵn.
 - APK debug build thành công, cài thành công và mở đúng `MainActivity` trên `SplitDebt_API_35`; không có crash fatal.
 - Backend H2 tạm thời trả health HTTP 200 và `/api/auth/google` trả HTTP 400 với token rỗng.

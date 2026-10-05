@@ -11,7 +11,7 @@
 
 ## Kiểm thử đã chạy
 
-- Backend Maven: 25 test, 0 failure, 0 error.
+- Backend Maven: 26 test, 0 failure, 0 error.
 - Frontend Flutter: 3 test, tất cả đạt.
 - Flutter analyze: không có error/warning; còn 73 lint mức info cũ.
 - APK debug: build thành công.
