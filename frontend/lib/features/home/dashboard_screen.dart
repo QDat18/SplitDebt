@@ -1,4 +1,4 @@
-// Trách nhiệm file: Xây dựng màn hình dashboard screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+// Trách nhiệm file: Xây dựng màn hình dashboard screen và điều phối tương tác người dùng theo chuẩn Apple HIG.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,7 +16,7 @@ import '../groups/screens/group_detail_screen.dart';
 import '../groups/widgets/error_state.dart';
 
 /// ----------------------------------------------------------------------------
-/// MÀN HÌNH DASHBOARD TRANG CHỦ (MAIN DASHBOARD SCREEN)
+/// MÀN HÌNH DASHBOARD TRANG CHỦ (MAIN DASHBOARD SCREEN - APPLE HIG)
 /// Hiển thị tổng quan nợ ròng, nhóm chi tiêu & dữ liệu thực từ CSDL
 /// ----------------------------------------------------------------------------
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -42,7 +42,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   late Animation<double> _fadeAnim;
 
   String _userName = 'Bạn';
-  int _unreadNotificationCount = 0;
+  final int _unreadNotificationCount = 0;
   final currencyFormatter =
       NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 
@@ -95,7 +95,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     }
 
     return Scaffold(
-      backgroundColor: AppColors.n50,
+      backgroundColor: AppColors.n100,
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnim,
@@ -110,26 +110,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics()),
               padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.s20, vertical: AppDimensions.s16),
+                  horizontal: 16, vertical: 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // --- 1. USER HEADER ---
                   _buildUserHeader(),
-                  const SizedBox(height: AppDimensions.s20),
+                  const SizedBox(height: 16),
 
-                  // --- 2. SUMMARY BALANCE CARD (TÍNH TỪ CSDL) ---
+                  // --- 2. SUMMARY BALANCE CARD (APPLE HIG STYLE) ---
                   _buildNetBalanceOverviewCard(totalNetBalance,
                       hasError: groupsAsync.hasError),
-                  const SizedBox(height: AppDimensions.s20),
+                  const SizedBox(height: 16),
 
                   // --- 3. QUICK ACTION BUTTONS ---
                   _buildQuickActionsRow(),
-                  const SizedBox(height: AppDimensions.s24),
+                  const SizedBox(height: 22),
 
-                  // --- 4. CURRENT ACTIVE GROUPS (ĐỌC TỪ CSDL) ---
+                  // --- 4. CURRENT ACTIVE GROUPS (APPLE HIG INSET GROUPED) ---
                   _buildActiveGroupsSection(groupsAsync, groupsList),
-                  const SizedBox(height: AppDimensions.s32),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
@@ -148,23 +148,36 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           children: [
             Container(
               padding: const EdgeInsets.all(2),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: AppColors.cardGradient,
+                border: Border.all(color: AppColors.p500, width: 2),
               ),
               child: const CircleAvatar(
-                radius: 22,
-                backgroundColor: AppColors.p600,
-                child: Icon(Icons.person, color: Colors.white, size: 24),
+                radius: 20,
+                backgroundColor: AppColors.p50,
+                child: Icon(Icons.person, color: AppColors.p500, size: 22),
               ),
             ),
-            const SizedBox(width: AppDimensions.s12),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Xin chào, $_userName!',
-                    style: AppTypography.title.copyWith(fontSize: 18)),
-                Text('SplitDebt Ledger', style: AppTypography.caption),
+                Text(
+                  'Xin chào, $_userName!',
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.n900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'SplitDebt Ledger',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.n500,
+                  ),
+                ),
               ],
             ),
           ],
@@ -178,7 +191,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           },
           borderRadius: BorderRadius.circular(20),
           child: Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
               color: AppColors.n0,
               shape: BoxShape.circle,
@@ -186,15 +199,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             ),
             child: Stack(
               children: [
-                const Icon(Icons.notifications_outlined,
-                    color: AppColors.n800, size: 22),
+                const Icon(
+                  Icons.notifications_none_rounded,
+                  color: AppColors.n800,
+                  size: 22,
+                ),
                 if (_unreadNotificationCount > 0)
                   Positioned(
                     right: 0,
                     top: 0,
                     child: Container(
-                      width: 9,
-                      height: 9,
+                      width: 8,
+                      height: 8,
                       decoration: const BoxDecoration(
                         color: AppColors.error,
                         shape: BoxShape.circle,
@@ -209,17 +225,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  // --- SUMMARY BALANCE CARD TỪ CSDL ---
+  // --- SUMMARY BALANCE CARD TỪ CSDL (APPLE CARD STYLE) ---
   Widget _buildNetBalanceOverviewCard(double totalNetBalance,
       {bool hasError = false}) {
     if (hasError) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(AppDimensions.s20),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: AppColors.cardGradient,
-          borderRadius: AppDimensions.radius24,
-          boxShadow: AppDimensions.shadowMd,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF2C2C2E), Color(0xFF1C1C1E)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,41 +253,47 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('TỔNG SỐ DƯ RÒNG CÔNG NỢ',
-                    style: AppTypography.caption.copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        letterSpacing: 1.0,
-                        fontWeight: FontWeight.w700)),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.n500,
-                    borderRadius: AppDimensions.radius8,
+                const Text(
+                  'TỔNG SỐ DƯ RÒNG CÔNG NỢ',
+                  style: TextStyle(
+                    color: AppColors.n400,
+                    fontSize: 11,
+                    letterSpacing: 0.8,
+                    fontWeight: FontWeight.w600,
                   ),
-                  child: Text('LỖI TẢI DỮ LIỆU',
-                      style: AppTypography.caption.copyWith(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800)),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.n600,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'LỖI TẢI DỮ LIỆU',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 6),
-            Text(
+            const SizedBox(height: 8),
+            const Text(
               '—',
-              style: AppTypography.display.copyWith(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-            const SizedBox(height: AppDimensions.s16),
-            const Divider(height: 1, color: Colors.white24),
-            const SizedBox(height: AppDimensions.s12),
-            Text(
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: Colors.white12),
+            const SizedBox(height: 10),
+            const Text(
               'Không thể tính toán số dư do tải danh sách nhóm thất bại.',
-              style: AppTypography.caption
-                  .copyWith(color: Colors.white.withValues(alpha: 0.9)),
+              style: TextStyle(color: AppColors.n400, fontSize: 12),
             ),
           ],
         ),
@@ -275,9 +307,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         ? 'CẦN NHẬN LẠI TIỀN'
         : (isNegative ? 'BẠN ĐANG CẦN TRẢ' : 'ĐÃ CÂN BẰNG NỢ');
 
-    final Color statusColor = isPositive
-        ? AppColors.success
-        : (isNegative ? AppColors.error : AppColors.info);
+    final Color statusTextColor = isPositive
+        ? const Color(0xFF34C759) // iOS green
+        : (isNegative ? const Color(0xFFFF453A) : const Color(0xFF0A84FF));
+
+    final Color statusBgColor = isPositive
+        ? const Color(0xFF34C759).withValues(alpha: 0.18)
+        : (isNegative
+            ? const Color(0xFFFF453A).withValues(alpha: 0.18)
+            : const Color(0xFF0A84FF).withValues(alpha: 0.18));
 
     final String displayAmount = isPositive
         ? '+${currencyFormatter.format(totalNetBalance)}'
@@ -287,11 +325,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppDimensions.s20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: AppColors.cardGradient,
-        borderRadius: AppDimensions.radius24,
-        boxShadow: AppDimensions.shadowMd,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2C2C2E), Color(0xFF1C1C1E)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,49 +347,62 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('TỔNG SỐ DƯ RÒNG CÔNG NỢ',
-                  style: AppTypography.caption.copyWith(
-                      color: Colors.white.withValues(alpha: 0.8),
-                      letterSpacing: 1.0,
-                      fontWeight: FontWeight.w700)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: statusColor,
-                  borderRadius: AppDimensions.radius8,
+              const Text(
+                'TỔNG SỐ DƯ RÒNG',
+                style: TextStyle(
+                  color: AppColors.n400,
+                  fontSize: 11,
+                  letterSpacing: 0.8,
+                  fontWeight: FontWeight.w600,
                 ),
-                child: Text(statusLabel,
-                    style: AppTypography.caption.copyWith(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusBgColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  statusLabel,
+                  style: TextStyle(
+                    color: statusTextColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             displayAmount,
-            style: AppTypography.display.copyWith(
-                color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+            ),
           ),
-          const SizedBox(height: AppDimensions.s16),
-          const Divider(height: 1, color: Colors.white24),
-          const SizedBox(height: AppDimensions.s12),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: Colors.white12),
+          const SizedBox(height: 10),
           Text(
             isPositive
                 ? 'Các thành viên trong nhóm đang nợ bạn.'
                 : (isNegative
                     ? 'Bạn có khoản chi cần thanh toán cho nhóm.'
                     : 'Bạn không có khoản nợ tồn đọng nào.'),
-            style: AppTypography.caption
-                .copyWith(color: Colors.white.withValues(alpha: 0.9)),
+            style: const TextStyle(
+              color: AppColors.n400,
+              fontSize: 12,
+            ),
           ),
         ],
       ),
     );
   }
 
-  // --- QUICK ACTION BUTTONS ROW ---
+  // --- QUICK ACTION BUTTONS ROW (APPLE HIG) ---
   Widget _buildQuickActionsRow() {
     return Row(
       children: [
@@ -349,36 +410,50 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         Expanded(
           child: InkWell(
             onTap: widget.onNavigateToCreateExpense,
-            borderRadius: AppDimensions.radius20,
+            borderRadius: BorderRadius.circular(14),
             child: Container(
-              padding: const EdgeInsets.all(AppDimensions.s16),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: AppColors.n0,
-                borderRadius: AppDimensions.radius20,
+                borderRadius: BorderRadius.circular(14),
                 boxShadow: AppDimensions.shadowSm,
-                border: Border.all(color: AppColors.p100),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: AppColors.p50,
-                      borderRadius: AppDimensions.radius12,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.add_circle_outline_rounded,
-                        color: AppColors.p500, size: 22),
+                    child: const Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: AppColors.p500,
+                      size: 22,
+                    ),
                   ),
-                  const SizedBox(width: AppDimensions.s12),
-                  Expanded(
+                  const SizedBox(width: 10),
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Tạo khoản chi',
-                            style: AppTypography.title.copyWith(fontSize: 14)),
-                        Text('Chia tiền tự động',
-                            style:
-                                AppTypography.caption.copyWith(fontSize: 11)),
+                        Text(
+                          'Tạo chi tiêu',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.n800,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Chia tiền tự động',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.n500,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -388,42 +463,56 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ),
         ),
 
-        const SizedBox(width: AppDimensions.s12),
+        const SizedBox(width: 12),
 
         // Action 2: Quyết toán nợ
         Expanded(
           child: InkWell(
             onTap: widget.onNavigateToSettlement,
-            borderRadius: AppDimensions.radius20,
+            borderRadius: BorderRadius.circular(14),
             child: Container(
-              padding: const EdgeInsets.all(AppDimensions.s16),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: AppColors.n0,
-                borderRadius: AppDimensions.radius20,
+                borderRadius: BorderRadius.circular(14),
                 boxShadow: AppDimensions.shadowSm,
-                border: Border.all(color: AppColors.p100),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: AppColors.warningTint,
-                      borderRadius: AppDimensions.radius12,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.auto_awesome_rounded,
-                        color: AppColors.warning, size: 22),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: AppColors.warning,
+                      size: 22,
+                    ),
                   ),
-                  const SizedBox(width: AppDimensions.s12),
-                  Expanded(
+                  const SizedBox(width: 10),
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Quyết toán',
-                            style: AppTypography.title.copyWith(fontSize: 14)),
-                        Text('Min-Cash-Flow',
-                            style:
-                                AppTypography.caption.copyWith(fontSize: 11)),
+                        Text(
+                          'Quyết toán',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.n800,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Tối ưu hóa nợ',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.n500,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -436,26 +525,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  // --- ACTIVE GROUPS SECTION (ĐỌC TỪ CSDL QUA RIVERPOD) ---
+  // --- ACTIVE GROUPS SECTION (APPLE HIG INSET GROUPED) ---
   Widget _buildActiveGroupsSection(
       AsyncValue<List<GroupModel>> groupsAsync, List<GroupModel> groupsList) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Nhóm chi tiêu (${groupsList.length})',
-                style: AppTypography.label.copyWith(fontSize: 15)),
-          ],
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'NHÓM CHI TIÊU (${groupsList.length})',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.n500,
+              letterSpacing: 0.5,
+            ),
+          ),
         ),
-        const SizedBox(height: AppDimensions.s12),
         if (groupsAsync.isLoading && groupsList.isEmpty)
           const Center(
-              child: Padding(
-            padding: EdgeInsets.all(24.0),
-            child: CircularProgressIndicator(),
-          ))
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: CircularProgressIndicator(),
+            ),
+          )
         else if (groupsAsync.hasError)
           ErrorStateWidget(
             errorMessage: 'Không thể tải danh sách nhóm.',
@@ -464,24 +558,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         else if (groupsList.isEmpty)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(AppDimensions.s20),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: AppColors.n0,
-              borderRadius: AppDimensions.radius20,
+              borderRadius: BorderRadius.circular(14),
               boxShadow: AppDimensions.shadowSm,
-              border: Border.all(color: AppColors.p100),
             ),
-            child: Column(
+            child: const Column(
               children: [
-                const Icon(Icons.group_off_outlined,
-                    size: 40, color: AppColors.n400),
-                const SizedBox(height: AppDimensions.s8),
-                Text('Bạn chưa có nhóm chi tiêu nào',
-                    style: AppTypography.title.copyWith(fontSize: 15)),
-                const SizedBox(height: 4),
-                Text('Chuyển sang tab "Nhóm" để tạo hoặc tham gia nhóm mới.',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.caption),
+                Icon(Icons.group_off_rounded, size: 44, color: AppColors.n400),
+                SizedBox(height: 10),
+                Text(
+                  'Bạn chưa có nhóm chi tiêu nào',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.n800,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Chuyển sang tab "Nhóm" để tạo hoặc tham gia nhóm mới.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: AppColors.n500),
+                ),
               ],
             ),
           )
@@ -492,90 +592,109 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             final bool isNegative = balance < -0.01;
 
             return Container(
-              margin: const EdgeInsets.only(bottom: AppDimensions.s12),
-              padding: const EdgeInsets.all(AppDimensions.s16),
+              margin: const EdgeInsets.only(bottom: 10),
               decoration: BoxDecoration(
                 color: AppColors.n0,
-                borderRadius: AppDimensions.radius20,
+                borderRadius: BorderRadius.circular(14),
                 boxShadow: AppDimensions.shadowSm,
-                border: Border.all(color: AppColors.p100),
               ),
-              child: InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => GroupDetailScreen(group: group),
-                    ),
-                  );
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => GroupDetailScreen(group: group),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.p50,
-                            borderRadius: AppDimensions.radius16,
-                          ),
-                          child: const Icon(Icons.groups_rounded,
-                              color: AppColors.p500, size: 24),
-                        ),
-                        const SizedBox(width: AppDimensions.s12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(group.name,
-                                  style: AppTypography.title
-                                      .copyWith(fontSize: 16)),
-                              Text(
-                                '${group.memberCount} thành viên • ${group.currentUserRole}',
-                                style: AppTypography.caption,
+                        Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: AppColors.p50,
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            ],
-                          ),
+                              child: const Icon(
+                                Icons.groups_rounded,
+                                color: AppColors.p500,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    group.name,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.n800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${group.memberCount} thành viên • ${group.currentUserRole}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.n500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.n400,
+                              size: 20,
+                            ),
+                          ],
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                              color: AppColors.successTint,
-                              borderRadius: AppDimensions.radius8),
-                          child: Text('Đang hoạt động',
-                              style: AppTypography.caption.copyWith(
-                                  color: AppColors.success,
-                                  fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 10),
+                        const Divider(height: 1, color: AppColors.n100),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Số dư của bạn:',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.n500,
+                              ),
+                            ),
+                            Text(
+                              isPositive
+                                  ? '+${currencyFormatter.format(balance)}'
+                                  : (isNegative
+                                      ? '-${currencyFormatter.format(balance.abs())}'
+                                      : '0 ₫'),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: isPositive
+                                    ? AppColors.success
+                                    : (isNegative
+                                        ? AppColors.error
+                                        : AppColors.n700),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    const SizedBox(height: AppDimensions.s12),
-                    const Divider(height: 1, color: AppColors.n100),
-                    const SizedBox(height: AppDimensions.s8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Số dư của bạn:', style: AppTypography.caption),
-                        Text(
-                          isPositive
-                              ? '+${currencyFormatter.format(balance)}'
-                              : (isNegative
-                                  ? '-${currencyFormatter.format(balance.abs())}'
-                                  : '0 ₫'),
-                          style: AppTypography.bodyLarge.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: isPositive
-                                ? AppColors.success
-                                : (isNegative
-                                    ? AppColors.error
-                                    : AppColors.n700),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
             );
@@ -584,40 +703,129 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  // --- MODAL THÔNG BÁO PUSH REAL-TIME FCM ---
+  // --- MODAL THÔNG BÁO PUSH REAL-TIME FCM (APPLE HIG) ---
   Future<void> _showNotificationSheet(BuildContext context) async {
     final future = _loadNotifications();
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: AppColors.n100,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => SizedBox(
-          height: MediaQuery.sizeOf(context).height * 0.65,
-          child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: future,
-              builder: (context, snapshot) {
-                if (snapshot.hasError)
-                  return Center(
-                      child:
-                          Text('Không tải được thông báo: ${snapshot.error}'));
-                if (!snapshot.hasData)
-                  return const Center(child: CircularProgressIndicator());
-                final notifications = snapshot.data!;
-                if (notifications.isEmpty)
-                  return const Center(child: Text('Chưa có thông báo.'));
-                return ListView(children: [
-                  const ListTile(title: Text('Thông báo')),
-                  for (final item in notifications)
-                    ListTile(
-                      leading: const Icon(Icons.notifications_outlined),
-                      title: Text(item['title']?.toString() ?? ''),
-                      subtitle: Text(item['content']?.toString() ?? ''),
-                      onTap: () {
-                        Navigator.pop(context);
-                        widget.onNavigateToSettlement();
-                      },
+        height: MediaQuery.sizeOf(context).height * 0.65,
+        child: Column(
+          children: [
+            // iOS drag indicator
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 10, bottom: 8),
+              decoration: BoxDecoration(
+                color: AppColors.n300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  const Text(
+                    'Thông báo',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.n900,
                     ),
-                ]);
-              })),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: AppColors.n200),
+            Expanded(
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: future,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text('Không tải được thông báo: ${snapshot.error}'),
+                    );
+                  }
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final notifications = snapshot.data!;
+                  if (notifications.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'Chưa có thông báo nào.',
+                        style: TextStyle(color: AppColors.n500),
+                      ),
+                    );
+                  }
+                  return ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: notifications.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final item = notifications[index];
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.n0,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: AppDimensions.shadowSm,
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 4),
+                          leading: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: AppColors.p50,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.notifications_none_rounded,
+                              color: AppColors.p500,
+                              size: 20,
+                            ),
+                          ),
+                          title: Text(
+                            item['title']?.toString() ?? '',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.n800,
+                            ),
+                          ),
+                          subtitle: Text(
+                            item['content']?.toString() ?? '',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.n500,
+                            ),
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            widget.onNavigateToSettlement();
+                          },
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
