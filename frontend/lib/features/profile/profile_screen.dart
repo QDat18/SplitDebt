@@ -9,7 +9,12 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/widgets/grouped_list.dart';
 import '../auth/login_screen.dart';
+import 'about_screen.dart';
+import 'currency_settings_screen.dart';
+import 'help_screen.dart';
+import 'language_settings_screen.dart';
 import 'notification_settings_screen.dart';
+import 'personal_info_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -109,70 +114,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     }
   }
 
-  void _showPersonalInfo(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      backgroundColor: AppColors.n100,
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: AppDimensions.s24),
-          child: GroupedSection(
-            header: 'Thông tin cá nhân',
-            children: [
-              GroupedTile(
-                title: 'Họ và tên',
-                value: _name,
-              ),
-              GroupedTile(
-                title: 'Email',
-                value: _email,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _info(String title, String body) {
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        final theme = Theme.of(sheetContext);
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.s24,
-              vertical: AppDimensions.s16,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: AppDimensions.s16),
-                Text(
-                  body,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.n800,
-                  ),
-                ),
-                const SizedBox(height: AppDimensions.s24),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -237,7 +178,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       GroupedTile(
                         icon: Icons.person_outline,
                         title: 'Thông tin cá nhân',
-                        onTap: () => _showPersonalInfo(context),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PersonalInfoScreen(
+                              name: _name,
+                              email: _email,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -256,15 +205,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           ),
                         ),
                       ),
-                      const GroupedTile(
+                      GroupedTile(
                         icon: Icons.attach_money,
                         title: 'Tiền tệ',
                         value: 'VND',
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CurrencySettingsScreen(),
+                          ),
+                        ),
                       ),
-                      const GroupedTile(
+                      GroupedTile(
                         icon: Icons.language,
                         title: 'Ngôn ngữ',
                         value: 'Tiếng Việt',
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LanguageSettingsScreen(),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -275,17 +236,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       GroupedTile(
                         icon: Icons.help_outline,
                         title: 'Trợ giúp',
-                        onTap: () => _info(
-                          'Trợ giúp',
-                          'Tạo nhóm, thêm thành viên bằng email đã đăng ký rồi ghi khoản chi. Người trả báo đã thanh toán, người nhận xác nhận để cập nhật công nợ.',
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const HelpScreen(),
+                          ),
                         ),
                       ),
                       GroupedTile(
                         icon: Icons.info_outline,
                         title: 'Giới thiệu',
-                        onTap: () => _info(
-                          'XÉN NỢ',
-                          'Chia tiền nhóm, hết lăn tăn. Quản lý khoản chi, tối ưu công nợ và xác nhận thanh toán hai chiều.',
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AboutScreen(),
+                          ),
                         ),
                       ),
                     ],

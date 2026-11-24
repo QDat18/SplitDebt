@@ -53,4 +53,67 @@ void main() {
 
     expect(find.text('Đăng xuất?'), findsNothing);
   });
+
+  testWidgets('settings items navigate to dedicated screens on tap',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: ProfileScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // 1. Tap Thông tin cá nhân pushes PersonalInfoScreen
+    await tester.tap(find.text('Thông tin cá nhân'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hồ sơ người dùng'), findsOneWidget);
+    // Tap back button
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Tài khoản'), findsOneWidget);
+
+    // 2. Tap Trợ giúp pushes HelpScreen
+    final helpFinder = find.text('Trợ giúp');
+    await tester.ensureVisible(helpFinder);
+    await tester.tap(helpFinder);
+    await tester.pumpAndSettle();
+    expect(find.text('Quy trình sử dụng SplitDebt'), findsOneWidget);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+
+    // 3. Tap Giới thiệu pushes AboutScreen
+    final aboutFinder = find.text('Giới thiệu');
+    await tester.ensureVisible(aboutFinder);
+    await tester.tap(aboutFinder);
+    await tester.pumpAndSettle();
+    expect(find.text('XÉN NỢ (SplitDebt)'), findsOneWidget);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+
+    // 4. Tap Tiền tệ pushes CurrencySettingsScreen
+    final currencyFinder = find.text('Tiền tệ');
+    await tester.ensureVisible(currencyFinder);
+    await tester.tap(currencyFinder);
+    await tester.pumpAndSettle();
+    expect(find.text('Đơn vị tiền tệ chính'), findsOneWidget);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+
+    // 5. Tap Ngôn ngữ pushes LanguageSettingsScreen
+    final langFinder = find.text('Ngôn ngữ');
+    await tester.ensureVisible(langFinder);
+    await tester.tap(langFinder);
+    await tester.pumpAndSettle();
+    expect(find.text('Ngôn ngữ hiển thị'), findsOneWidget);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+  });
 }
