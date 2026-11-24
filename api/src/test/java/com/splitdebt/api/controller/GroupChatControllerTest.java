@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -320,5 +321,176 @@ public class GroupChatControllerTest {
                         .header("Authorization", ownerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.messages", hasSize(50)));
+    }
+
+    @Test
+    void unreadCount_excludesOwnMessages() throws Exception {
+        String owner = newAccount(); // User A
+        String member = newAccount(); // User B
+        long groupId = createGroup(owner);
+        addMember(groupId, owner, member);
+
+        String ownerToken = "Bearer " + jwt.generateJwtToken(owner);
+        String memberToken = "Bearer " + jwt.generateJwtToken(member);
+
+        // A sends 2 messages
+        for (int i = 1; i <= 2; i++) {
+            mockMvc.perform(post("/api/groups/" + groupId + "/messages")
+                            .header("Authorization", ownerToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(Map.of(
+                                    "content", "Msg from A " + i,
+                                    "clientMessageId", UUID.randomUUID().toString()
+                            ))))
+                    .andExpect(status().isCreated());
+        }
+
+        // B sends 1 message
+        mockMvc.perform(post("/api/groups/" + groupId + "/messages")
+                        .header("Authorization", memberToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "content", "Msg from B 1",
+                                "clientMessageId", UUID.randomUUID().toString()
+                        ))))
+                .andExpect(status().isCreated());
+
+        // A views groups -> unreadMessageCount should be 1 (only B's message)
+        mockMvc.perform(get("/api/groups")
+                        .header("Authorization", ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[?(@.id == " + groupId + ")].unreadMessageCount").value(1));
+
+        // B views groups -> unreadMessageCount should be 2 (A's 2 messages)
+        mockMvc.perform(get("/api/groups")
+                        .header("Authorization", memberToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[?(@.id == " + groupId + ")].unreadMessageCount").value(2));
+    }
+
+    @Test
+    void markRead_resetsCount_andNeverMovesBack() throws Exception {
+        String owner = newAccount(); // User A
+        String member = newAccount(); // User B
+        long groupId = createGroup(owner);
+        addMember(groupId, owner, member);
+
+        String ownerToken = "Bearer " + jwt.generateJwtToken(owner);
+        String memberToken = "Bearer " + jwt.generateJwtToken(member);
+
+        List<Long> msgIds = new ArrayList<>();
+        for (int i = 1; i <= 3; i++) {
+            var res = mockMvc.perform(post("/api/groups/" + groupId + "/messages")
+                            .header("Authorization", ownerToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(Map.of(
+                                    "content", "Msg " + i,
+                                    "clientMessageId", UUID.randomUUID().toString()
+                            ))))
+                    .andExpect(status().isCreated())
+                    .andReturn();
+            long id = objectMapper.readTree(res.getResponse().getContentAsString())
+                    .path("data").path("id").asLong();
+            msgIds.add(id);
+        }
+
+        // B marks read at latest message (id 3) -> 204
+        mockMvc.perform(post("/api/groups/" + groupId + "/messages/read")
+                        .header("Authorization", memberToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "lastReadMessageId", msgIds.get(2)
+                        ))))
+                .andExpect(status().isNoContent());
+
+        // B views group -> count should be 0
+        mockMvc.perform(get("/api/groups/" + groupId)
+                        .header("Authorization", memberToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.unreadMessageCount", is(0)));
+
+        // B attempts to mark read at earlier message (id 1) -> 204, but count remains 0
+        mockMvc.perform(post("/api/groups/" + groupId + "/messages/read")
+                        .header("Authorization", memberToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "lastReadMessageId", msgIds.get(0)
+                        ))))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/groups/" + groupId)
+                        .header("Authorization", memberToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.unreadMessageCount", is(0)));
+    }
+
+    @Test
+    void markRead_foreignMessageId_isRejected() throws Exception {
+        String owner = newAccount();
+        long group1 = createGroup(owner);
+        long group2 = createGroup(owner);
+        String ownerToken = "Bearer " + jwt.generateJwtToken(owner);
+
+        // Send a message in group 2
+        var res = mockMvc.perform(post("/api/groups/" + group2 + "/messages")
+                        .header("Authorization", ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "content", "Msg in group 2",
+                                "clientMessageId", UUID.randomUUID().toString()
+                        ))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long msgIdGroup2 = objectMapper.readTree(res.getResponse().getContentAsString())
+                .path("data").path("id").asLong();
+
+        // Mark read in group 1 with message from group 2 -> 400 Bad Request
+        mockMvc.perform(post("/api/groups/" + group1 + "/messages/read")
+                        .header("Authorization", ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "lastReadMessageId", msgIdGroup2
+                        ))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void nonMember_cannotMarkRead() throws Exception {
+        String owner = newAccount();
+        String stranger = newAccount();
+        long groupId = createGroup(owner);
+        String strangerToken = "Bearer " + jwt.generateJwtToken(stranger);
+
+        mockMvc.perform(post("/api/groups/" + groupId + "/messages/read")
+                        .header("Authorization", strangerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "lastReadMessageId", 1L
+                        ))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void deleteGroupWithMessages_succeeds() throws Exception {
+        String owner = newAccount();
+        long groupId = createGroup(owner);
+        String ownerToken = "Bearer " + jwt.generateJwtToken(owner);
+
+        // Send 2 messages
+        for (int i = 1; i <= 2; i++) {
+            mockMvc.perform(post("/api/groups/" + groupId + "/messages")
+                            .header("Authorization", ownerToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(Map.of(
+                                    "content", "Msg " + i,
+                                    "clientMessageId", UUID.randomUUID().toString()
+                            ))))
+                    .andExpect(status().isCreated());
+        }
+
+        // Owner deletes group -> 200 OK (or 2xx)
+        mockMvc.perform(delete("/api/groups/" + groupId)
+                        .header("Authorization", ownerToken))
+                .andExpect(status().is2xxSuccessful());
     }
 }

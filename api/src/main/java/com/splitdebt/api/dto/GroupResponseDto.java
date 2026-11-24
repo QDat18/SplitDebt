@@ -26,6 +26,7 @@ public class GroupResponseDto {
     private GroupRole currentUserRole;
     private int memberCount;
     private String inviteCode;
+    private int unreadMessageCount;
     private java.math.BigDecimal userBalance;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

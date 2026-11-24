@@ -38,6 +38,7 @@ public class GroupServiceImpl implements GroupService {
     private final UserRepository userRepository;
     private final com.splitdebt.api.service.DebtCalculationService debtCalculationService;
     private final GroupAccessService groupAccessService;
+    private final com.splitdebt.api.repository.GroupMessageRepository groupMessageRepository;
 
     @Override
     @Transactional
@@ -80,8 +81,10 @@ public class GroupServiceImpl implements GroupService {
                 .orElseThrow(() -> new GroupPermissionException("You are not a member of this group"));
 
         int memberCount = groupMemberRepository.countByGroupId(groupId);
+        Long lastReadId = currentMember.getLastReadMessageId() != null ? currentMember.getLastReadMessageId() : 0L;
+        int unreadCount = (int) groupMessageRepository.countUnread(groupId, lastReadId, currentUserId);
 
-        return mapToGroupResponseDto(group, currentMember.getRole(), memberCount);
+        return mapToGroupResponseDto(group, currentMember.getRole(), memberCount, null, unreadCount);
     }
 
     @Override
@@ -107,8 +110,10 @@ public class GroupServiceImpl implements GroupService {
 
         Group updatedGroup = groupRepository.save(group);
         int memberCount = groupMemberRepository.countByGroupId(groupId);
+        Long lastReadId = currentMember.getLastReadMessageId() != null ? currentMember.getLastReadMessageId() : 0L;
+        int unreadCount = (int) groupMessageRepository.countUnread(groupId, lastReadId, currentUserId);
 
-        return mapToGroupResponseDto(updatedGroup, currentMember.getRole(), memberCount);
+        return mapToGroupResponseDto(updatedGroup, currentMember.getRole(), memberCount, null, unreadCount);
     }
 
     @Override
@@ -118,6 +123,8 @@ public class GroupServiceImpl implements GroupService {
                 .orElseThrow(() -> new GroupNotFoundException("Group not found with ID: " + groupId));
 
         groupAccessService.requireAdmin(groupId, currentUserId);
+
+        groupMessageRepository.deleteByGroupId(groupId);
 
         List<GroupMember> members = groupMemberRepository.findByGroupId(groupId);
         groupMemberRepository.deleteAll(members);
@@ -165,7 +172,9 @@ public class GroupServiceImpl implements GroupService {
             } catch (Exception e) {
                 // Fallback to ZERO
             }
-            return mapToGroupResponseDto(group, membership.getRole(), count, userBalance);
+            Long lastReadId = membership.getLastReadMessageId() != null ? membership.getLastReadMessageId() : 0L;
+            int unreadCount = (int) groupMessageRepository.countUnread(group.getId(), lastReadId, currentUserId);
+            return mapToGroupResponseDto(group, membership.getRole(), count, userBalance, unreadCount);
         }).collect(Collectors.toList());
     }
 
@@ -305,14 +314,21 @@ public class GroupServiceImpl implements GroupService {
         }
 
         int memberCount = groupMemberRepository.countByGroupId(group.getId());
-        return mapToGroupResponseDto(group, role, memberCount);
+        Long lastReadId = existingMember.map(GroupMember::getLastReadMessageId).orElse(null);
+        if (lastReadId == null) lastReadId = 0L;
+        int unreadCount = (int) groupMessageRepository.countUnread(group.getId(), lastReadId, currentUserId);
+        return mapToGroupResponseDto(group, role, memberCount, null, unreadCount);
     }
 
     private GroupResponseDto mapToGroupResponseDto(Group group, GroupRole currentUserRole, int memberCount) {
-        return mapToGroupResponseDto(group, currentUserRole, memberCount, null);
+        return mapToGroupResponseDto(group, currentUserRole, memberCount, null, 0);
     }
 
     private GroupResponseDto mapToGroupResponseDto(Group group, GroupRole currentUserRole, int memberCount, java.math.BigDecimal userBalance) {
+        return mapToGroupResponseDto(group, currentUserRole, memberCount, userBalance, 0);
+    }
+
+    private GroupResponseDto mapToGroupResponseDto(Group group, GroupRole currentUserRole, int memberCount, java.math.BigDecimal userBalance, int unreadMessageCount) {
         User creator = group.getOwner();
         return GroupResponseDto.builder()
                 .id(group.getId())
@@ -324,6 +340,7 @@ public class GroupServiceImpl implements GroupService {
                 .memberCount(memberCount)
                 .inviteCode(group.getInviteCode())
                 .userBalance(userBalance)
+                .unreadMessageCount(unreadMessageCount)
                 .createdAt(group.getCreatedAt())
                 .updatedAt(group.getUpdatedAt())
                 .build();

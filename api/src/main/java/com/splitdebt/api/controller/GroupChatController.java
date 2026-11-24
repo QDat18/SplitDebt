@@ -59,4 +59,16 @@ public class GroupChatController {
             return ResponseEntity.ok(ApiResponse.ok("Tin nhắn đã tồn tại", result.message()));
         }
     }
+
+    @PostMapping("/read")
+    @Operation(summary = "Đánh dấu đã đọc tin nhắn trong nhóm")
+    public ResponseEntity<Void> markRead(
+            @PathVariable Long groupId,
+            @RequestBody java.util.Map<String, Long> body
+    ) {
+        Long userId = resolveCurrentUserId();
+        Long lastReadMessageId = body != null ? body.get("lastReadMessageId") : null;
+        groupChatService.markRead(groupId, userId, lastReadMessageId);
+        return ResponseEntity.noContent().build();
+    }
 }

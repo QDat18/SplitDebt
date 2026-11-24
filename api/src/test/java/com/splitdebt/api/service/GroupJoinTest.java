@@ -35,6 +35,9 @@ class GroupJoinTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private com.splitdebt.api.repository.GroupMessageRepository groupMessageRepository;
+
     @InjectMocks
     private GroupServiceImpl groupService;
 

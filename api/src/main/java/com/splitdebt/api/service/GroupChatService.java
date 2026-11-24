@@ -30,8 +30,31 @@ public class GroupChatService {
     private final GroupRepository groupRepository;
     private final UserRepository userRepository;
     private final GroupAccessService groupAccessService;
+    private final com.splitdebt.api.repository.GroupMemberRepository groupMemberRepository;
 
     public record SendResult(MessageDto message, boolean created) {}
+
+    @Transactional
+    public void markRead(Long groupId, Long userId, Long lastReadMessageId) {
+        groupAccessService.requireActiveMember(groupId, userId);
+        if (lastReadMessageId == null) {
+            throw new IllegalArgumentException("lastReadMessageId không được để trống");
+        }
+        GroupMessage message = groupMessageRepository.findById(lastReadMessageId)
+                .orElseThrow(() -> new IllegalArgumentException("Tin nhắn không tồn tại"));
+        if (!message.getGroup().getId().equals(groupId)) {
+            throw new IllegalArgumentException("Tin nhắn không thuộc nhóm này");
+        }
+
+        com.splitdebt.api.entity.GroupMember member = groupMemberRepository.findByGroupIdAndUserId(groupId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("Thành viên không tồn tại trong nhóm"));
+
+        Long current = member.getLastReadMessageId();
+        if (current == null || lastReadMessageId > current) {
+            member.setLastReadMessageId(lastReadMessageId);
+            groupMemberRepository.save(member);
+        }
+    }
 
     @Transactional
     public SendResult send(Long groupId, Long userId, SendMessageRequest req) {
