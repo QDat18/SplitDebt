@@ -31,7 +31,7 @@ public class SettingServiceImpl implements SettingService {
     private final UserRepository userRepository;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public GroupSettingResponse getGroupSetting(Long groupId) {
         GroupSetting setting = groupSettingRepository.findByGroupId(groupId)
                 .orElseGet(() -> createDefaultGroupSetting(groupId));
@@ -87,7 +87,7 @@ public class SettingServiceImpl implements SettingService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public UserSettingResponse getUserSetting(Long userId) {
         UserSetting setting = userSettingRepository.findByUserId(userId)
                 .orElseGet(() -> createDefaultUserSetting(userId));

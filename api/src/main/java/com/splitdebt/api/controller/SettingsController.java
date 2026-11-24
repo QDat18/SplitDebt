@@ -28,6 +28,7 @@ public class SettingsController {
 
     private final SettingService settingService;
     private final UserRepository userRepository;
+    private final com.splitdebt.api.service.GroupAccessService groupAccessService;
 
     @GetMapping("/user/me")
     public ResponseEntity<UserPreferencesDto> getMyPreferences() {
@@ -60,6 +61,7 @@ public class SettingsController {
 
     @GetMapping("/group/{groupId}")
     public ResponseEntity<GroupSettingsDto> getGroupSettings(@PathVariable Long groupId) {
+        groupAccessService.requireActiveMember(groupId, getCurrentUser().getId());
         GroupSettingResponse setting = settingService.getGroupSetting(groupId);
 
         GroupSettingsDto dto = new GroupSettingsDto();
@@ -70,6 +72,7 @@ public class SettingsController {
 
     @PutMapping("/group/{groupId}")
     public ResponseEntity<GroupSettingsDto> updateGroupSettings(@PathVariable Long groupId, @RequestBody GroupSettingsDto dto) {
+        groupAccessService.requireActiveMember(groupId, getCurrentUser().getId());
         GroupSettingRequest request = GroupSettingRequest.builder()
                 .requireApproval(dto.getRequireApproval())
                 .currencyCode(dto.getDefaultCurrency())
