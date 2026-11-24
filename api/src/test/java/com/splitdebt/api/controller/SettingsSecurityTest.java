@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.not;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -178,6 +179,32 @@ public class SettingsSecurityTest {
         mockMvc.perform(get("/api/v1/settings/user/" + otherId)
                         .header("Authorization", userToken))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void removedAdmin_cannotDeleteGroup() throws Exception {
+        String owner = newAccount();
+        String adminB = newAccount();
+        long groupId = createGroup(owner);
+
+        String ownerToken = "Bearer " + jwt.generateJwtToken(owner);
+        mockMvc.perform(post("/api/groups/" + groupId + "/members")
+                        .header("Authorization", ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "email", adminB,
+                                "role", "ADMIN"
+                        ))))
+                .andExpect(status().isCreated());
+
+        String adminToken = "Bearer " + jwt.generateJwtToken(adminB);
+        mockMvc.perform(delete("/api/groups/" + groupId + "/members/me")
+                        .header("Authorization", adminToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(delete("/api/groups/" + groupId)
+                        .header("Authorization", adminToken))
+                .andExpect(status().isForbidden());
     }
 }
 

@@ -19,6 +19,7 @@ import com.splitdebt.api.exception.UserNotFoundException;
 import com.splitdebt.api.repository.GroupMemberRepository;
 import com.splitdebt.api.repository.GroupRepository;
 import com.splitdebt.api.repository.UserRepository;
+import com.splitdebt.api.service.GroupAccessService;
 import com.splitdebt.api.service.GroupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ public class GroupServiceImpl implements GroupService {
     private final GroupMemberRepository groupMemberRepository;
     private final UserRepository userRepository;
     private final com.splitdebt.api.service.DebtCalculationService debtCalculationService;
+    private final GroupAccessService groupAccessService;
 
     @Override
     @Transactional
@@ -112,12 +114,7 @@ public class GroupServiceImpl implements GroupService {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new GroupNotFoundException("Group not found with ID: " + groupId));
 
-        GroupMember currentMember = groupMemberRepository.findByGroupIdAndUserId(groupId, currentUserId)
-                .orElseThrow(() -> new GroupPermissionException("You are not a member of this group"));
-
-        if (currentMember.getRole() != GroupRole.OWNER && currentMember.getRole() != GroupRole.ADMIN) {
-            throw new GroupPermissionException("Only OWNER or ADMIN can delete group");
-        }
+        groupAccessService.requireAdmin(groupId, currentUserId);
 
         List<GroupMember> members = groupMemberRepository.findByGroupId(groupId);
         groupMemberRepository.deleteAll(members);
