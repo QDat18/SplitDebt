@@ -1,7 +1,9 @@
-// Trách nhiệm file: Cung cấp widget group card có thể tái sử dụng trong giao diện của feature.
+// Trách nhiệm file: Cung cấp widget thẻ nhóm (GroupCard) theo chuẩn Apple HIG / iOS Inset Grouped style.
 
 import 'package:flutter/material.dart';
+
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/pdf_components.dart';
 import '../models/group_model.dart';
 
@@ -20,52 +22,29 @@ class GroupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final balance = group.userBalance;
-    // Determine category icon emoji
-    String emoji = group.categoryIcon ?? '👥';
-    if (emoji == '👥') {
-      final nameLower = group.name.toLowerCase();
-      if (nameLower.contains('trip') ||
-          nameLower.contains('du lịch') ||
-          nameLower.contains('hải phòng') ||
-          nameLower.contains('đà lạt')) {
-        emoji = '🌴';
-      } else if (nameLower.contains('project') ||
-          nameLower.contains('team') ||
-          nameLower.contains('lập trình')) {
-        emoji = '💻';
-      } else if (nameLower.contains('trọ') ||
-          nameLower.contains('phòng') ||
-          nameLower.contains('nhà')) {
-        emoji = '🏠';
-      } else if (nameLower.contains('ăn') ||
-          nameLower.contains('uống') ||
-          nameLower.contains('cơm')) {
-        emoji = '🍜';
-      }
-    }
 
-    // Determine balance text & color matching Figma design
-    String balanceText = group.formattedBalance ?? 'Xem nợ';
-    Color balanceColor = AppColors.n600;
+    String balanceText = 'Đã cân bằng';
+    Color balanceColor = AppColors.n500;
 
     if (balance != null) {
-      if (balance > 0) {
+      if (balance > 0.01) {
         balanceText = '+${money(balance)}';
         balanceColor = AppColors.success;
-      } else if (balance < 0) {
+      } else if (balance < -0.01) {
         balanceText = money(balance);
         balanceColor = AppColors.error;
       } else {
         balanceText = 'Đã cân bằng';
-        balanceColor = AppColors.n600;
+        balanceColor = AppColors.n500;
       }
-    } else {
+    } else if (group.formattedBalance != null && group.formattedBalance!.isNotEmpty) {
+      balanceText = group.formattedBalance!;
       if (balanceText.startsWith('+')) {
         balanceColor = AppColors.success;
       } else if (balanceText.startsWith('-')) {
         balanceColor = AppColors.error;
       } else {
-        balanceColor = AppColors.n600;
+        balanceColor = AppColors.n500;
       }
     }
 
@@ -75,25 +54,18 @@ class GroupCard extends StatelessWidget {
             : '${group.createdAt!.day}/${group.createdAt!.month}/${group.createdAt!.year}');
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.n200, width: 1.5),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
+        color: AppColors.n0,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: AppDimensions.shadowSm,
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(14),
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 16.0,
@@ -101,21 +73,25 @@ class GroupCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // Left Emoji / Icon Box
+                // Left Icon Box theo phong cách iOS Squircle
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     color: AppColors.p50,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Center(
-                    child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                  child: const Center(
+                    child: Icon(
+                      Icons.groups_rounded,
+                      color: AppColors.p500,
+                      size: 24,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 14),
 
-                // Group Title & Subtitle (Member count • Time ago)
+                // Group Title & Subtitle (Tên nhóm, số thành viên, thời gian)
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,18 +100,21 @@ class GroupCard extends StatelessWidget {
                         group.name,
                         style: const TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: AppColors.n800,
+                          letterSpacing: -0.2,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${group.memberCount} thành viên • $timeAgoStr',
+                        timeAgoStr.isNotEmpty
+                            ? '${group.memberCount} thành viên • $timeAgoStr'
+                            : '${group.memberCount} thành viên',
                         style: const TextStyle(
                           fontSize: 13,
-                          color: AppColors.n600,
+                          color: AppColors.n500,
                           fontWeight: FontWeight.w400,
                         ),
                         maxLines: 1,
@@ -144,74 +123,31 @@ class GroupCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
 
-                // Right Balance Indicator
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                // Right Balance Indicator & Chevron
+                Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      balanceText,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: balanceColor,
-                      ),
-                    ),
-                    if (onActionSelected != null) ...[
-                      const SizedBox(height: 2),
-                      GestureDetector(
-                        onTapDown: (details) {
-                          final position = details.globalPosition;
-                          showMenu<String>(
-                            context: context,
-                            position: RelativeRect.fromLTRB(
-                              position.dx,
-                              position.dy,
-                              position.dx,
-                              position.dy,
-                            ),
-                            items: [
-                              if (group.isAdminOrOwner)
-                                const PopupMenuItem(
-                                  value: 'settings',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.settings_outlined, size: 18),
-                                      SizedBox(width: 8),
-                                      Text('Cài đặt nhóm'),
-                                    ],
-                                  ),
-                                ),
-                              const PopupMenuItem(
-                                value: 'leave',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.exit_to_app_rounded,
-                                      size: 18,
-                                      color: Colors.red,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Rời nhóm',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ).then((val) {
-                            if (val != null) onActionSelected!(val);
-                          });
-                        },
-                        child: const Icon(
-                          Icons.more_horiz_rounded,
-                          size: 18,
-                          color: AppColors.n500,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          balanceText,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: balanceColor,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: AppColors.n400,
+                    ),
                   ],
                 ),
               ],
