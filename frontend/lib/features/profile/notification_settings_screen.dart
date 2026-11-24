@@ -104,6 +104,28 @@ class _NotificationSettingsScreenState
                           }
                         },
                 ),
+                GroupedSwitchTile(
+                  icon: Icons.chat_bubble_outline,
+                  title: 'Tin nhắn nhóm',
+                  subtitle: 'Khi có tin nhắn mới trong nhóm',
+                  value: prefs.notifyOnGroupMessage,
+                  onChanged: isSaving
+                      ? null
+                      : (val) async {
+                          setState(() {});
+                          final success =
+                              await notifier.setNotifyOnGroupMessage(val);
+                          if (mounted) setState(() {});
+                          if (success == false && mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Không lưu được cài đặt. Vui lòng thử lại.'),
+                              ),
+                            );
+                          }
+                        },
+                ),
               ],
             ),
           ),

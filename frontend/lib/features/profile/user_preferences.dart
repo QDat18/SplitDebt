@@ -6,19 +6,23 @@ import '../../core/network/dio_client.dart';
 class UserPreferences {
   final bool notifyOnDebtReminder;
   final bool notifyOnSettlement;
+  final bool notifyOnGroupMessage;
 
   const UserPreferences({
     this.notifyOnDebtReminder = true,
     this.notifyOnSettlement = true,
+    this.notifyOnGroupMessage = true,
   });
 
   UserPreferences copyWith({
     bool? notifyOnDebtReminder,
     bool? notifyOnSettlement,
+    bool? notifyOnGroupMessage,
   }) {
     return UserPreferences(
       notifyOnDebtReminder: notifyOnDebtReminder ?? this.notifyOnDebtReminder,
       notifyOnSettlement: notifyOnSettlement ?? this.notifyOnSettlement,
+      notifyOnGroupMessage: notifyOnGroupMessage ?? this.notifyOnGroupMessage,
     );
   }
 
@@ -26,6 +30,7 @@ class UserPreferences {
     return UserPreferences(
       notifyOnDebtReminder: json['notifyOnDebtReminder'] as bool? ?? true,
       notifyOnSettlement: json['notifyOnSettlement'] as bool? ?? true,
+      notifyOnGroupMessage: json['notifyOnGroupMessage'] as bool? ?? true,
     );
   }
 
@@ -33,6 +38,7 @@ class UserPreferences {
     return {
       'notifyOnDebtReminder': notifyOnDebtReminder,
       'notifyOnSettlement': notifyOnSettlement,
+      'notifyOnGroupMessage': notifyOnGroupMessage,
     };
   }
 }
@@ -114,6 +120,28 @@ class UserPreferencesNotifier
     _saving = true;
     final oldState = state;
     final updated = current.copyWith(notifyOnSettlement: v);
+    state = AsyncValue.data(updated);
+
+    try {
+      final saved = await repository.save(updated);
+      if (!mounted) return true;
+      state = AsyncValue.data(saved);
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      state = oldState;
+      return false;
+    } finally {
+      _saving = false;
+    }
+  }
+
+  Future<bool?> setNotifyOnGroupMessage(bool v) async {
+    final current = state.valueOrNull;
+    if (_saving || current == null) return null;
+    _saving = true;
+    final oldState = state;
+    final updated = current.copyWith(notifyOnGroupMessage: v);
     state = AsyncValue.data(updated);
 
     try {

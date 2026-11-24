@@ -40,6 +40,24 @@ void main() {
     final prefs = UserPreferences.fromJson({});
     expect(prefs.notifyOnDebtReminder, isTrue);
     expect(prefs.notifyOnSettlement, isTrue);
+    expect(prefs.notifyOnGroupMessage, isTrue);
+  });
+
+  test('setNotifyOnGroupMessage persists and returns true', () async {
+    final fake = FakeUserPreferencesRepository(
+      current: const UserPreferences(
+        notifyOnDebtReminder: true,
+        notifyOnSettlement: true,
+        notifyOnGroupMessage: true,
+      ),
+    );
+    final notifier = UserPreferencesNotifier(fake);
+    await notifier.load();
+
+    final result = await notifier.setNotifyOnGroupMessage(false);
+    expect(result, isTrue);
+    expect(fake.lastSaved!.notifyOnGroupMessage, isFalse);
+    expect(notifier.state.value!.notifyOnGroupMessage, isFalse);
   });
 
   test('load exposes fetched preferences', () async {
