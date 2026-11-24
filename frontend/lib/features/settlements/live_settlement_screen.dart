@@ -1,6 +1,7 @@
 // Trách nhiệm file: Xây dựng màn hình live settlement screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
 
 import 'dart:async';
+import '../../core/navigation/route_observer.dart';
 import '../../core/theme/pdf_components.dart';
 import '../../core/utils/visible_poller.dart';
 import '../notifications/notification_screen.dart';
@@ -23,7 +24,7 @@ class GroupSettlementScreen extends StatefulWidget {
 }
 
 class _GroupSettlementScreenState extends State<GroupSettlementScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, RouteAware {
   final _api = SettlementApiService();
   final _currency =
       NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
@@ -40,6 +41,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
   int _tab = 0;
   int _version = 0;
   late final VisiblePoller _poller;
+  bool _subscribedToRoute = false;
 
   @override
   void initState() {
@@ -47,13 +49,35 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
     WidgetsBinding.instance.addObserver(this);
     _poller = VisiblePoller(
       interval: const Duration(seconds: 20),
-      onTick: _load,
+      onTick: () => _load(silent: true),
     );
     _poller.start();
     _messages = FirebaseMessaging.onMessage.listen((message) {
       if (message.data['groupId']?.toString() == _groupId?.toString()) _load();
     });
     _initialize();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_subscribedToRoute) {
+      final route = ModalRoute.of(context);
+      if (route != null) {
+        appRouteObserver.subscribe(this, route);
+        _subscribedToRoute = true;
+      }
+    }
+  }
+
+  @override
+  void didPushNext() {
+    _poller.setCovered(true);
+  }
+
+  @override
+  void didPopNext() {
+    _poller.setCovered(false);
   }
 
   @override
@@ -64,6 +88,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
 
   @override
   void dispose() {
+    appRouteObserver.unsubscribe(this);
     _poller.stop();
     WidgetsBinding.instance.removeObserver(this);
     _messages?.cancel();
@@ -108,15 +133,17 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
     }
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool silent = false}) async {
     final group = _groupId;
     final user = _userId;
     if (group == null || user == null || !mounted) return;
     final version = ++_version;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final results = await Future.wait<Object>([
         _api.getDebtSummary(group),
@@ -128,14 +155,28 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
         _debt = results[0] as DebtSummary;
         _smart = results[1] as SmartSettlementResult;
         _settlements = results[2] as List<SettlementRecord>;
+        _error = null;
         _loading = false;
       });
     } catch (error) {
-      if (mounted && version == _version)
-        setState(() {
-          _error = '$error';
-          _loading = false;
-        });
+      if (silent) {
+        debugPrint('GroupSettlementScreen silent load error: $error');
+        final hasData =
+            _debt != null || _smart != null || _settlements.isNotEmpty;
+        if (!hasData && mounted && version == _version) {
+          setState(() {
+            _error = '$error';
+            _loading = false;
+          });
+        }
+      } else {
+        if (mounted && version == _version) {
+          setState(() {
+            _error = '$error';
+            _loading = false;
+          });
+        }
+      }
     }
   }
 
