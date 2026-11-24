@@ -45,6 +45,9 @@ public class GroupServiceImpl implements GroupService {
         if (request.getName() == null || request.getName().isBlank() || request.getName().trim().length() > 150) {
             throw new IllegalArgumentException("Tên nhóm phải có từ 1 đến 150 ký tự");
         }
+        if (request.getDescription() != null && request.getDescription().length() > 500) {
+            throw new IllegalArgumentException("Mô tả nhóm tối đa 500 ký tự");
+        }
         User currentUser = requireUser(currentUserId);
 
         Group group = Group.builder()
@@ -96,6 +99,9 @@ public class GroupServiceImpl implements GroupService {
             group.setName(request.getName().trim());
         }
         if (request.getDescription() != null) {
+            if (request.getDescription().length() > 500) {
+                throw new IllegalArgumentException("Mô tả nhóm tối đa 500 ký tự");
+            }
             group.setDescription(request.getDescription());
         }
 

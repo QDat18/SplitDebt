@@ -211,6 +211,12 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
                         textAlign: TextAlign.end,
                         minLines: 1,
                         maxLines: 4,
+                        maxLength: 500,
+                        buildCounter: (context,
+                                {required currentLength,
+                                required isFocused,
+                                maxLength}) =>
+                            null,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: AppColors.n800,
                         ),

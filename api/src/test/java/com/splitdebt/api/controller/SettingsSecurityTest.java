@@ -214,5 +214,50 @@ public class SettingsSecurityTest {
                         .header("Authorization", adminToken))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void adminWhoLeft_cannotDeleteGroup() throws Exception {
+        String owner = newAccount();
+        String adminB = newAccount();
+        long groupId = createGroup(owner);
+
+        String ownerToken = "Bearer " + jwt.generateJwtToken(owner);
+        mockMvc.perform(post("/api/groups/" + groupId + "/members")
+                        .header("Authorization", ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "email", adminB,
+                                "role", "ADMIN"
+                        ))))
+                .andExpect(status().isCreated());
+
+        String adminToken = "Bearer " + jwt.generateJwtToken(adminB);
+        mockMvc.perform(delete("/api/groups/" + groupId + "/members/me")
+                        .header("Authorization", adminToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(delete("/api/groups/" + groupId)
+                        .header("Authorization", adminToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void descriptionOver500Chars_isRejected() throws Exception {
+        String owner = newAccount();
+        long groupId = createGroup(owner);
+
+        String ownerToken = "Bearer " + jwt.generateJwtToken(owner);
+        String longDescription = "a".repeat(501);
+        String body = objectMapper.writeValueAsString(Map.of(
+                "name", "Valid Group Name",
+                "description", longDescription
+        ));
+
+        mockMvc.perform(put("/api/groups/" + groupId)
+                        .header("Authorization", ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
 }
 
