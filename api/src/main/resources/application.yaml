@@ -50,6 +50,10 @@ app:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   firebase:
     enabled: ${FIREBASE_ENABLED:false}
+  supabase:
+    url: ${SUPABASE_URL:https://zvgpxmzznstotmqfwjet.supabase.co}
+    key: ${SUPABASE_KEY:}
+    bucket: ${SUPABASE_AVATAR_BUCKET:Avatar}
 
 springdoc:
   api-docs:
