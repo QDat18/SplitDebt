@@ -32,6 +32,8 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
   List<Map<String, dynamic>> _groups = [];
   int? _userId;
   int? _groupId;
+  int? _loadedGroupId;
+  bool get _hasData => _debt != null && _loadedGroupId == _groupId;
   DebtSummary? _debt;
   SmartSettlementResult? _smart;
   List<SettlementRecord> _settlements = [];
@@ -159,6 +161,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
         _debt = results[0] as DebtSummary;
         _smart = results[1] as SmartSettlementResult;
         _settlements = results[2] as List<SettlementRecord>;
+        _loadedGroupId = group;
         _error = null;
         _loading = false;
       });
@@ -166,7 +169,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
       if (!mounted || version != _version) return;
       if (silent) {
         debugPrint('GroupSettlementScreen silent load error: $error');
-        final hasData = _debt != null;
+        final hasData = _hasData;
         setState(() {
           if (!hasData) {
             _error = '$error';
@@ -228,9 +231,9 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                   icon: const Icon(Icons.refresh),
                   tooltip: 'Tải lại')
             ]),
-        body: (_loading && _debt == null)
+        body: (_loading && !_hasData)
             ? const Center(child: CircularProgressIndicator())
-            : (_error != null && _debt == null)
+            : (_error != null && !_hasData)
                 ? Center(
                     child: TextButton(
                         onPressed: _initialize,
@@ -251,7 +254,11 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                                             child: Text(g['name'])))
                                         .toList(),
                                     onChanged: (v) {
-                                      _groupId = v;
+                                      setState(() {
+                                        _groupId = v;
+                                        _debt = _smart = null;
+                                        _settlements = [];
+                                      });
                                       _load();
                                     }),
                                 const SizedBox(height: 20)
