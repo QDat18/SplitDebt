@@ -154,10 +154,27 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
 
                       if (filteredGroups.isEmpty) {
                         if (_searchQuery.isNotEmpty) {
-                          return Center(
-                            child: Text(
-                              'Không tìm thấy nhóm phù hợp với "$_searchQuery"',
-                              style: const TextStyle(color: AppColors.n600),
+                          return LayoutBuilder(
+                            builder: (context, constraints) =>
+                                SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: constraints.maxHeight,
+                                ),
+                                child: Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: Text(
+                                      'Không tìm thấy nhóm phù hợp với "$_searchQuery"',
+                                      style: const TextStyle(
+                                        color: AppColors.n600,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           );
                         }
