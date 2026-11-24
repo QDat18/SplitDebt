@@ -218,6 +218,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                 currentUserId: _userId!,
                 settlement: record,
                 onUpdated: () {})));
+    await _load(silent: true);
   }
 
   Future<void> _create(DebtEdge edge) async {
