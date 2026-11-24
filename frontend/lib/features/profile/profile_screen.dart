@@ -9,7 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../auth/login_screen.dart';
 import '../notifications/notification_screen.dart';
-import 'settings_screen.dart';
+import 'notification_settings_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -171,7 +171,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const SettingsScreen()))),
+                                  builder: (_) => const NotificationSettingsScreen()))),
                       const Divider(height: 1),
                       _row(
                           Icons.help_outline,
