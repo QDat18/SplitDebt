@@ -321,7 +321,6 @@ public class ExpenseServiceImpl implements ExpenseService {
         // TASK BE2-EXP-02: Lock logic for settled expenses
         checkIfExpenseIsLocked(expense);
 
-        Long groupId = expense.getGroup().getId();
         expenseRepository.delete(expense);
     }
 
