@@ -50,6 +50,9 @@ public class NotificationService {
         payload.put("type", type);
         Long userId = user != null ? user.getId() : null;
         boolean allowPush = shouldPush(userId, type);
+        if (!allowPush) {
+            payload.put("silent", "true");
+        }
 
         Runnable push = () -> {
             if (allowPush) {

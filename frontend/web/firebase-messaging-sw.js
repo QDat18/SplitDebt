@@ -43,6 +43,7 @@ const firebaseReady = fetch('/assets/.env', { cache: 'no-store' })
     const messaging = firebase.messaging();
     messaging.onBackgroundMessage((payload) => {
       if (payload.notification) return;
+      if (payload.data?.silent === 'true') return;
       return self.registration.showNotification(
         payload.data?.title || 'SplitDebt',
         {

@@ -60,7 +60,7 @@ public class NotificationServiceTest {
 
         verify(notificationRepository).save(any(Notification.class));
         verify(fcmPushService, never()).sendToUserTopic(any(), any(), any(), any());
-        verify(fcmPushService).sendDataOnlyToUserTopic(eq(7L), argThat(m -> "SETTLEMENT_PAID".equals(m.get("type"))));
+        verify(fcmPushService).sendDataOnlyToUserTopic(eq(7L), argThat(m -> "SETTLEMENT_PAID".equals(m.get("type")) && "true".equals(m.get("silent"))));
     }
 
     @Test
@@ -76,7 +76,7 @@ public class NotificationServiceTest {
 
         verify(notificationRepository).save(any(Notification.class));
         verify(fcmPushService, never()).sendToUserTopic(any(), any(), any(), any());
-        verify(fcmPushService).sendDataOnlyToUserTopic(eq(7L), argThat(m -> "SETTLEMENT_REQUEST".equals(m.get("type"))));
+        verify(fcmPushService).sendDataOnlyToUserTopic(eq(7L), argThat(m -> "SETTLEMENT_REQUEST".equals(m.get("type")) && "true".equals(m.get("silent"))));
     }
 
     @Test
