@@ -16,7 +16,6 @@ import com.splitdebt.api.repository.*;
 import com.splitdebt.api.service.ExpenseService;
 import com.splitdebt.api.service.GroupAccessService;
 import com.splitdebt.api.service.SettingService;
-import com.splitdebt.api.service.SettlementEngineService;
 import com.splitdebt.api.util.MoneySplitCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,7 +38,6 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final SettlementRepository settlementRepository;
-    private final SettlementEngineService settlementEngineService;
     private final SettingService settingService;
     private final GroupAccessService groupAccessService;
     private final GroupMemberRepository groupMemberRepository;
@@ -76,9 +74,6 @@ public class ExpenseServiceImpl implements ExpenseService {
 
         List<ExpenseParticipant> savedParticipants = processParticipants(expense, request);
         List<ExpenseItem> savedItems = processItems(expense, request);
-
-        // Recalculate group net debts automatically
-        settlementEngineService.recalculateGroupDebts(group.getId());
 
         return mapToExpenseResponse(expense, savedParticipants, savedItems);
     }
@@ -312,8 +307,6 @@ public class ExpenseServiceImpl implements ExpenseService {
         List<ExpenseParticipant> savedParticipants = processParticipants(expense, request);
         List<ExpenseItem> savedItems = processItems(expense, request);
 
-        settlementEngineService.recalculateGroupDebts(expense.getGroup().getId());
-
         return mapToExpenseResponse(expense, savedParticipants, savedItems);
     }
 
@@ -330,7 +323,6 @@ public class ExpenseServiceImpl implements ExpenseService {
 
         Long groupId = expense.getGroup().getId();
         expenseRepository.delete(expense);
-        settlementEngineService.recalculateGroupDebts(groupId);
     }
 
     private void checkIfExpenseIsLocked(Expense expense) {
