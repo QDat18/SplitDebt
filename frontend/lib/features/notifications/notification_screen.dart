@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/app/app_keys.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/visible_poller.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'push_notification_service.dart';
 
@@ -24,21 +25,30 @@ class _NotificationScreenState extends State<NotificationScreen>
   bool _enabling = false;
   String? _error;
   StreamSubscription<RemoteMessage>? _messages;
+  late final VisiblePoller _poller;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _poller = VisiblePoller(
+      interval: const Duration(seconds: 20),
+      onTick: _load,
+    );
+    _poller.start();
     _messages = FirebaseMessaging.onMessage.listen((_) => _load());
     _load();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _poller.onLifecycle(state);
     if (state == AppLifecycleState.resumed) _load();
   }
 
   @override
   void dispose() {
+    _poller.stop();
     _messages?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();

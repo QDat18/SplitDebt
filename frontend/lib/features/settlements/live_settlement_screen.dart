@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import '../../core/theme/pdf_components.dart';
+import '../../core/utils/visible_poller.dart';
 import '../notifications/notification_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -38,11 +39,17 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
   String? _error;
   int _tab = 0;
   int _version = 0;
+  late final VisiblePoller _poller;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _poller = VisiblePoller(
+      interval: const Duration(seconds: 20),
+      onTick: _load,
+    );
+    _poller.start();
     _messages = FirebaseMessaging.onMessage.listen((message) {
       if (message.data['groupId']?.toString() == _groupId?.toString()) _load();
     });
@@ -51,11 +58,13 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _poller.onLifecycle(state);
     if (state == AppLifecycleState.resumed) _load();
   }
 
   @override
   void dispose() {
+    _poller.stop();
     WidgetsBinding.instance.removeObserver(this);
     _messages?.cancel();
     super.dispose();
