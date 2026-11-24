@@ -59,5 +59,81 @@ void main() {
       expect(tickCount, 1);
       poller.stop();
     });
+
+    testWidgets('covered route stops ticking and uncover ticks immediately',
+        (tester) async {
+      var tickCount = 0;
+      final poller = VisiblePoller(
+        interval: const Duration(seconds: 20),
+        onTick: () async {
+          tickCount++;
+        },
+      );
+
+      poller.start();
+      poller.setCovered(true);
+      await tester.pump(const Duration(seconds: 60));
+      expect(tickCount, 0);
+
+      poller.setCovered(false);
+      expect(tickCount, 1);
+
+      await tester.pump(const Duration(seconds: 21));
+      expect(tickCount, 2);
+
+      poller.stop();
+    });
+
+    testWidgets('inactive does not stop polling', (tester) async {
+      var tickCount = 0;
+      final poller = VisiblePoller(
+        interval: const Duration(seconds: 20),
+        onTick: () async {
+          tickCount++;
+        },
+      );
+
+      poller.start();
+      poller.onLifecycle(AppLifecycleState.inactive);
+      await tester.pump(const Duration(seconds: 41));
+      expect(tickCount, 2);
+
+      poller.stop();
+    });
+
+    testWidgets('resumed while covered stays stopped', (tester) async {
+      var tickCount = 0;
+      final poller = VisiblePoller(
+        interval: const Duration(seconds: 20),
+        onTick: () async {
+          tickCount++;
+        },
+      );
+
+      poller.setCovered(true);
+      poller.onLifecycle(AppLifecycleState.resumed);
+      await tester.pump(const Duration(seconds: 60));
+      expect(tickCount, 0);
+
+      poller.stop();
+    });
+
+    testWidgets('onTick error is swallowed and polling continues',
+        (tester) async {
+      var callCount = 0;
+      final poller = VisiblePoller(
+        interval: const Duration(seconds: 20),
+        onTick: () async {
+          callCount++;
+          throw Exception('Network error');
+        },
+      );
+
+      poller.start();
+      await tester.pump(const Duration(seconds: 41));
+      expect(callCount, 2);
+
+      poller.stop();
+    });
   });
 }
