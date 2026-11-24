@@ -124,6 +124,10 @@ public class SettingServiceImpl implements SettingService {
             setting.setNotifyOnSettlement(request.getNotifyOnSettlement());
         }
 
+        if (request.getNotifyOnGroupMessage() != null) {
+            setting.setNotifyOnGroupMessage(request.getNotifyOnGroupMessage());
+        }
+
         if (request.getBiometricsEnabled() != null) {
             setting.setBiometricsEnabled(request.getBiometricsEnabled());
         }
@@ -169,6 +173,7 @@ public class SettingServiceImpl implements SettingService {
                 .notifyOnNewExpense(true)
                 .notifyOnDebtReminder(true)
                 .notifyOnSettlement(true)
+                .notifyOnGroupMessage(true)
                 .biometricsEnabled(false)
                 .build();
 
@@ -202,6 +207,7 @@ public class SettingServiceImpl implements SettingService {
                 .notifyOnNewExpense(s.getNotifyOnNewExpense())
                 .notifyOnDebtReminder(s.getNotifyOnDebtReminder())
                 .notifyOnSettlement(s.getNotifyOnSettlement())
+                .notifyOnGroupMessage(s.getNotifyOnGroupMessage())
                 .biometricsEnabled(s.getBiometricsEnabled())
                 .createdAt(s.getCreatedAt())
                 .updatedAt(s.getUpdatedAt())

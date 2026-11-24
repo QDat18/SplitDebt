@@ -41,6 +41,7 @@ public class SettingsController {
         dto.setTheme(setting.getTheme());
         dto.setNotifyOnDebtReminder(setting.getNotifyOnDebtReminder());
         dto.setNotifyOnSettlement(setting.getNotifyOnSettlement());
+        dto.setNotifyOnGroupMessage(setting.getNotifyOnGroupMessage());
         return ResponseEntity.ok(dto);
     }
 
@@ -53,6 +54,7 @@ public class SettingsController {
                 .theme(dto.getTheme())
                 .notifyOnDebtReminder(dto.getNotifyOnDebtReminder())
                 .notifyOnSettlement(dto.getNotifyOnSettlement())
+                .notifyOnGroupMessage(dto.getNotifyOnGroupMessage())
                 .build();
         UserSettingResponse updated = settingService.updateUserSetting(user.getId(), request);
 
@@ -62,6 +64,7 @@ public class SettingsController {
         resDto.setTheme(updated.getTheme());
         resDto.setNotifyOnDebtReminder(updated.getNotifyOnDebtReminder());
         resDto.setNotifyOnSettlement(updated.getNotifyOnSettlement());
+        resDto.setNotifyOnGroupMessage(updated.getNotifyOnGroupMessage());
         return ResponseEntity.ok(resDto);
     }
 

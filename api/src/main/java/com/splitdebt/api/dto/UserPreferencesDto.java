@@ -13,4 +13,5 @@ public class UserPreferencesDto {
     private String theme;
     private Boolean notifyOnDebtReminder;
     private Boolean notifyOnSettlement;
+    private Boolean notifyOnGroupMessage;
 }

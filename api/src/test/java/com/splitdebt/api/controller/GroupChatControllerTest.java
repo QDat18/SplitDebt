@@ -22,6 +22,10 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -492,5 +496,41 @@ public class GroupChatControllerTest {
         mockMvc.perform(delete("/api/groups/" + groupId)
                         .header("Authorization", ownerToken))
                 .andExpect(status().is2xxSuccessful());
+    }
+
+    @Test
+    void duplicateSend_doesNotPushTwice() throws Exception {
+        String owner = newAccount();
+        String member = newAccount();
+        long groupId = createGroup(owner);
+        addMember(groupId, owner, member);
+
+        String ownerToken = "Bearer " + jwt.generateJwtToken(owner);
+        String clientMsgId = UUID.randomUUID().toString();
+        String body = objectMapper.writeValueAsString(Map.of(
+                "content", "Message with push check",
+                "clientMessageId", clientMsgId
+        ));
+
+        // First POST -> 201
+        mockMvc.perform(post("/api/groups/" + groupId + "/messages")
+                        .header("Authorization", ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated());
+
+        // Second POST with same clientMessageId -> 200
+        mockMvc.perform(post("/api/groups/" + groupId + "/messages")
+                        .header("Authorization", ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+
+        for (var sync : org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations()) {
+            sync.afterCommit();
+        }
+
+        long memberId = users.findByEmail(member).orElseThrow().getId();
+        verify(push, times(1)).sendToUserTopic(eq(memberId), any(), any(), any());
     }
 }

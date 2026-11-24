@@ -33,6 +33,8 @@ public class UserSettingResponse {
 
     private Boolean notifyOnSettlement;
 
+    private Boolean notifyOnGroupMessage;
+
     private Boolean biometricsEnabled;
 
     private LocalDateTime createdAt;

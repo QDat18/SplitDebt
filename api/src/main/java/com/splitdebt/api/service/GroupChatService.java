@@ -31,6 +31,7 @@ public class GroupChatService {
     private final UserRepository userRepository;
     private final GroupAccessService groupAccessService;
     private final com.splitdebt.api.repository.GroupMemberRepository groupMemberRepository;
+    private final GroupChatPushService groupChatPushService;
 
     public record SendResult(MessageDto message, boolean created) {}
 
@@ -98,6 +99,7 @@ public class GroupChatService {
                 .build();
 
         GroupMessage saved = groupMessageRepository.save(message);
+        groupChatPushService.notifyNewMessage(saved);
         return new SendResult(toDto(saved), true);
     }
 

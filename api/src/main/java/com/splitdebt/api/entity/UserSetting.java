@@ -50,6 +50,10 @@ public class UserSetting extends BaseEntity {
     @Builder.Default
     private Boolean notifyOnSettlement = true;
 
+    @Column(name = "notify_on_group_message", nullable = false, columnDefinition = "boolean default true")
+    @Builder.Default
+    private Boolean notifyOnGroupMessage = true;
+
     @Column(name = "biometrics_enabled", nullable = false)
     @Builder.Default
     private Boolean biometricsEnabled = false;
