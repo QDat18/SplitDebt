@@ -1,7 +1,11 @@
-// Trách nhiệm file: Xây dựng màn hình group settings screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+// Trách nhiệm file: Xây dựng màn hình cài đặt nhóm theo chuẩn HIG với grouped list.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_dimensions.dart';
+import '../../../core/widgets/grouped_list.dart';
 import '../models/group_model.dart';
 import '../providers/group_provider.dart';
 
@@ -21,6 +25,10 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
   late TextEditingController _descController;
   bool _isSaving = false;
 
+  bool get _isDirty =>
+      _nameController.text.trim() != widget.group.name ||
+      _descController.text.trim() != (widget.group.description ?? '');
+
   @override
   void initState() {
     super.initState();
@@ -28,10 +36,18 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
     _descController = TextEditingController(
       text: widget.group.description ?? '',
     );
+    _nameController.addListener(_onTextChanged);
+    _descController.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    setState(() {});
   }
 
   @override
   void dispose() {
+    _nameController.removeListener(_onTextChanged);
+    _descController.removeListener(_onTextChanged);
     _nameController.dispose();
     _descController.dispose();
     super.dispose();
@@ -49,8 +65,7 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Đã cập nhật thông tin nhóm!'),
-            backgroundColor: Colors.green,
+            content: Text('Đã lưu thay đổi.'),
           ),
         );
         Navigator.of(context).pop();
@@ -59,8 +74,9 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: Colors.red,
+            content: Text(
+              'Không lưu được: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
           ),
         );
       }
@@ -70,22 +86,27 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
   }
 
   Future<void> _deleteGroup() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showAdaptiveDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Xác nhận xóa nhóm'),
+      builder: (dialogContext) => AlertDialog.adaptive(
+        title: const Text('Xoá nhóm này?'),
         content: const Text(
-          'Bạn có chắc chắn muốn xóa nhóm này? Hành động này không thể hoàn tác.',
+          'Toàn bộ khoản chi và lịch sử của nhóm sẽ bị xoá. Không thể hoàn tác.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Hủy'),
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Huỷ'),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xóa nhóm'),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text(
+              'Xoá',
+              style: TextStyle(
+                color: AppColors.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -99,8 +120,7 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('🗑️ Đã xóa nhóm'),
-              backgroundColor: Colors.orange,
+              content: Text('Đã xoá nhóm.'),
             ),
           );
           Navigator.of(context).popUntil((route) => route.isFirst);
@@ -110,9 +130,8 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Lỗi: ${e.toString().replaceAll('Exception: ', '')}',
+                'Không xoá được: ${e.toString().replaceAll('Exception: ', '')}',
               ),
-              backgroundColor: Colors.red,
             ),
           );
         }
@@ -122,95 +141,116 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isAdminOrOwner = widget.group.isAdminOrOwner;
+
     return Scaffold(
+      backgroundColor: AppColors.n100,
       appBar: AppBar(
         title: const Text('Cài đặt nhóm'),
+        backgroundColor: AppColors.n100,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
-          if (widget.group.isAdminOrOwner)
+          if (isAdminOrOwner)
             TextButton(
-              onPressed: _isSaving ? null : _saveChanges,
+              onPressed: (!_isDirty || _isSaving) ? null : _saveChanges,
               child: _isSaving
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator.adaptive(strokeWidth: 2),
                     )
                   : const Text(
                       'Lưu',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
                       ),
                     ),
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Thông tin chung',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _nameController,
-                enabled: widget.group.isAdminOrOwner,
-                decoration: const InputDecoration(
-                  labelText: 'Tên nhóm',
-                  prefixIcon: Icon(Icons.drive_file_rename_outline_rounded),
-                ),
-                validator: (val) => val == null || val.trim().isEmpty
-                    ? 'Tên nhóm không được để trống'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descController,
-                enabled: widget.group.isAdminOrOwner,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Mô tả',
-                  prefixIcon: Icon(Icons.description_outlined),
-                ),
-              ),
-              const SizedBox(height: 32),
-              const Divider(),
-              const SizedBox(height: 16),
-              const Text(
-                'Vùng nguy hiểm',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (widget.group.isAdminOrOwner)
-                OutlinedButton.icon(
-                  onPressed: _deleteGroup,
-                  icon: const Icon(
-                    Icons.delete_forever_rounded,
-                    color: Colors.red,
-                  ),
-                  label: const Text(
-                    'Xóa nhóm này',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.red),
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: AppDimensions.s24),
+          children: [
+            GroupedSection(
+              header: 'Thông tin nhóm',
+              footer: isAdminOrOwner
+                  ? null
+                  : 'Chỉ trưởng nhóm hoặc quản trị viên mới sửa được.',
+              children: [
+                if (isAdminOrOwner) ...[
+                  GroupedTile(
+                    title: 'Tên',
+                    trailing: Expanded(
+                      child: TextFormField(
+                        controller: _nameController,
+                        textAlign: TextAlign.end,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: AppColors.n800,
+                        ),
+                        decoration: InputDecoration.collapsed(
+                          hintText: 'Bắt buộc',
+                          hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                            color: AppColors.n400,
+                          ),
+                        ),
+                        validator: (val) => val == null || val.trim().isEmpty
+                            ? 'Tên nhóm không được để trống'
+                            : null,
+                      ),
                     ),
                   ),
-                ),
+                  GroupedTile(
+                    title: 'Mô tả',
+                    trailing: Expanded(
+                      child: TextFormField(
+                        controller: _descController,
+                        textAlign: TextAlign.end,
+                        minLines: 1,
+                        maxLines: 4,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: AppColors.n800,
+                        ),
+                        decoration: InputDecoration.collapsed(
+                          hintText: 'Không bắt buộc',
+                          hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                            color: AppColors.n400,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  GroupedTile(
+                    title: 'Tên',
+                    value: widget.group.name,
+                  ),
+                  GroupedTile(
+                    title: 'Mô tả',
+                    value: (widget.group.description != null &&
+                            widget.group.description!.isNotEmpty)
+                        ? widget.group.description!
+                        : 'Không có',
+                  ),
+                ],
+              ],
+            ),
+            if (isAdminOrOwner) ...[
+              const SizedBox(height: AppDimensions.s32),
+              GroupedSection(
+                children: [
+                  GroupedTile(
+                    title: 'Xoá nhóm',
+                    destructive: true,
+                    onTap: _deleteGroup,
+                  ),
+                ],
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
