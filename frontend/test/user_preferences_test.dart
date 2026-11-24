@@ -97,12 +97,23 @@ void main() {
     final firstFuture = notifier.setNotifyOnSettlement(true);
     final secondResult = await notifier.setNotifyOnDebtReminder(false);
 
-    expect(secondResult, isFalse);
+    expect(secondResult, isNull);
     expect(fake.saveCount, equals(1));
 
     fake.saveCompleter!.complete();
     final firstResult = await firstFuture;
     expect(firstResult, isTrue);
+  });
+
+  test('toggle before load is ignored and does not save', () async {
+    final fake = FakeUserPreferencesRepository();
+    fake.shouldThrow = true;
+    final notifier = UserPreferencesNotifier(fake);
+    await notifier.load();
+
+    final result = await notifier.setNotifyOnSettlement(false);
+    expect(result, isNull);
+    expect(fake.saveCount, equals(0));
   });
 
   test('no state write after dispose', () async {

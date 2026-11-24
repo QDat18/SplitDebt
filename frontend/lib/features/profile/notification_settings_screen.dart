@@ -71,7 +71,7 @@ class _NotificationSettingsScreenState
                           final success =
                               await notifier.setNotifyOnDebtReminder(val);
                           if (mounted) setState(() {});
-                          if (!success && mounted) {
+                          if (success == false && mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
@@ -94,7 +94,7 @@ class _NotificationSettingsScreenState
                           final success =
                               await notifier.setNotifyOnSettlement(val);
                           if (mounted) setState(() {});
-                          if (!success && mounted) {
+                          if (success == false && mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(

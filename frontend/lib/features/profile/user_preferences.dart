@@ -86,11 +86,11 @@ class UserPreferencesNotifier
     }
   }
 
-  Future<bool> setNotifyOnDebtReminder(bool v) async {
-    if (_saving) return false;
+  Future<bool?> setNotifyOnDebtReminder(bool v) async {
+    final current = state.valueOrNull;
+    if (_saving || current == null) return null;
     _saving = true;
     final oldState = state;
-    final current = state.value ?? const UserPreferences();
     final updated = current.copyWith(notifyOnDebtReminder: v);
     state = AsyncValue.data(updated);
 
@@ -108,11 +108,11 @@ class UserPreferencesNotifier
     }
   }
 
-  Future<bool> setNotifyOnSettlement(bool v) async {
-    if (_saving) return false;
+  Future<bool?> setNotifyOnSettlement(bool v) async {
+    final current = state.valueOrNull;
+    if (_saving || current == null) return null;
     _saving = true;
     final oldState = state;
-    final current = state.value ?? const UserPreferences();
     final updated = current.copyWith(notifyOnSettlement: v);
     state = AsyncValue.data(updated);
 
