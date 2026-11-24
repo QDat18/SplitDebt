@@ -53,7 +53,9 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
     );
     _poller.start();
     _messages = FirebaseMessaging.onMessage.listen((message) {
-      if (message.data['groupId']?.toString() == _groupId?.toString()) _load();
+      if (message.data['groupId']?.toString() == _groupId?.toString()) {
+        _load(silent: true);
+      }
     });
     _initialize();
   }
@@ -83,7 +85,9 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _poller.onLifecycle(state);
-    if (state == AppLifecycleState.resumed) _load();
+    if (state == AppLifecycleState.resumed && !_poller.isCovered) {
+      _load(silent: true);
+    }
   }
 
   @override
@@ -159,23 +163,21 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
         _loading = false;
       });
     } catch (error) {
+      if (!mounted || version != _version) return;
       if (silent) {
         debugPrint('GroupSettlementScreen silent load error: $error');
-        final hasData =
-            _debt != null || _smart != null || _settlements.isNotEmpty;
-        if (!hasData && mounted && version == _version) {
-          setState(() {
+        final hasData = _debt != null;
+        setState(() {
+          if (!hasData) {
             _error = '$error';
-            _loading = false;
-          });
-        }
+          }
+          _loading = false;
+        });
       } else {
-        if (mounted && version == _version) {
-          setState(() {
-            _error = '$error';
-            _loading = false;
-          });
-        }
+        setState(() {
+          _error = '$error';
+          _loading = false;
+        });
       }
     }
   }
@@ -227,9 +229,9 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                   icon: const Icon(Icons.refresh),
                   tooltip: 'Tải lại')
             ]),
-        body: _loading
+        body: (_loading && _debt == null)
             ? const Center(child: CircularProgressIndicator())
-            : _error != null
+            : (_error != null && _debt == null)
                 ? Center(
                     child: TextButton(
                         onPressed: _initialize,
@@ -237,7 +239,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                 : _groups.isEmpty
                     ? const Center(child: Text('Bạn chưa tham gia nhóm nào.'))
                     : RefreshIndicator(
-                        onRefresh: _load,
+                        onRefresh: () => _load(silent: true),
                         child: ListView(
                             padding: const EdgeInsets.all(20),
                             children: [

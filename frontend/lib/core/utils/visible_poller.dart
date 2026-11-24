@@ -16,6 +16,7 @@ class VisiblePoller {
   bool _isForeground = true;
 
   bool get isRunning => _timer != null;
+  bool get isCovered => _isCovered;
 
   void start() {
     if (_isCovered) return;

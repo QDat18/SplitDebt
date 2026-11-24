@@ -30,6 +30,7 @@ class _NotificationScreenState extends State<NotificationScreen>
   late final VisiblePoller _poller;
   final Set<Object> _pendingReadIds = {};
   bool _subscribedToRoute = false;
+  int _version = 0;
 
   @override
   void initState() {
@@ -40,7 +41,7 @@ class _NotificationScreenState extends State<NotificationScreen>
       onTick: () => _load(silent: true),
     );
     _poller.start();
-    _messages = FirebaseMessaging.onMessage.listen((_) => _load());
+    _messages = FirebaseMessaging.onMessage.listen((_) => _load(silent: true));
     _load();
   }
 
@@ -69,7 +70,9 @@ class _NotificationScreenState extends State<NotificationScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _poller.onLifecycle(state);
-    if (state == AppLifecycleState.resumed) _load();
+    if (state == AppLifecycleState.resumed && !_poller.isCovered) {
+      _load(silent: true);
+    }
   }
 
   @override
@@ -82,6 +85,7 @@ class _NotificationScreenState extends State<NotificationScreen>
   }
 
   Future<void> _load({bool silent = false}) async {
+    final version = ++_version;
     if (!silent) {
       setState(() {
         _loading = true;
@@ -92,7 +96,7 @@ class _NotificationScreenState extends State<NotificationScreen>
       final user = await AuthRepository().getCurrentUserId();
       final response = await dioClient
           .get('/notifications', queryParameters: {'userId': user});
-      if (!mounted) return;
+      if (!mounted || version != _version) return;
       final rawList = (response.data['data'] as List)
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
@@ -112,21 +116,21 @@ class _NotificationScreenState extends State<NotificationScreen>
         _loading = false;
       });
     } catch (e) {
+      if (!mounted || version != _version) return;
       if (silent) {
         debugPrint('NotificationScreen silent load error: $e');
-        if (_items.isEmpty && mounted) {
-          setState(() {
+        final hasData = _items.isNotEmpty || _userId != null;
+        setState(() {
+          if (!hasData) {
             _error = 'Không tải được thông báo. Hãy thử lại.';
-            _loading = false;
-          });
-        }
+          }
+          _loading = false;
+        });
       } else {
-        if (mounted) {
-          setState(() {
-            _error = 'Không tải được thông báo. Hãy thử lại.';
-            _loading = false;
-          });
-        }
+        setState(() {
+          _error = 'Không tải được thông báo. Hãy thử lại.';
+          _loading = false;
+        });
       }
     }
   }
@@ -182,13 +186,13 @@ class _NotificationScreenState extends State<NotificationScreen>
               icon: const Icon(Icons.notifications_active_outlined)),
           IconButton(
               tooltip: 'Tải lại',
-              onPressed: _load,
+              onPressed: () => _load(silent: false),
               icon: const Icon(Icons.refresh))
         ]),
-        body: _loading
+        body: (_loading && _items.isEmpty && _userId == null)
             ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
-                onRefresh: _load,
+                onRefresh: () => _load(silent: true),
                 child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(20),
