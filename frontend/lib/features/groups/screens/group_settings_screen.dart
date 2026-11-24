@@ -26,8 +26,8 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
   bool _isSaving = false;
 
   bool get _isDirty =>
-      _nameController.text.trim() != widget.group.name ||
-      _descController.text.trim() != (widget.group.description ?? '');
+      _nameController.text.trim() != widget.group.name.trim() ||
+      _descController.text.trim() != (widget.group.description ?? '').trim();
 
   @override
   void initState() {
@@ -230,7 +230,7 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
                   ),
                   GroupedTile(
                     title: 'Mô tả',
-                    value: (widget.group.description != null &&
+                    subtitle: (widget.group.description != null &&
                             widget.group.description!.isNotEmpty)
                         ? widget.group.description!
                         : 'Không có',

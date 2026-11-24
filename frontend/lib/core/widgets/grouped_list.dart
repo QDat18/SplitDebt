@@ -170,7 +170,12 @@ class GroupedTile extends StatelessWidget {
           Text(title, style: titleStyle),
           if (subtitle != null && subtitle!.isNotEmpty) ...[
             const SizedBox(height: 2),
-            Text(subtitle!, style: subtitleStyle),
+            Text(
+              subtitle!,
+              style: subtitleStyle,
+              maxLines: 6,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ],
       );

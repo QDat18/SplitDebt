@@ -107,4 +107,51 @@ void main() {
     // Member should NOT see delete tile
     expect(find.text('Xoá nhóm'), findsNothing);
   });
+
+  testWidgets('save disabled when name has trailing spaces but unchanged',
+      (tester) async {
+    final groupWithSpaces = GroupModel(
+      id: '3',
+      name: 'Du lịch ',
+      description: 'Mô tả nhóm ',
+      currentUserRole: 'ADMIN',
+      memberCount: 2,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: GroupSettingsScreen(group: groupWithSpaces),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final saveButton =
+        tester.widget<TextButton>(find.widgetWithText(TextButton, 'Lưu'));
+    expect(saveButton.onPressed, isNull);
+  });
+
+  testWidgets('member sees full multi-line description', (tester) async {
+    const multiLineDesc =
+        'Câu thứ nhất của mô tả nhóm.\nCâu thứ hai giải thích thêm chi tiết.\nCâu thứ ba chốt lại mục tiêu của nhóm.';
+    final groupWithMultiLine = GroupModel(
+      id: '4',
+      name: 'Nhóm Leo Núi',
+      description: multiLineDesc,
+      currentUserRole: 'MEMBER',
+      memberCount: 5,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: GroupSettingsScreen(group: groupWithMultiLine),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Câu thứ ba chốt lại'), findsOneWidget);
+  });
 }
