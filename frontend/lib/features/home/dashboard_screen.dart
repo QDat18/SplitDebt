@@ -61,13 +61,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   Future<void> _loadUserProfile() async {
     try {
       final res = await dioClient.get('/users/me');
-      if (res.data != null && res.data['data'] != null) {
-        final data = res.data['data'];
-        if (mounted) {
+      if (res.data is Map) {
+        final Map data = (res.data['data'] is Map)
+            ? res.data['data'] as Map
+            : res.data as Map;
+        final name = data['fullName']?.toString() ??
+            data['name']?.toString();
+        if (name != null && name.isNotEmpty && mounted) {
           setState(() {
-            _userName = data['fullName']?.toString() ??
-                data['name']?.toString() ??
-                'Bạn';
+            _userName = name;
           });
         }
       }
