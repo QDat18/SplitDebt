@@ -68,7 +68,7 @@ public class GroupAccessService {
 
         if (member.getRole() != GroupRole.OWNER && member.getRole() != GroupRole.ADMIN) {
             throw new GroupPermissionException(
-                    "Chỉ OWNER hoặc ADMIN mới có quyền thay đổi cài đặt nhóm"
+                    "Chỉ trưởng nhóm hoặc quản trị viên mới thực hiện được thao tác này"
             );
         }
     }

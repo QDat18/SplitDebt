@@ -230,10 +230,9 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
                   ),
                   GroupedTile(
                     title: 'Mô tả',
-                    subtitle: (widget.group.description != null &&
-                            widget.group.description!.isNotEmpty)
-                        ? widget.group.description!
-                        : 'Không có',
+                    subtitle: (widget.group.description?.trim().isEmpty != false)
+                        ? 'Không có'
+                        : widget.group.description!.trim(),
                   ),
                 ],
               ],

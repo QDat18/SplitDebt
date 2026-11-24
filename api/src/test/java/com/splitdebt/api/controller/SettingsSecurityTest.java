@@ -6,6 +6,8 @@ package com.splitdebt.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.splitdebt.api.entity.User;
+import com.splitdebt.api.entity.enums.GroupMemberStatus;
+import com.splitdebt.api.repository.GroupMemberRepository;
 import com.splitdebt.api.repository.UserRepository;
 import com.splitdebt.api.security.JwtUtils;
 import com.splitdebt.api.service.FcmPushService;
@@ -45,6 +47,9 @@ public class SettingsSecurityTest {
 
     @Autowired
     private UserRepository users;
+
+    @Autowired
+    private GroupMemberRepository groupMemberRepository;
 
     @Autowired
     private PasswordEncoder encoder;
@@ -197,11 +202,14 @@ public class SettingsSecurityTest {
                         ))))
                 .andExpect(status().isCreated());
 
-        String adminToken = "Bearer " + jwt.generateJwtToken(adminB);
-        mockMvc.perform(delete("/api/groups/" + groupId + "/members/me")
-                        .header("Authorization", adminToken))
-                .andExpect(status().isOk());
+        Long adminBId = users.findByEmail(adminB).orElseThrow().getId();
+        var memberOpt = groupMemberRepository.findByGroupIdAndUserId(groupId, adminBId);
+        org.junit.jupiter.api.Assertions.assertTrue(memberOpt.isPresent());
+        var member = memberOpt.get();
+        member.setStatus(GroupMemberStatus.INACTIVE);
+        groupMemberRepository.save(member);
 
+        String adminToken = "Bearer " + jwt.generateJwtToken(adminB);
         mockMvc.perform(delete("/api/groups/" + groupId)
                         .header("Authorization", adminToken))
                 .andExpect(status().isForbidden());

@@ -105,6 +105,7 @@ class GroupedTile extends StatelessWidget {
     super.key,
     required this.title,
     this.subtitle,
+    this.subtitleMaxLines,
     this.icon,
     this.value,
     this.onTap,
@@ -114,6 +115,7 @@ class GroupedTile extends StatelessWidget {
 
   final String title;
   final String? subtitle;
+  final int? subtitleMaxLines;
   final IconData? icon;
   final String? value;
   final VoidCallback? onTap;
@@ -173,8 +175,8 @@ class GroupedTile extends StatelessWidget {
             Text(
               subtitle!,
               style: subtitleStyle,
-              maxLines: 6,
-              overflow: TextOverflow.ellipsis,
+              maxLines: subtitleMaxLines,
+              overflow: subtitleMaxLines != null ? TextOverflow.ellipsis : null,
             ),
           ],
         ],

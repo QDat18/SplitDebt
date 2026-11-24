@@ -87,12 +87,9 @@ public class GroupServiceImpl implements GroupService {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new GroupNotFoundException("Group not found with ID: " + groupId));
 
+        groupAccessService.requireAdmin(groupId, currentUserId);
         GroupMember currentMember = groupMemberRepository.findByGroupIdAndUserId(groupId, currentUserId)
                 .orElseThrow(() -> new GroupPermissionException("You are not a member of this group"));
-
-        if (currentMember.getRole() != GroupRole.OWNER && currentMember.getRole() != GroupRole.ADMIN) {
-            throw new GroupPermissionException("Only OWNER or ADMIN can update group details");
-        }
 
         if (request.getName() != null && !request.getName().isBlank()) {
             if (request.getName().trim().length() > 150) throw new IllegalArgumentException("Tên nhóm tối đa 150 ký tự");
@@ -172,12 +169,9 @@ public class GroupServiceImpl implements GroupService {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new GroupNotFoundException("Group not found with ID: " + groupId));
 
+        groupAccessService.requireAdmin(groupId, currentUserId);
         GroupMember currentMember = groupMemberRepository.findByGroupIdAndUserId(groupId, currentUserId)
                 .orElseThrow(() -> new GroupPermissionException("You are not a member of this group"));
-
-        if (currentMember.getRole() != GroupRole.OWNER && currentMember.getRole() != GroupRole.ADMIN) {
-            throw new GroupPermissionException("Only OWNER or ADMIN can add members to the group");
-        }
 
         User targetUser;
         if (request.getUserId() != null) {
@@ -260,12 +254,9 @@ public class GroupServiceImpl implements GroupService {
             return;
         }
 
+        groupAccessService.requireAdmin(groupId, currentUserId);
         GroupMember callerMember = groupMemberRepository.findByGroupIdAndUserId(groupId, currentUserId)
                 .orElseThrow(() -> new GroupPermissionException("You are not a member of this group"));
-
-        if (callerMember.getRole() != GroupRole.OWNER && callerMember.getRole() != GroupRole.ADMIN) {
-            throw new GroupPermissionException("Only OWNER or ADMIN can remove members");
-        }
 
         GroupMember targetMember = groupMemberRepository.findByGroupIdAndUserId(groupId, memberUserId)
                 .orElseThrow(() -> new UserNotFoundException("Target user is not a member of this group"));
