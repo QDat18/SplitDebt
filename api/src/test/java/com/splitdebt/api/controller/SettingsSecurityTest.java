@@ -119,6 +119,32 @@ public class SettingsSecurityTest {
     }
 
     @Test
+    void plainMember_cannotUpdateGroupSettings() throws Exception {
+        String owner = newAccount();
+        String member = newAccount();
+        long groupId = createGroup(owner);
+
+        String ownerToken = "Bearer " + jwt.generateJwtToken(owner);
+        mockMvc.perform(post("/api/groups/" + groupId + "/members")
+                        .header("Authorization", ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("email", member))))
+                .andExpect(status().isCreated());
+
+        String memberToken = "Bearer " + jwt.generateJwtToken(member);
+        String updateBody = objectMapper.writeValueAsString(Map.of(
+                "requireApproval", true,
+                "defaultCurrency", "USD"
+        ));
+
+        mockMvc.perform(put("/api/settings/group/" + groupId)
+                        .header("Authorization", memberToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void member_canReadGroupSettings() throws Exception {
         String owner = newAccount();
         long groupId = createGroup(owner);

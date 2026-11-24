@@ -78,7 +78,7 @@ public class SettingsController {
 
     @PutMapping("/group/{groupId}")
     public ResponseEntity<GroupSettingsDto> updateGroupSettings(@PathVariable Long groupId, @RequestBody GroupSettingsDto dto) {
-        groupAccessService.requireActiveMember(groupId, getCurrentUser().getId());
+        groupAccessService.requireAdmin(groupId, getCurrentUser().getId());
         GroupSettingRequest request = GroupSettingRequest.builder()
                 .requireApproval(dto.getRequireApproval())
                 .currencyCode(dto.getDefaultCurrency())
