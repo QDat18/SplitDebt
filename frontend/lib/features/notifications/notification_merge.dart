@@ -13,3 +13,15 @@ List<Map<String, dynamic>> applyPendingReads(
   }).toList();
 }
 
+List<Map<String, dynamic>> markUnread(
+  List<Map<String, dynamic>> items,
+  Object id,
+) {
+  return items.map((item) {
+    final copy = Map<String, dynamic>.from(item);
+    if (copy['id'] == id) {
+      copy['isRead'] = false;
+    }
+    return copy;
+  }).toList();
+}

@@ -42,5 +42,21 @@ void main() {
       expect(result[1]['isRead'], true);
     });
   });
-}
 
+  group('markUnread', () {
+    test('markUnread only changes matching id', () {
+      final items = [
+        {'id': 1, 'isRead': true},
+        {'id': 2, 'isRead': true},
+      ];
+
+      final result = markUnread(items, 1);
+
+      expect(result[0]['id'], 1);
+      expect(result[0]['isRead'], false);
+      expect(result[1]['id'], 2);
+      expect(result[1]['isRead'], true);
+      expect(items[0]['isRead'], true);
+    });
+  });
+}

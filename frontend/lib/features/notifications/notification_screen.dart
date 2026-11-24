@@ -168,7 +168,13 @@ class _NotificationScreenState extends State<NotificationScreen>
         _pendingReadIds.remove(id);
       }
       if (mounted) {
-        setState(() => item['isRead'] = false);
+        setState(() {
+          if (id != null) {
+            _items = markUnread(_items, id);
+          } else {
+            item['isRead'] = false;
+          }
+        });
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Chưa đánh dấu đã đọc được. Hãy thử lại.')));
       }
