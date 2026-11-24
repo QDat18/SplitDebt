@@ -5,7 +5,20 @@ class VisiblePoller {
   VisiblePoller({
     required this.interval,
     required this.onTick,
-  });
+    AppLifecycleState? initialState,
+  }) : _isForeground = _resolveForeground(initialState);
+
+  static bool _resolveForeground(AppLifecycleState? initialState) {
+    if (initialState != null) {
+      return initialState == AppLifecycleState.resumed;
+    }
+    try {
+      final state = WidgetsBinding.instance.lifecycleState;
+      return state == null || state == AppLifecycleState.resumed;
+    } catch (_) {
+      return true;
+    }
+  }
 
   final Duration interval;
   final Future<void> Function() onTick;
@@ -13,13 +26,13 @@ class VisiblePoller {
   Timer? _timer;
   bool _isTicking = false;
   bool _isCovered = false;
-  bool _isForeground = true;
+  bool _isForeground;
 
   bool get isRunning => _timer != null;
   bool get isCovered => _isCovered;
 
   void start() {
-    if (_isCovered) return;
+    if (_isCovered || !_isForeground) return;
     if (_timer != null) return;
     _timer = Timer.periodic(interval, (_) => _tick());
   }

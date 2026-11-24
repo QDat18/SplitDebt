@@ -135,5 +135,22 @@ void main() {
 
       poller.stop();
     });
+
+    testWidgets('starts stopped when app is not resumed', (tester) async {
+      var tickCount = 0;
+      final poller = VisiblePoller(
+        interval: const Duration(seconds: 20),
+        onTick: () async {
+          tickCount++;
+        },
+        initialState: AppLifecycleState.paused,
+      );
+
+      poller.start();
+      await tester.pump(const Duration(seconds: 60));
+      expect(tickCount, 0);
+
+      poller.stop();
+    });
   });
 }
