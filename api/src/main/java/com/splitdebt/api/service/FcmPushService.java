@@ -5,6 +5,9 @@
 package com.splitdebt.api.service;
 
 import com.google.firebase.FirebaseApp;
+import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.ApnsConfig;
+import com.google.firebase.messaging.Aps;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
@@ -108,6 +111,16 @@ public class FcmPushService {
             Map<String, String> data
     ) {
         try {
+            ApnsConfig apnsConfig = ApnsConfig.builder()
+                    .putHeader("apns-push-type", "background")
+                    .putHeader("apns-priority", "5")
+                    .setAps(Aps.builder().setContentAvailable(true).build())
+                    .build();
+
+            AndroidConfig androidConfig = AndroidConfig.builder()
+                    .setPriority(AndroidConfig.Priority.HIGH)
+                    .build();
+
             Message message =
                     Message.builder()
                             .setToken(fcmToken.getToken())
@@ -116,6 +129,8 @@ public class FcmPushService {
                                             ? Map.of()
                                             : data
                             )
+                            .setApnsConfig(apnsConfig)
+                            .setAndroidConfig(androidConfig)
                             .build();
 
             String messageId =
