@@ -30,4 +30,21 @@ public class GroupResponseDto {
     private java.math.BigDecimal userBalance;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    public GroupResponseDto(Long id, String name, String description, Long createdById, String createdByName,
+                            GroupRole currentUserRole, int memberCount, String inviteCode,
+                            java.math.BigDecimal userBalance, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.createdById = createdById;
+        this.createdByName = createdByName;
+        this.currentUserRole = currentUserRole;
+        this.memberCount = memberCount;
+        this.inviteCode = inviteCode;
+        this.unreadMessageCount = 0;
+        this.userBalance = userBalance;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
 }
