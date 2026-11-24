@@ -103,11 +103,12 @@ class _CreateGroupDialogState extends ConsumerState<CreateGroupDialog> {
                   decoration: InputDecoration(
                     hintText: 'Chuyến đi cuối tuần...',
                     counterText:
-                        '${_descriptionController.text.runes.length}/500',
+                        '${_descriptionController.text.trim().runes.length}/500',
                   ),
-                  validator: (val) => (val != null && val.runes.length > 500)
-                      ? 'Mô tả tối đa 500 ký tự'
-                      : null,
+                  validator: (val) =>
+                      (val != null && val.trim().runes.length > 500)
+                          ? 'Mô tả tối đa 500 ký tự'
+                          : null,
                   maxLines: 3),
               const SizedBox(height: 26),
               const Text('Thành viên',

@@ -9,15 +9,18 @@ class VisiblePoller {
   }) : _isForeground = _resolveForeground(initialState);
 
   static bool _resolveForeground(AppLifecycleState? initialState) {
-    if (initialState != null) {
-      return initialState == AppLifecycleState.resumed;
+    AppLifecycleState? state = initialState;
+    if (state == null) {
+      try {
+        state = WidgetsBinding.instance.lifecycleState;
+      } catch (_) {
+        return true;
+      }
     }
-    try {
-      final state = WidgetsBinding.instance.lifecycleState;
-      return state == null || state == AppLifecycleState.resumed;
-    } catch (_) {
-      return true;
-    }
+    if (state == null) return true;
+    return state != AppLifecycleState.paused &&
+        state != AppLifecycleState.hidden &&
+        state != AppLifecycleState.detached;
   }
 
   final Duration interval;

@@ -223,13 +223,13 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
                             color: AppColors.n400,
                           ),
                           counterText:
-                              '${_descController.text.runes.length}/500',
+                              '${_descController.text.trim().runes.length}/500',
                           counterStyle: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.n500,
                           ),
                         ),
                         validator: (val) =>
-                            (val != null && val.runes.length > 500)
+                            (val != null && val.trim().runes.length > 500)
                                 ? 'Mô tả tối đa 500 ký tự'
                                 : null,
                       ),

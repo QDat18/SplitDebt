@@ -152,5 +152,23 @@ void main() {
 
       poller.stop();
     });
+
+    testWidgets('starts running when initial state is inactive',
+        (tester) async {
+      var tickCount = 0;
+      final poller = VisiblePoller(
+        interval: const Duration(seconds: 20),
+        onTick: () async {
+          tickCount++;
+        },
+        initialState: AppLifecycleState.inactive,
+      );
+
+      poller.start();
+      await tester.pump(const Duration(seconds: 41));
+      expect(tickCount, 2);
+
+      poller.stop();
+    });
   });
 }
