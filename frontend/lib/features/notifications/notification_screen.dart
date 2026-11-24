@@ -6,9 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/app/app_keys.dart';
+import '../../core/navigation/route_observer.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/visible_poller.dart';
 import '../../data/repositories/auth_repository.dart';
+import 'notification_merge.dart';
 import 'push_notification_service.dart';
 
 class NotificationScreen extends StatefulWidget {
@@ -18,7 +20,7 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, RouteAware {
   List<Map<String, dynamic>> _items = [];
   int? _userId;
   bool _loading = true;
@@ -26,6 +28,8 @@ class _NotificationScreenState extends State<NotificationScreen>
   String? _error;
   StreamSubscription<RemoteMessage>? _messages;
   late final VisiblePoller _poller;
+  final Set<Object> _pendingReadIds = {};
+  bool _subscribedToRoute = false;
 
   @override
   void initState() {
@@ -33,11 +37,33 @@ class _NotificationScreenState extends State<NotificationScreen>
     WidgetsBinding.instance.addObserver(this);
     _poller = VisiblePoller(
       interval: const Duration(seconds: 20),
-      onTick: _load,
+      onTick: () => _load(silent: true),
     );
     _poller.start();
     _messages = FirebaseMessaging.onMessage.listen((_) => _load());
     _load();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_subscribedToRoute) {
+      final route = ModalRoute.of(context);
+      if (route != null) {
+        appRouteObserver.subscribe(this, route);
+        _subscribedToRoute = true;
+      }
+    }
+  }
+
+  @override
+  void didPushNext() {
+    _poller.setCovered(true);
+  }
+
+  @override
+  void didPopNext() {
+    _poller.setCovered(false);
   }
 
   @override
@@ -48,32 +74,60 @@ class _NotificationScreenState extends State<NotificationScreen>
 
   @override
   void dispose() {
+    appRouteObserver.unsubscribe(this);
     _poller.stop();
     _messages?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final user = await AuthRepository().getCurrentUserId();
       final response = await dioClient
           .get('/notifications', queryParameters: {'userId': user});
       if (!mounted) return;
+      final rawList = (response.data['data'] as List)
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+
+      for (final item in rawList) {
+        if (item['isRead'] == true) {
+          _pendingReadIds.remove(item['id']);
+        }
+      }
+
+      final mergedList = applyPendingReads(rawList, _pendingReadIds);
+
       setState(() {
         _userId = user;
-        _items = (response.data['data'] as List)
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
+        _items = mergedList;
         _error = null;
         _loading = false;
       });
-    } catch (_) {
-      if (mounted)
-        setState(() {
-          _error = 'Không tải được thông báo. Hãy thử lại.';
-          _loading = false;
-        });
+    } catch (e) {
+      if (silent) {
+        debugPrint('NotificationScreen silent load error: $e');
+        if (_items.isEmpty && mounted) {
+          setState(() {
+            _error = 'Không tải được thông báo. Hãy thử lại.';
+            _loading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _error = 'Không tải được thông báo. Hãy thử lại.';
+            _loading = false;
+          });
+        }
+      }
     }
   }
 
@@ -97,14 +151,23 @@ class _NotificationScreenState extends State<NotificationScreen>
   }
 
   Future<void> _read(Map<String, dynamic> item) async {
+    final id = item['id'];
+    if (id != null) {
+      _pendingReadIds.add(id);
+    }
+    setState(() => item['isRead'] = true);
     try {
-      await dioClient.patch('/notifications/${item['id']}/read',
+      await dioClient.patch('/notifications/$id/read',
           queryParameters: {'userId': _userId});
-      if (mounted) setState(() => item['isRead'] = true);
     } catch (_) {
-      if (mounted)
+      if (id != null) {
+        _pendingReadIds.remove(id);
+      }
+      if (mounted) {
+        setState(() => item['isRead'] = false);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Chưa đánh dấu đã đọc được. Hãy thử lại.')));
+      }
     }
   }
 
