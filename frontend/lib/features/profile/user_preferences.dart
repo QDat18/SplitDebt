@@ -65,6 +65,9 @@ class DioUserPreferencesRepository implements UserPreferencesRepository {
 class UserPreferencesNotifier
     extends StateNotifier<AsyncValue<UserPreferences>> {
   final UserPreferencesRepository repository;
+  bool _saving = false;
+
+  bool get isSaving => _saving;
 
   UserPreferencesNotifier(this.repository)
       : super(const AsyncValue.loading()) {
@@ -75,13 +78,17 @@ class UserPreferencesNotifier
     state = const AsyncValue.loading();
     try {
       final prefs = await repository.fetch();
+      if (!mounted) return;
       state = AsyncValue.data(prefs);
     } catch (e, st) {
+      if (!mounted) return;
       state = AsyncValue.error(e, st);
     }
   }
 
   Future<bool> setNotifyOnDebtReminder(bool v) async {
+    if (_saving) return false;
+    _saving = true;
     final oldState = state;
     final current = state.value ?? const UserPreferences();
     final updated = current.copyWith(notifyOnDebtReminder: v);
@@ -89,15 +96,21 @@ class UserPreferencesNotifier
 
     try {
       final saved = await repository.save(updated);
+      if (!mounted) return true;
       state = AsyncValue.data(saved);
       return true;
     } catch (e) {
+      if (!mounted) return false;
       state = oldState;
       return false;
+    } finally {
+      _saving = false;
     }
   }
 
   Future<bool> setNotifyOnSettlement(bool v) async {
+    if (_saving) return false;
+    _saving = true;
     final oldState = state;
     final current = state.value ?? const UserPreferences();
     final updated = current.copyWith(notifyOnSettlement: v);
@@ -105,11 +118,15 @@ class UserPreferencesNotifier
 
     try {
       final saved = await repository.save(updated);
+      if (!mounted) return true;
       state = AsyncValue.data(saved);
       return true;
     } catch (e) {
+      if (!mounted) return false;
       state = oldState;
       return false;
+    } finally {
+      _saving = false;
     }
   }
 }

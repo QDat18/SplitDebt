@@ -126,58 +126,68 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             ],
           ),
         ),
-        data: (prefs) => Column(
-          children: [
-            SwitchListTile(
-              activeColor: AppColors.p500,
-              secondary: const Icon(Icons.notifications_active_rounded,
-                  color: AppColors.warning),
-              title: Text('Nhắc thanh toán nợ',
-                  style: AppTypography.bodyMedium
-                      .copyWith(fontWeight: FontWeight.w600)),
-              subtitle: Text('Khi có người yêu cầu bạn thanh toán',
-                  style: AppTypography.caption),
-              value: prefs.notifyOnDebtReminder,
-              onChanged: (val) async {
-                final success = await ref
-                    .read(userPreferencesProvider.notifier)
-                    .setNotifyOnDebtReminder(val);
-                if (!success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content:
-                            Text('Không lưu được cài đặt. Vui lòng thử lại.')),
-                  );
-                }
-              },
-            ),
-            const Divider(height: 1, color: AppColors.n100),
-            SwitchListTile(
-              activeColor: AppColors.p500,
-              secondary: const Icon(Icons.check_circle_outline_rounded,
-                  color: AppColors.success),
-              title: Text('Cập nhật quyết toán',
-                  style: AppTypography.bodyMedium
-                      .copyWith(fontWeight: FontWeight.w600)),
-              subtitle: Text(
-                  'Khi khoản thanh toán được đánh dấu hoặc xác nhận',
-                  style: AppTypography.caption),
-              value: prefs.notifyOnSettlement,
-              onChanged: (val) async {
-                final success = await ref
-                    .read(userPreferencesProvider.notifier)
-                    .setNotifyOnSettlement(val);
-                if (!success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content:
-                            Text('Không lưu được cài đặt. Vui lòng thử lại.')),
-                  );
-                }
-              },
-            ),
-          ],
-        ),
+        data: (prefs) {
+          final notifier = ref.read(userPreferencesProvider.notifier);
+          final isSaving = notifier.isSaving;
+          return Column(
+            children: [
+              SwitchListTile(
+                activeColor: AppColors.p500,
+                secondary: const Icon(Icons.notifications_active_rounded,
+                    color: AppColors.warning),
+                title: Text('Nhắc thanh toán nợ',
+                    style: AppTypography.bodyMedium
+                        .copyWith(fontWeight: FontWeight.w600)),
+                subtitle: Text('Khi có người yêu cầu bạn thanh toán',
+                    style: AppTypography.caption),
+                value: prefs.notifyOnDebtReminder,
+                onChanged: isSaving
+                    ? null
+                    : (val) async {
+                        setState(() {});
+                        final success =
+                            await notifier.setNotifyOnDebtReminder(val);
+                        if (mounted) setState(() {});
+                        if (!success && mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Không lưu được cài đặt. Vui lòng thử lại.')),
+                          );
+                        }
+                      },
+              ),
+              const Divider(height: 1, color: AppColors.n100),
+              SwitchListTile(
+                activeColor: AppColors.p500,
+                secondary: const Icon(Icons.check_circle_outline_rounded,
+                    color: AppColors.success),
+                title: Text('Cập nhật quyết toán',
+                    style: AppTypography.bodyMedium
+                        .copyWith(fontWeight: FontWeight.w600)),
+                subtitle: Text(
+                    'Khi khoản thanh toán được đánh dấu hoặc xác nhận',
+                    style: AppTypography.caption),
+                value: prefs.notifyOnSettlement,
+                onChanged: isSaving
+                    ? null
+                    : (val) async {
+                        setState(() {});
+                        final success =
+                            await notifier.setNotifyOnSettlement(val);
+                        if (mounted) setState(() {});
+                        if (!success && mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Không lưu được cài đặt. Vui lòng thử lại.')),
+                          );
+                        }
+                      },
+              ),
+            ],
+          );
+        },
       ),
     );
   }
