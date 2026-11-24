@@ -103,6 +103,11 @@ class PushNotificationService {
   void _handleForegroundMessage(
     RemoteMessage message,
   ) {
+    if (message.notification == null) {
+      debugPrint('FCM data-only message: silent refresh, no foreground notification.');
+      return;
+    }
+
     final String title = message.notification?.title ??
         message.data['title']?.toString() ??
         'SplitDebt';

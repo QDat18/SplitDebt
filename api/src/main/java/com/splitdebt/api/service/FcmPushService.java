@@ -74,6 +74,77 @@ public class FcmPushService {
 
     }
 
+    public void sendDataOnlyToUserTopic(
+            Long userId,
+            Map<String, String> data
+    ) {
+        if (userId == null) {
+            return;
+        }
+
+        if (FirebaseApp.getApps().isEmpty()) {
+            log.debug(
+                    "Skip FCM data-only because Firebase is not configured. userId={}",
+                    userId
+            );
+            return;
+        }
+
+        List<FcmToken> tokens;
+        try {
+            tokens = fcmTokenRepository.findByUserId(userId);
+        } catch (Exception ex) {
+            log.warn("Could not load FCM tokens for user {}: {}", userId, ex.getMessage());
+            return;
+        }
+
+        for (FcmToken fcmToken : tokens) {
+            sendDataOnlyToToken(fcmToken, data);
+        }
+    }
+
+    private void sendDataOnlyToToken(
+            FcmToken fcmToken,
+            Map<String, String> data
+    ) {
+        try {
+            Message message =
+                    Message.builder()
+                            .setToken(fcmToken.getToken())
+                            .putAllData(
+                                    data == null
+                                            ? Map.of()
+                                            : data
+                            )
+                            .build();
+
+            String messageId =
+                    FirebaseMessaging
+                            .getInstance()
+                            .send(message);
+
+            log.info(
+                    "FCM data-only sent. userId={}, platform={}, messageId={}",
+                    fcmToken.getUser().getId(),
+                    fcmToken.getPlatform(),
+                    messageId
+            );
+        } catch (FirebaseMessagingException ex) {
+            log.warn(
+                    "Could not send FCM data-only token. tokenId={}, code={}, message={}",
+                    fcmToken.getId(),
+                    ex.getMessagingErrorCode(),
+                    ex.getMessage()
+            );
+        } catch (Exception ex) {
+            log.warn(
+                    "Could not send FCM data-only token. tokenId={}, message={}",
+                    fcmToken.getId(),
+                    ex.getMessage()
+            );
+        }
+    }
+
     private void sendToToken(
             FcmToken fcmToken,
             String title,

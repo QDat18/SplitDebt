@@ -46,14 +46,18 @@ public class NotificationService {
                                 .build()
                 );
 
-        if (!shouldPush(user.getId(), type)) {
-            return saved;
-        }
-
         Map<String, String> payload = new HashMap<>(data == null ? Map.of() : data);
         payload.put("type", type);
-        Long userId = user.getId();
-        Runnable push = () -> fcmPushService.sendToUserTopic(userId, title, content, payload);
+        Long userId = user != null ? user.getId() : null;
+        boolean allowPush = shouldPush(userId, type);
+
+        Runnable push = () -> {
+            if (allowPush) {
+                fcmPushService.sendToUserTopic(userId, title, content, payload);
+            } else {
+                fcmPushService.sendDataOnlyToUserTopic(userId, payload);
+            }
+        };
         // Clients re-fetch balances on push: the transaction must be visible first.
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
