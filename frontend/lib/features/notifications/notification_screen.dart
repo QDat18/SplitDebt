@@ -31,6 +31,8 @@ class _NotificationScreenState extends State<NotificationScreen>
   final Set<Object> _pendingReadIds = {};
   bool _subscribedToRoute = false;
   int _version = 0;
+  bool _pendingUserReload = false;
+  bool get _hasData => _items.isNotEmpty || _userId != null;
 
   @override
   void initState() {
@@ -84,7 +86,10 @@ class _NotificationScreenState extends State<NotificationScreen>
     super.dispose();
   }
 
-  Future<void> _load({bool silent = false}) async {
+  Future<void> _load({bool silent = false, bool userInitiated = false}) async {
+    if (userInitiated) {
+      _pendingUserReload = true;
+    }
     final version = ++_version;
     if (!silent) {
       setState(() {
@@ -97,6 +102,7 @@ class _NotificationScreenState extends State<NotificationScreen>
       final response = await dioClient
           .get('/notifications', queryParameters: {'userId': user});
       if (!mounted || version != _version) return;
+      _pendingUserReload = false;
       final rawList = (response.data['data'] as List)
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
@@ -117,9 +123,18 @@ class _NotificationScreenState extends State<NotificationScreen>
       });
     } catch (e) {
       if (!mounted || version != _version) return;
+      final hasData = _hasData;
+      final shouldNotify = (userInitiated || _pendingUserReload) && hasData;
+      _pendingUserReload = false;
+      if (shouldNotify) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không tải lại được. Kiểm tra kết nối và thử lại.'),
+          ),
+        );
+      }
       if (silent) {
         debugPrint('NotificationScreen silent load error: $e');
-        final hasData = _items.isNotEmpty || _userId != null;
         setState(() {
           if (!hasData) {
             _error = 'Không tải được thông báo. Hãy thử lại.';
@@ -128,7 +143,9 @@ class _NotificationScreenState extends State<NotificationScreen>
         });
       } else {
         setState(() {
-          _error = 'Không tải được thông báo. Hãy thử lại.';
+          if (!hasData) {
+            _error = 'Không tải được thông báo. Hãy thử lại.';
+          }
           _loading = false;
         });
       }
@@ -192,13 +209,13 @@ class _NotificationScreenState extends State<NotificationScreen>
               icon: const Icon(Icons.notifications_active_outlined)),
           IconButton(
               tooltip: 'Tải lại',
-              onPressed: () => _load(silent: false),
+              onPressed: () => _load(userInitiated: true),
               icon: const Icon(Icons.refresh))
         ]),
-        body: (_loading && _items.isEmpty && _userId == null)
+        body: (_loading && !_hasData)
             ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
-                onRefresh: () => _load(silent: true),
+                onRefresh: () => _load(silent: true, userInitiated: true),
                 child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(20),

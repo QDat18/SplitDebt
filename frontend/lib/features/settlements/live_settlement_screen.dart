@@ -42,6 +42,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
   String? _error;
   int _tab = 0;
   int _version = 0;
+  bool _pendingUserReload = false;
   late final VisiblePoller _poller;
   bool _subscribedToRoute = false;
 
@@ -126,23 +127,34 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
           ? preferred
           : (groups.isEmpty ? null : (groups.first['id'] as num).toInt());
       if (_groupId != null) {
-        await _load();
+        await _load(userInitiated: true);
       } else {
         setState(() => _loading = false);
       }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
+        if (_hasData) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Không tải lại được. Kiểm tra kết nối và thử lại.'),
+            ),
+          );
+        }
         setState(() {
-          _error = '$error';
+          if (!_hasData) _error = '$error';
           _loading = false;
         });
+      }
     }
   }
 
-  Future<void> _load({bool silent = false}) async {
+  Future<void> _load({bool silent = false, bool userInitiated = false}) async {
     final group = _groupId;
     final user = _userId;
     if (group == null || user == null || !mounted) return;
+    if (userInitiated) {
+      _pendingUserReload = true;
+    }
     final version = ++_version;
     if (!silent) {
       setState(() {
@@ -157,6 +169,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
         _api.getSettlements(group),
       ]);
       if (!mounted || version != _version) return;
+      _pendingUserReload = false;
       setState(() {
         _debt = results[0] as DebtSummary;
         _smart = results[1] as SmartSettlementResult;
@@ -167,6 +180,15 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
       });
     } catch (error) {
       if (!mounted || version != _version) return;
+      final shouldNotify = (userInitiated || _pendingUserReload) && _hasData;
+      _pendingUserReload = false;
+      if (shouldNotify) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không tải lại được. Kiểm tra kết nối và thử lại.'),
+          ),
+        );
+      }
       if (silent) {
         debugPrint('GroupSettlementScreen silent load error: $error');
         final hasData = _hasData;
@@ -178,7 +200,9 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
         });
       } else {
         setState(() {
-          _error = '$error';
+          if (!_hasData) {
+            _error = '$error';
+          }
           _loading = false;
         });
       }
@@ -205,7 +229,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
       if (mounted && record.debtorId == _userId) {
         await _openPayment(record);
       } else {
-        await _load();
+        await _load(userInitiated: true);
         if (mounted)
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text(
@@ -241,7 +265,8 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                 : _groups.isEmpty
                     ? const Center(child: Text('Bạn chưa tham gia nhóm nào.'))
                     : RefreshIndicator(
-                        onRefresh: () => _load(silent: true),
+                        onRefresh: () =>
+                            _load(silent: true, userInitiated: true),
                         child: ListView(
                             padding: const EdgeInsets.all(20),
                             children: [
