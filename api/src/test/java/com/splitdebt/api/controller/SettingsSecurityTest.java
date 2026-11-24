@@ -259,5 +259,24 @@ public class SettingsSecurityTest {
                         .content(body))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void descriptionWithEmojiUnder500CodePoints_isAccepted() throws Exception {
+        String owner = newAccount();
+        long groupId = createGroup(owner);
+
+        String ownerToken = "Bearer " + jwt.generateJwtToken(owner);
+        String emojiDescription = "😀".repeat(250);
+        String body = objectMapper.writeValueAsString(Map.of(
+                "name", "Emoji Group",
+                "description", emojiDescription
+        ));
+
+        mockMvc.perform(put("/api/groups/" + groupId)
+                        .header("Authorization", ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+    }
 }
 

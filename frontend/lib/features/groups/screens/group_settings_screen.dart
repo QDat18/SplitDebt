@@ -211,21 +211,27 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
                         textAlign: TextAlign.end,
                         minLines: 1,
                         maxLines: 4,
-                        maxLength: 500,
-                        buildCounter: (context,
-                                {required currentLength,
-                                required isFocused,
-                                maxLength}) =>
-                            null,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: AppColors.n800,
                         ),
-                        decoration: InputDecoration.collapsed(
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
                           hintText: 'Không bắt buộc',
                           hintStyle: theme.textTheme.bodyLarge?.copyWith(
                             color: AppColors.n400,
                           ),
+                          counterText:
+                              '${_descController.text.runes.length}/500',
+                          counterStyle: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.n500,
+                          ),
                         ),
+                        validator: (val) =>
+                            (val != null && val.runes.length > 500)
+                                ? 'Mô tả tối đa 500 ký tự'
+                                : null,
                       ),
                     ),
                   ),

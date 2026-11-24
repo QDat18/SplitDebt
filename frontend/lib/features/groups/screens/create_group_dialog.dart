@@ -18,6 +18,16 @@ class _CreateGroupDialogState extends ConsumerState<CreateGroupDialog> {
   final _descriptionController = TextEditingController();
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _descriptionController.addListener(_onDescChanged);
+  }
+
+  void _onDescChanged() {
+    setState(() {});
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -53,6 +63,7 @@ class _CreateGroupDialogState extends ConsumerState<CreateGroupDialog> {
 
   @override
   void dispose() {
+    _descriptionController.removeListener(_onDescChanged);
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -89,8 +100,14 @@ class _CreateGroupDialogState extends ConsumerState<CreateGroupDialog> {
               const SizedBox(height: 8),
               TextFormField(
                   controller: _descriptionController,
-                  decoration:
-                      const InputDecoration(hintText: 'Chuyến đi cuối tuần...'),
+                  decoration: InputDecoration(
+                    hintText: 'Chuyến đi cuối tuần...',
+                    counterText:
+                        '${_descriptionController.text.runes.length}/500',
+                  ),
+                  validator: (val) => (val != null && val.runes.length > 500)
+                      ? 'Mô tả tối đa 500 ký tự'
+                      : null,
                   maxLines: 3),
               const SizedBox(height: 26),
               const Text('Thành viên',
