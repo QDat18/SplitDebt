@@ -39,6 +39,8 @@ public class SettingsController {
         dto.setLanguage(setting.getLanguage());
         dto.setCurrency(setting.getCurrency());
         dto.setTheme(setting.getTheme());
+        dto.setNotifyOnDebtReminder(setting.getNotifyOnDebtReminder());
+        dto.setNotifyOnSettlement(setting.getNotifyOnSettlement());
         return ResponseEntity.ok(dto);
     }
 
@@ -49,6 +51,8 @@ public class SettingsController {
                 .language(dto.getLanguage())
                 .currency(dto.getCurrency())
                 .theme(dto.getTheme())
+                .notifyOnDebtReminder(dto.getNotifyOnDebtReminder())
+                .notifyOnSettlement(dto.getNotifyOnSettlement())
                 .build();
         UserSettingResponse updated = settingService.updateUserSetting(user.getId(), request);
 
@@ -56,6 +60,8 @@ public class SettingsController {
         resDto.setLanguage(updated.getLanguage());
         resDto.setCurrency(updated.getCurrency());
         resDto.setTheme(updated.getTheme());
+        resDto.setNotifyOnDebtReminder(updated.getNotifyOnDebtReminder());
+        resDto.setNotifyOnSettlement(updated.getNotifyOnSettlement());
         return ResponseEntity.ok(resDto);
     }
 
