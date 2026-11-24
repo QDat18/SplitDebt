@@ -13,6 +13,7 @@ import '../../data/repositories/auth_repository.dart';
 import '../groups/models/group_model.dart';
 import '../groups/providers/group_provider.dart';
 import '../groups/screens/group_detail_screen.dart';
+import '../groups/widgets/error_state.dart';
 
 /// ----------------------------------------------------------------------------
 /// MÀN HÌNH DASHBOARD TRANG CHỦ (MAIN DASHBOARD SCREEN)
@@ -118,7 +119,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   const SizedBox(height: AppDimensions.s20),
 
                   // --- 2. SUMMARY BALANCE CARD (TÍNH TỪ CSDL) ---
-                  _buildNetBalanceOverviewCard(totalNetBalance),
+                  _buildNetBalanceOverviewCard(totalNetBalance,
+                      hasError: groupsAsync.hasError),
                   const SizedBox(height: AppDimensions.s20),
 
                   // --- 3. QUICK ACTION BUTTONS ---
@@ -208,7 +210,64 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   }
 
   // --- SUMMARY BALANCE CARD TỪ CSDL ---
-  Widget _buildNetBalanceOverviewCard(double totalNetBalance) {
+  Widget _buildNetBalanceOverviewCard(double totalNetBalance,
+      {bool hasError = false}) {
+    if (hasError) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppDimensions.s20),
+        decoration: BoxDecoration(
+          gradient: AppColors.cardGradient,
+          borderRadius: AppDimensions.radius24,
+          boxShadow: AppDimensions.shadowMd,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('TỔNG SỐ DƯ RÒNG CÔNG NỢ',
+                    style: AppTypography.caption.copyWith(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        letterSpacing: 1.0,
+                        fontWeight: FontWeight.w700)),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.n500,
+                    borderRadius: AppDimensions.radius8,
+                  ),
+                  child: Text('LỖI TẢI DỮ LIỆU',
+                      style: AppTypography.caption.copyWith(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '—',
+              style: AppTypography.display.copyWith(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: AppDimensions.s16),
+            const Divider(height: 1, color: Colors.white24),
+            const SizedBox(height: AppDimensions.s12),
+            Text(
+              'Không thể tính toán số dư do tải danh sách nhóm thất bại.',
+              style: AppTypography.caption
+                  .copyWith(color: Colors.white.withValues(alpha: 0.9)),
+            ),
+          ],
+        ),
+      );
+    }
+
     final bool isPositive = totalNetBalance > 0.01;
     final bool isNegative = totalNetBalance < -0.01;
 
@@ -397,6 +456,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             padding: EdgeInsets.all(24.0),
             child: CircularProgressIndicator(),
           ))
+        else if (groupsAsync.hasError)
+          ErrorStateWidget(
+            errorMessage: 'Không thể tải danh sách nhóm.',
+            onRetry: () => ref.read(userGroupsProvider.notifier).fetchGroups(),
+          )
         else if (groupsList.isEmpty)
           Container(
             width: double.infinity,
