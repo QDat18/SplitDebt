@@ -74,18 +74,31 @@ class GroupCard extends StatelessWidget {
             child: Row(
               children: [
                 // Left Icon Box theo phong cách iOS Squircle
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.p50,
-                    borderRadius: BorderRadius.circular(12),
+                Badge(
+                  isLabelVisible: group.unreadMessageCount > 0,
+                  label: Text(
+                    group.unreadMessageCount > 99
+                        ? '99+'
+                        : '${group.unreadMessageCount}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.groups_rounded,
-                      color: AppColors.p500,
-                      size: 24,
+                  backgroundColor: AppColors.error,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.p50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.groups_rounded,
+                        color: AppColors.p500,
+                        size: 24,
+                      ),
                     ),
                   ),
                 ),

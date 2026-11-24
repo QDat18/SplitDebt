@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
+import '../chat/active_chat.dart';
 import 'notification_repository.dart';
 
 class PushNotificationService {
@@ -129,7 +130,14 @@ class PushNotificationService {
 
     final String? type = message.data['type']?.toString();
 
+    if (type == 'GROUP_MESSAGE' &&
+        ActiveChat.groupId != null &&
+        message.data['groupId']?.toString() == '${ActiveChat.groupId}') {
+      return;
+    }
+
     final Color bgColor = switch (type) {
+      'GROUP_MESSAGE' => AppColors.primary,
       'SETTLEMENT_CONFIRMED' => AppColors.success, // xanh lá đậm
       'SETTLEMENT_PAID' => AppColors.warning, // cam
       'SETTLEMENT_REQUEST' => AppColors.p500, // tím
@@ -137,6 +145,7 @@ class PushNotificationService {
     };
 
     final IconData icon = switch (type) {
+      'GROUP_MESSAGE' => Icons.chat_bubble_outline_rounded,
       'SETTLEMENT_CONFIRMED' => Icons.check_circle_rounded,
       'SETTLEMENT_PAID' => Icons.move_to_inbox_rounded,
       'SETTLEMENT_REQUEST' => Icons.payment_rounded,

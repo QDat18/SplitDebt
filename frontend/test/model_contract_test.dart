@@ -37,6 +37,25 @@ void main() {
       expect(group.userBalance, 125000.5);
     });
 
+    test('group model reads unreadMessageCount and defaults to 0', () {
+      final withCount = GroupModel.fromJson({
+        'id': 1,
+        'name': 'Nhóm',
+        'currentUserRole': 'MEMBER',
+        'memberCount': 2,
+        'unreadMessageCount': 5,
+      });
+      expect(withCount.unreadMessageCount, 5);
+
+      final withoutCount = GroupModel.fromJson({
+        'id': 2,
+        'name': 'Nhóm 2',
+        'currentUserRole': 'MEMBER',
+        'memberCount': 2,
+      });
+      expect(withoutCount.unreadMessageCount, 0);
+    });
+
     test('parses debt summary values without losing numeric precision type',
         () {
       final summary = DebtSummary.fromJson({

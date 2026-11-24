@@ -9,6 +9,7 @@ class GroupModel {
   final String currentUserRole; // OWNER, ADMIN, MEMBER
   final int memberCount;
   final String? inviteCode;
+  final int unreadMessageCount;
   final double? userBalance;
   final String? formattedBalance;
   final String? timeAgo;
@@ -25,6 +26,7 @@ class GroupModel {
     required this.currentUserRole,
     required this.memberCount,
     this.inviteCode,
+    this.unreadMessageCount = 0,
     this.userBalance,
     this.formattedBalance,
     this.timeAgo,
@@ -43,6 +45,7 @@ class GroupModel {
       currentUserRole: json['currentUserRole'] as String? ?? 'MEMBER',
       memberCount: json['memberCount'] as int? ?? 1,
       inviteCode: json['inviteCode']?.toString(),
+      unreadMessageCount: (json['unreadMessageCount'] as num?)?.toInt() ?? 0,
       userBalance: (json['userBalance'] as num?)?.toDouble(),
       formattedBalance: json['formattedBalance'] as String?,
       timeAgo: json['timeAgo'] as String?,
@@ -66,6 +69,7 @@ class GroupModel {
       'currentUserRole': currentUserRole,
       'memberCount': memberCount,
       'inviteCode': inviteCode,
+      'unreadMessageCount': unreadMessageCount,
       'userBalance': userBalance,
       'formattedBalance': formattedBalance,
       'timeAgo': timeAgo,

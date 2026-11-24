@@ -235,11 +235,15 @@ final chatCurrentUserIdProvider = FutureProvider<int>((ref) async {
 final chatNotifierProvider = StateNotifierProvider.autoDispose
     .family<ChatNotifier, ChatState, int>((ref, groupId) {
   final repo = ref.watch(chatRepositoryProvider);
-  final userIdAsync = ref.watch(chatCurrentUserIdProvider);
-  final myUserId = userIdAsync.valueOrNull ?? 0;
-  return ChatNotifier(
+  final notifier = ChatNotifier(
     repository: repo,
     groupId: groupId,
-    myUserId: myUserId,
+    myUserId: 0,
   );
+  ref.listen<AsyncValue<int>>(chatCurrentUserIdProvider, (_, next) {
+    if (next.hasValue && next.value != null) {
+      notifier.updateCurrentUser(next.value!);
+    }
+  }, fireImmediately: true);
+  return notifier;
 });

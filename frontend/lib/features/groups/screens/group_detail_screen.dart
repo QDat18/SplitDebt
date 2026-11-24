@@ -12,6 +12,7 @@ import '../../../data/repositories/auth_repository.dart';
 import '../../expenses/create_expense_screen.dart';
 import '../../expenses/expense_read_screen.dart';
 import '../../settlements/group_settlement_screen.dart';
+import '../../chat/group_chat_screen.dart';
 import '../models/group_member_model.dart';
 import '../models/group_model.dart';
 import '../providers/group_provider.dart';
@@ -232,6 +233,34 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         actions: [
+          IconButton(
+            icon: Badge(
+              isLabelVisible: widget.group.unreadMessageCount > 0,
+              label: Text(
+                widget.group.unreadMessageCount > 99
+                    ? '99+'
+                    : '${widget.group.unreadMessageCount}',
+              ),
+              backgroundColor: AppColors.error,
+              child: const Icon(
+                Icons.chat_bubble_outline_rounded,
+                color: AppColors.n800,
+              ),
+            ),
+            tooltip: 'Nhắn tin nhóm',
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => GroupChatScreen(group: widget.group),
+                ),
+              );
+              if (mounted) {
+                _load();
+                ref.invalidate(userGroupsProvider);
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.qr_code_rounded, color: AppColors.n800),
             tooltip: 'Mã QR & Link mời',
