@@ -172,7 +172,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 ),
                 const SizedBox(height: 2),
                 const Text(
-                  'SplitDebt Ledger',
+                  'Sổ tay chi tiêu nhóm',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.n500,
@@ -304,8 +304,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final bool isNegative = totalNetBalance < -0.01;
 
     final String statusLabel = isPositive
-        ? 'CẦN NHẬN LẠI TIỀN'
-        : (isNegative ? 'BẠN ĐANG CẦN TRẢ' : 'ĐÃ CÂN BẰNG NỢ');
+        ? 'CẦN THU VỀ'
+        : (isNegative ? 'CẦN TRẢ LẠI' : 'KHÔNG CÒN NỢ');
 
     final Color statusTextColor = isPositive
         ? const Color(0xFF34C759) // iOS green
@@ -348,7 +348,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'TỔNG SỐ DƯ RÒNG',
+                'TỔNG TIỀN CẦN THU / TRẢ',
                 style: TextStyle(
                   color: AppColors.n400,
                   fontSize: 11,
@@ -391,7 +391,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 ? 'Các thành viên trong nhóm đang nợ bạn.'
                 : (isNegative
                     ? 'Bạn có khoản chi cần thanh toán cho nhóm.'
-                    : 'Bạn không có khoản nợ tồn đọng nào.'),
+                    : 'Bạn và các thành viên đều đã sòng phẳng.'),
             style: const TextStyle(
               color: AppColors.n400,
               fontSize: 12,
@@ -402,7 +402,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  // --- QUICK ACTION BUTTONS ROW (APPLE HIG) ---
+  // --- QUICK ACTION BUTTONS ROW (APPLE HIG & HUMANIZER) ---
   Widget _buildQuickActionsRow() {
     return Row(
       children: [
@@ -448,7 +448,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Chia tiền tự động',
+                          'Nhập chi tiêu mới',
                           style: TextStyle(
                             fontSize: 11,
                             color: AppColors.n500,
@@ -487,7 +487,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
-                      Icons.auto_awesome_rounded,
+                      Icons.payments_outlined,
                       color: AppColors.warning,
                       size: 22,
                     ),
@@ -507,7 +507,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Tối ưu hóa nợ',
+                          'Tính tiền phải trả',
                           style: TextStyle(
                             fontSize: 11,
                             color: AppColors.n500,

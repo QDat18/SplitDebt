@@ -33,6 +33,9 @@ class UserAvatarControllerTest {
     private SupabaseStorageService supabaseStorageService;
 
     @Mock
+    private com.splitdebt.api.service.UserService userService;
+
+    @Mock
     private SecurityContext securityContext;
 
     @Mock

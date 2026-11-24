@@ -41,10 +41,10 @@ class HelpScreen extends StatelessWidget {
                     'Thêm hóa đơn, chọn người thanh toán và người tham gia chia tiền.',
               ),
               GroupedTile(
-                icon: Icons.auto_awesome_outlined,
-                title: '3. Tối ưu hoá công nợ',
+                icon: Icons.swap_horiz_rounded,
+                title: '3. Cân bằng tiền sòng phẳng',
                 subtitle:
-                    'Thuật toán xén nợ tự động đơn giản hoá các khoản nợ chéo giữa các thành viên.',
+                    'Gom các khoản nợ chéo để bạn chỉ cần chuyển tiền ít lần nhất.',
               ),
               GroupedTile(
                 icon: Icons.verified_outlined,

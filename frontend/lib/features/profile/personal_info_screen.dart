@@ -1,25 +1,29 @@
-// Trách nhiệm file: Xây dựng màn hình thông tin cá nhân (PersonalInfoScreen) theo chuẩn Apple HIG, hỗ trợ đổi ảnh đại diện lưu trên Supabase Storage.
+// Trách nhiệm file: Xây dựng màn hình thông tin cá nhân (PersonalInfoScreen) theo chuẩn Apple HIG, hỗ trợ đổi avatar, cập nhật thông tin và xem nhật ký hoạt động.
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
-import '../../core/widgets/grouped_list.dart';
+import '../../core/theme/app_typography.dart';
 import '../../data/repositories/user_repository.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   final String name;
   final String email;
+  final String? phone;
   final String? avatarUrl;
   final ValueChanged<String>? onAvatarChanged;
+  final void Function(String name, String? phone)? onProfileUpdated;
 
   const PersonalInfoScreen({
     super.key,
     required this.name,
     required this.email,
+    this.phone,
     this.avatarUrl,
     this.onAvatarChanged,
+    this.onProfileUpdated,
   });
 
   @override
@@ -28,17 +32,68 @@ class PersonalInfoScreen extends StatefulWidget {
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   late String? _avatarUrl;
+  late TextEditingController _nameController;
+  late TextEditingController _phoneController;
+
   bool _isUploading = false;
+  bool _isSaving = false;
+  bool _isLoadingLogs = true;
+  List<Map<String, dynamic>> _logs = [];
+
   final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
     _avatarUrl = widget.avatarUrl;
+    _nameController = TextEditingController(text: widget.name);
+    _phoneController = TextEditingController(text: widget.phone ?? '');
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final profile = await userRepository.getProfile();
+      if (mounted) {
+        if (_phoneController.text.isEmpty && profile['phone'] != null) {
+          _phoneController.text = profile['phone'].toString();
+        }
+        if (_nameController.text.isEmpty && profile['fullName'] != null) {
+          _nameController.text = profile['fullName'].toString();
+        }
+      }
+    } catch (_) {}
+
+    await _loadLogs();
+  }
+
+  Future<void> _loadLogs() async {
+    try {
+      final logs = await userRepository.getUserLogs();
+      if (mounted) {
+        setState(() {
+          _logs = logs;
+          _isLoadingLogs = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoadingLogs = false;
+        });
+      }
+    }
   }
 
   Future<void> _selectAndUploadImage(ImageSource source) async {
-    Navigator.of(context).pop(); // Đóng modal bottom sheet
+    Navigator.of(context).pop();
 
     try {
       final XFile? image = await _picker.pickImage(
@@ -64,6 +119,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       });
 
       widget.onAvatarChanged?.call(newAvatarUrl);
+      _loadLogs();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -141,6 +197,76 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     );
   }
 
+  Future<void> _saveProfile() async {
+    final newName = _nameController.text.trim();
+    final newPhone = _phoneController.text.trim();
+
+    if (newName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Họ và tên không được để trống'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final updated = await userRepository.updateProfile(
+        fullName: newName,
+        phone: newPhone.isEmpty ? null : newPhone,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isSaving = false;
+      });
+
+      widget.onProfileUpdated?.call(
+        updated['fullName']?.toString() ?? newName,
+        updated['phone']?.toString() ?? newPhone,
+      );
+
+      _loadLogs();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã cập nhật thông tin thành công!'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isSaving = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi cập nhật: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  String _formatDate(dynamic value) {
+    if (value == null) return '';
+    final str = value.toString();
+    final date = DateTime.tryParse(str);
+    if (date != null) {
+      final local = date.toLocal();
+      return '${local.day.toString().padLeft(2, '0')}/${local.month.toString().padLeft(2, '0')}/${local.year} ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+    }
+    return str.replaceAll('T', ' ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -149,15 +275,39 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     return Scaffold(
       backgroundColor: AppColors.n100,
       appBar: AppBar(
-        title: const Text('Thông tin cá nhân'),
+        title: const Text(
+          'Thông tin cá nhân',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+        ),
         backgroundColor: AppColors.n100,
         elevation: 0,
         scrolledUnderElevation: 0,
+        actions: [
+          TextButton(
+            onPressed: _isSaving ? null : _saveProfile,
+            child: _isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text(
+                    'Lưu',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.p500,
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: AppDimensions.s24),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         children: [
+          // 1. Avatar Card
           Center(
             child: GestureDetector(
               onTap: _showImageSourcePicker,
@@ -172,7 +322,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     child: hasAvatar
                         ? null
                         : Text(
-                            widget.name.isEmpty ? '?' : widget.name.characters.first,
+                            _nameController.text.isEmpty
+                                ? '?'
+                                : _nameController.text.characters.first,
                             style: theme.textTheme.headlineLarge?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -226,16 +378,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               ),
             ),
           ),
-          const SizedBox(height: AppDimensions.s12),
-          Text(
-            widget.name,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.n800,
-            ),
-          ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 10),
           const Text(
             'Nhấn vào ảnh để thay đổi',
             textAlign: TextAlign.center,
@@ -244,24 +387,276 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               color: AppColors.n500,
             ),
           ),
-          const SizedBox(height: AppDimensions.s24),
-          GroupedSection(
-            header: 'Hồ sơ người dùng',
-            footer:
-                'Thông tin này được dùng để các thành viên nhận diện bạn trong nhóm.',
-            children: [
-              GroupedTile(
-                icon: Icons.badge_outlined,
-                title: 'Họ và tên',
-                value: widget.name,
+          const SizedBox(height: 24),
+
+          // 2. Profile Edit Form (iOS Inset Grouped)
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              'Hồ sơ người dùng',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.n600,
               ),
-              GroupedTile(
-                icon: Icons.mail_outline,
-                title: 'Email',
-                value: widget.email,
-              ),
-            ],
+            ),
           ),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.n0,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: AppDimensions.shadowSm,
+            ),
+            child: Column(
+              children: [
+                // Field 1: Họ và tên
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.p50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.person_rounded, size: 18, color: AppColors.p500),
+                      ),
+                      const SizedBox(width: 14),
+                      const Text(
+                        'Họ và tên',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.n800,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: _nameController,
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: AppColors.n900,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          decoration: const InputDecoration(
+                            hintText: 'Nhập họ tên',
+                            hintStyle: TextStyle(color: AppColors.n400),
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, indent: 56, endIndent: 16, color: AppColors.n100),
+
+                // Field 2: Số điện thoại
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.p50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.phone_rounded, size: 18, color: AppColors.p500),
+                      ),
+                      const SizedBox(width: 14),
+                      const Text(
+                        'Điện thoại',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.n800,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: AppColors.n900,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          decoration: const InputDecoration(
+                            hintText: 'Chưa cập nhật',
+                            hintStyle: TextStyle(color: AppColors.n400),
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, indent: 56, endIndent: 16, color: AppColors.n100),
+
+                // Field 3: Email (chỉ đọc)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.n100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.mail_outline_rounded, size: 18, color: AppColors.n600),
+                      ),
+                      const SizedBox(width: 14),
+                      const Text(
+                        'Email',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.n800,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          widget.email,
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.n500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              'Email là thông tin định danh dùng để đăng nhập và không thể sửa.',
+              style: TextStyle(fontSize: 12, color: AppColors.n500),
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // 3. User Activity Log Section (Nhật ký tài khoản)
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              'Nhật ký tài khoản',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.n600,
+              ),
+            ),
+          ),
+          if (_isLoadingLogs)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_logs.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.n0,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: AppDimensions.shadowSm,
+              ),
+              child: const Column(
+                children: [
+                  Icon(Icons.history_toggle_off_rounded, size: 36, color: AppColors.n400),
+                  SizedBox(height: 8),
+                  Text(
+                    'Chưa có nhật ký hoạt động nào',
+                    style: TextStyle(fontSize: 14, color: AppColors.n600),
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.n0,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: AppDimensions.shadowSm,
+              ),
+              child: Column(
+                children: [
+                  for (int i = 0; i < _logs.length; i++) ...[
+                    if (i > 0)
+                      const Divider(height: 1, indent: 56, endIndent: 16, color: AppColors.n100),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: _logs[i]['action'] == 'UPDATE_AVATAR'
+                                  ? AppColors.success.withValues(alpha: 0.1)
+                                  : AppColors.p50,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              _logs[i]['action'] == 'UPDATE_AVATAR'
+                                  ? Icons.account_circle_outlined
+                                  : Icons.edit_note_rounded,
+                              size: 18,
+                              color: _logs[i]['action'] == 'UPDATE_AVATAR'
+                                  ? AppColors.success
+                                  : AppColors.p500,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _logs[i]['description']?.toString() ?? 'Cập nhật tài khoản',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.n800,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  _formatDate(_logs[i]['createdAt']),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.n500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          const SizedBox(height: 32),
         ],
       ),
     );

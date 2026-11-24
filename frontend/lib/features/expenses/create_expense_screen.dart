@@ -748,9 +748,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
-                  icon: const Icon(Icons.auto_awesome,
+                  icon: const Icon(Icons.document_scanner_outlined,
                       size: 16, color: AppColors.p500),
-                  label: Text(_hasReceipt ? 'Quét lại' : 'Quét bill',
+                  label: Text(_hasReceipt ? 'Quét lại' : 'Quét hoá đơn',
                       style: AppTypography.label
                           .copyWith(color: AppColors.p500, fontSize: 13)),
                 ),

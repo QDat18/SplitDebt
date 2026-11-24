@@ -195,12 +195,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                             builder: (_) => PersonalInfoScreen(
                               name: _name,
                               email: _email,
+                              phone: _cachedProfile?['phone']?.toString(),
                               avatarUrl: _avatarUrl,
                               onAvatarChanged: (newUrl) {
                                 setState(() {
                                   _avatarUrl = newUrl;
                                   if (_cachedProfile != null) {
                                     _cachedProfile!['avatarUrl'] = newUrl;
+                                  }
+                                });
+                              },
+                              onProfileUpdated: (newName, newPhone) {
+                                setState(() {
+                                  _name = newName;
+                                  if (_cachedProfile != null) {
+                                    _cachedProfile!['fullName'] = newName;
+                                    _cachedProfile!['phone'] = newPhone;
                                   }
                                 });
                               },
