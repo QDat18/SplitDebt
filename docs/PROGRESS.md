@@ -1,23 +1,15 @@
 # SplitDebt Progress Tracking
 
-- **Status**: Hoàn thành Humanizer UI và Tính năng Cập nhật thông tin User kèm Nhật ký hoạt động.
+- **Status**: Hoàn thành cơ chế Xem/Sửa thông tin cá nhân và đánh giá tính năng QR/Link mời nhóm.
 - **Done**:
-  - Humanizer UI:
-    - Loại bỏ icon `auto_awesome` (AI sparkles), thay bằng `document_scanner_outlined`, `payments_outlined`, `swap_horiz_rounded`.
-    - Humanize câu từ: "Sổ tay chi tiêu nhóm", "Nhập chi tiêu mới", "Tính tiền phải trả", "Quét hoá đơn", "Cân bằng tiền sòng phẳng".
-  - Backend User Update & Activity Log:
-    - Entity `UserActivityLog`, repository `UserActivityLogRepository`.
-    - DTO `UpdateProfileRequest`, `UserActivityLogDto`.
-    - `UserService` & `UserServiceImpl`: cập nhật `fullName`, `phone`, tự động ghi log thay đổi và đổi avatar.
-    - `UserController`: endpoint `PUT /api/users/me` và `GET /api/users/me/logs`.
-    - Unit tests: `UserServiceTest` & `UserAvatarControllerTest` (51/51 passing).
-  - Frontend User Update & Activity Log:
-    - `UserRepository`: `updateProfile`, `getUserLogs`.
-    - `PersonalInfoScreen`: form sửa họ tên, số điện thoại, nút Lưu trên AppBar, mục "Nhật ký tài khoản" hiển thị lịch sử thay đổi chuẩn Apple HIG.
-    - Đồng bộ tên hiển thị tại `ProfileScreen`.
+  - Humanizer UI: Thay đổi toàn bộ icon AI và thuật ngữ máy móc sang ngôn ngữ đời thường.
+  - Backend User Update & Activity Log: `UserActivityLog`, `UserService`, `PUT /api/users/me`, `GET /api/users/me/logs`. Tests 51/51 passed.
+  - Profile Update UI (Apple HIG):
+    - Chế độ Mặc định: Hiển thị thông tin dạng thẻ Inset Grouped gọn gàng, nút "Sửa" trên AppBar góc phải và "Chỉnh sửa" bên dưới.
+    - Chế độ Sửa (khi bấm nút): Mở ô nhập liệu `TextField`, nút "Huỷ" và "Lưu", tự động lưu và ghi nhận vào Nhật ký tài khoản.
 - **Verification**:
-  - Backend: `mvnw test` -> 51/51 tests passed (BUILD SUCCESS).
-  - Frontend: `flutter analyze` 0 errors, `flutter test` -> 40/40 tests passed.
-- **In progress**: Hoàn tất các hạng mục theo yêu cầu.
-- **Next**: Khởi động lại backend server (nếu cần reload code mới) và trải nghiệm trên thiết bị.
+  - Backend: 51/51 tests passed (`mvnw test`).
+  - Frontend: 40/40 tests passed (`flutter test`).
+- **In progress**: Đánh giá & chuẩn bị giải pháp Link mời / Mã QR cho nhóm.
+- **Next**: Triển khai tính năng Mã mời / QR Code tham gia nhóm nếu được người dùng duyệt.
 - **Blockers**: Không có.

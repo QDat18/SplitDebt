@@ -1,11 +1,10 @@
-// Trách nhiệm file: Xây dựng màn hình thông tin cá nhân (PersonalInfoScreen) theo chuẩn Apple HIG, hỗ trợ đổi avatar, cập nhật thông tin và xem nhật ký hoạt động.
+// Trách nhiệm file: Xây dựng màn hình thông tin cá nhân (PersonalInfoScreen) theo chuẩn Apple HIG, hỗ trợ đổi avatar, chỉnh sửa thông tin khi bấm nút và xem nhật ký hoạt động.
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
-import '../../core/theme/app_typography.dart';
 import '../../data/repositories/user_repository.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
@@ -32,9 +31,13 @@ class PersonalInfoScreen extends StatefulWidget {
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   late String? _avatarUrl;
+  late String _currentName;
+  late String _currentPhone;
+
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
 
+  bool _isEditing = false;
   bool _isUploading = false;
   bool _isSaving = false;
   bool _isLoadingLogs = true;
@@ -46,8 +49,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   void initState() {
     super.initState();
     _avatarUrl = widget.avatarUrl;
-    _nameController = TextEditingController(text: widget.name);
-    _phoneController = TextEditingController(text: widget.phone ?? '');
+    _currentName = widget.name;
+    _currentPhone = widget.phone ?? '';
+
+    _nameController = TextEditingController(text: _currentName);
+    _phoneController = TextEditingController(text: _currentPhone);
     _loadData();
   }
 
@@ -62,12 +68,18 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     try {
       final profile = await userRepository.getProfile();
       if (mounted) {
-        if (_phoneController.text.isEmpty && profile['phone'] != null) {
-          _phoneController.text = profile['phone'].toString();
-        }
-        if (_nameController.text.isEmpty && profile['fullName'] != null) {
-          _nameController.text = profile['fullName'].toString();
-        }
+        final fetchedPhone = profile['phone']?.toString() ?? '';
+        final fetchedName = profile['fullName']?.toString() ?? '';
+        setState(() {
+          if (fetchedPhone.isNotEmpty) {
+            _currentPhone = fetchedPhone;
+            _phoneController.text = fetchedPhone;
+          }
+          if (fetchedName.isNotEmpty) {
+            _currentName = fetchedName;
+            _nameController.text = fetchedName;
+          }
+        });
       }
     } catch (_) {}
 
@@ -225,13 +237,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
       setState(() {
         _isSaving = false;
+        _isEditing = false;
+        _currentName = updated['fullName']?.toString() ?? newName;
+        _currentPhone = updated['phone']?.toString() ?? newPhone;
       });
 
-      widget.onProfileUpdated?.call(
-        updated['fullName']?.toString() ?? newName,
-        updated['phone']?.toString() ?? newPhone,
-      );
-
+      widget.onProfileUpdated?.call(_currentName, _currentPhone);
       _loadLogs();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -256,6 +267,14 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     }
   }
 
+  void _cancelEditing() {
+    setState(() {
+      _nameController.text = _currentName;
+      _phoneController.text = _currentPhone;
+      _isEditing = false;
+    });
+  }
+
   String _formatDate(dynamic value) {
     if (value == null) return '';
     final str = value.toString();
@@ -275,31 +294,58 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     return Scaffold(
       backgroundColor: AppColors.n100,
       appBar: AppBar(
-        title: const Text(
-          'Thông tin cá nhân',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+        title: Text(
+          _isEditing ? 'Chỉnh sửa hồ sơ' : 'Thông tin cá nhân',
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
         ),
         backgroundColor: AppColors.n100,
         elevation: 0,
         scrolledUnderElevation: 0,
-        actions: [
-          TextButton(
-            onPressed: _isSaving ? null : _saveProfile,
-            child: _isSaving
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text(
-                    'Lưu',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.p500,
-                    ),
+        leading: _isEditing
+            ? TextButton(
+                onPressed: _cancelEditing,
+                child: const Text(
+                  'Huỷ',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: AppColors.n700,
+                    fontWeight: FontWeight.w500,
                   ),
-          ),
+                ),
+              )
+            : null,
+        actions: [
+          if (!_isEditing)
+            TextButton.icon(
+              onPressed: () => setState(() => _isEditing = true),
+              icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.p500),
+              label: const Text(
+                'Sửa',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.p500,
+                ),
+              ),
+            )
+          else
+            TextButton(
+              onPressed: _isSaving ? null : _saveProfile,
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text(
+                      'Lưu',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.p500,
+                      ),
+                    ),
+            ),
           const SizedBox(width: 8),
         ],
       ),
@@ -322,9 +368,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     child: hasAvatar
                         ? null
                         : Text(
-                            _nameController.text.isEmpty
+                            _currentName.isEmpty
                                 ? '?'
-                                : _nameController.text.characters.first,
+                                : _currentName.characters.first,
                             style: theme.textTheme.headlineLarge?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -389,17 +435,37 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           ),
           const SizedBox(height: 24),
 
-          // 2. Profile Edit Form (iOS Inset Grouped)
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              'Hồ sơ người dùng',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.n600,
+          // 2. Profile Details / Form (iOS Inset Grouped)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(left: 4, bottom: 8),
+                child: Text(
+                  'Hồ sơ người dùng',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.n600,
+                  ),
+                ),
               ),
-            ),
+              if (!_isEditing)
+                GestureDetector(
+                  onTap: () => setState(() => _isEditing = true),
+                  child: const Padding(
+                    padding: EdgeInsets.only(right: 4, bottom: 8),
+                    child: Text(
+                      'Chỉnh sửa',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.p500,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
           Container(
             decoration: BoxDecoration(
@@ -411,7 +477,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               children: [
                 // Field 1: Họ và tên
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Row(
                     children: [
                       Container(
@@ -433,21 +499,33 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: TextField(
-                          controller: _nameController,
-                          textAlign: TextAlign.end,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: AppColors.n900,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          decoration: const InputDecoration(
-                            hintText: 'Nhập họ tên',
-                            hintStyle: TextStyle(color: AppColors.n400),
-                            border: InputBorder.none,
-                            isDense: true,
-                          ),
-                        ),
+                        child: _isEditing
+                            ? TextField(
+                                controller: _nameController,
+                                textAlign: TextAlign.end,
+                                autofocus: true,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: AppColors.n900,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                decoration: const InputDecoration(
+                                  hintText: 'Nhập họ tên',
+                                  hintStyle: TextStyle(color: AppColors.n400),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                ),
+                              )
+                            : Text(
+                                _currentName.isEmpty ? 'Chưa đặt tên' : _currentName,
+                                textAlign: TextAlign.end,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.n900,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                       ),
                     ],
                   ),
@@ -456,7 +534,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
                 // Field 2: Số điện thoại
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Row(
                     children: [
                       Container(
@@ -478,22 +556,34 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: TextField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          textAlign: TextAlign.end,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: AppColors.n900,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          decoration: const InputDecoration(
-                            hintText: 'Chưa cập nhật',
-                            hintStyle: TextStyle(color: AppColors.n400),
-                            border: InputBorder.none,
-                            isDense: true,
-                          ),
-                        ),
+                        child: _isEditing
+                            ? TextField(
+                                controller: _phoneController,
+                                keyboardType: TextInputType.phone,
+                                textAlign: TextAlign.end,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: AppColors.n900,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                decoration: const InputDecoration(
+                                  hintText: 'Nhập số điện thoại',
+                                  hintStyle: TextStyle(color: AppColors.n400),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                ),
+                              )
+                            : Text(
+                                _currentPhone.isNotEmpty ? _currentPhone : 'Chưa cập nhật',
+                                textAlign: TextAlign.end,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: _currentPhone.isNotEmpty
+                                      ? AppColors.n900
+                                      : AppColors.n400,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                       ),
                     ],
                   ),
@@ -544,7 +634,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 4),
             child: Text(
-              'Email là thông tin định danh dùng để đăng nhập và không thể sửa.',
+              'Email là thông tin định danh dùng để đăng nhập và không thể thay đổi.',
               style: TextStyle(fontSize: 12, color: AppColors.n500),
             ),
           ),
