@@ -1,9 +1,9 @@
 // Trách nhiệm file: Điều phối bố cục chính và thanh điều hướng giữa các khu vực sau đăng nhập.
 
 import 'package:flutter/material.dart';
-import 'features/groups/dashboard_screen.dart';
-import 'features/home/home_screen.dart';
-import 'features/home/pdf_overview_screen.dart';
+import 'features/home/dashboard_screen.dart';
+import 'features/groups/screens/groups_screen.dart';
+import 'features/history/history_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/expenses/create_expense_screen.dart';
 import 'features/settlements/live_settlement_screen.dart';
@@ -39,8 +39,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                 );
               },
             ),
-            const HomeScreen(),
-            const OverviewScreen(key: ValueKey('history'), history: true),
+            const GroupsScreen(),
+            const HistoryScreen(key: ValueKey('history'), history: true),
             const ProfileScreen(),
           ],
         ),
@@ -49,7 +49,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           onTap: (i) => setState(() => _index = i),
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF6C5CE7),
+          selectedItemColor: const Color(0xFF18181B),
           unselectedItemColor: const Color(0xFF87909E),
           selectedFontSize: 10,
           unselectedFontSize: 10,

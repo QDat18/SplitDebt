@@ -162,7 +162,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         onPressed: loading ? null : _register,
                         child: Text(loading ? 'Đang tạo...' : 'Tạo tài khoản')),
                     const SizedBox(height: 12),
-                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Wrap(alignment: WrapAlignment.center, crossAxisAlignment: WrapCrossAlignment.center, children: [
                       const Text('Đã có tài khoản? ',
                           style: TextStyle(
                               color: AppTheme.textSecondaryColor,

@@ -8,13 +8,15 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_typography.dart';
-import '../expenses/expense_detail_screen.dart';
 import '../../core/network/dio_client.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../groups/models/group_model.dart';
+import '../groups/providers/group_provider.dart';
+import '../groups/screens/group_detail_screen.dart';
 
 /// ----------------------------------------------------------------------------
 /// MÀN HÌNH DASHBOARD TRANG CHỦ (MAIN DASHBOARD SCREEN)
-/// Hiển thị tổng quan nợ ròng, nhóm chi tiêu & khoản chi gần đây
+/// Hiển thị tổng quan nợ ròng, nhóm chi tiêu & dữ liệu thực từ CSDL
 /// ----------------------------------------------------------------------------
 class DashboardScreen extends ConsumerStatefulWidget {
   final VoidCallback onNavigateToCreateExpense;
@@ -38,6 +40,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
 
+  String _userName = 'Bạn';
   int _unreadNotificationCount = 0;
   final currencyFormatter =
       NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
@@ -52,6 +55,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final res = await dioClient.get('/users/me');
+      if (res.data != null && res.data['data'] != null) {
+        final data = res.data['data'];
+        if (mounted) {
+          setState(() {
+            _userName = data['fullName']?.toString() ??
+                data['name']?.toString() ??
+                'Bạn';
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -63,38 +83,51 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final groupsAsync = ref.watch(userGroupsProvider);
+    final groupsList = groupsAsync.value ?? [];
+
+    double totalNetBalance = 0;
+    for (final g in groupsList) {
+      totalNetBalance += (g.userBalance ?? 0.0);
+    }
+
     return Scaffold(
       backgroundColor: AppColors.n50,
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnim,
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.s20, vertical: AppDimensions.s16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // --- 1. USER HEADER ---
-                _buildUserHeader(),
-                const SizedBox(height: AppDimensions.s20),
+          child: RefreshIndicator(
+            onRefresh: () async {
+              await Future.wait([
+                ref.read(userGroupsProvider.notifier).fetchGroups(),
+                _loadUserProfile(),
+              ]);
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics()),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimensions.s20, vertical: AppDimensions.s16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // --- 1. USER HEADER ---
+                  _buildUserHeader(),
+                  const SizedBox(height: AppDimensions.s20),
 
-                // --- 2. SUMMARY BALANCE CARD ---
-                _buildNetBalanceOverviewCard(),
-                const SizedBox(height: AppDimensions.s20),
+                  // --- 2. SUMMARY BALANCE CARD (TÍNH TỪ CSDL) ---
+                  _buildNetBalanceOverviewCard(totalNetBalance),
+                  const SizedBox(height: AppDimensions.s20),
 
-                // --- 3. QUICK ACTION BUTTONS ---
-                _buildQuickActionsRow(),
-                const SizedBox(height: AppDimensions.s24),
+                  // --- 3. QUICK ACTION BUTTONS ---
+                  _buildQuickActionsRow(),
+                  const SizedBox(height: AppDimensions.s24),
 
-                // --- 4. CURRENT ACTIVE GROUPS ---
-                _buildActiveGroupsSection(),
-                const SizedBox(height: AppDimensions.s24),
-
-                // --- 5. RECENT EXPENSES LIST ---
-                _buildRecentExpensesSection(context),
-                const SizedBox(height: AppDimensions.s32),
-              ],
+                  // --- 4. CURRENT ACTIVE GROUPS (ĐỌC TỪ CSDL) ---
+                  _buildActiveGroupsSection(groupsAsync, groupsList),
+                  const SizedBox(height: AppDimensions.s32),
+                ],
+              ),
             ),
           ),
         ),
@@ -125,15 +158,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Xin chào, Đạt!',
+                Text('Xin chào, $_userName!',
                     style: AppTypography.title.copyWith(fontSize: 18)),
-                Text('Team IUMAITRUONG', style: AppTypography.caption),
+                Text('SplitDebt Ledger', style: AppTypography.caption),
               ],
             ),
           ],
         ),
 
-        // Notification Bell Icon (Interactive FCM Notification Center)
+        // Notification Bell Icon
         InkWell(
           onTap: () {
             HapticFeedback.lightImpact();
@@ -172,8 +205,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  // --- SUMMARY BALANCE CARD ---
-  Widget _buildNetBalanceOverviewCard() {
+  // --- SUMMARY BALANCE CARD TỪ CSDL ---
+  Widget _buildNetBalanceOverviewCard(double totalNetBalance) {
+    final bool isPositive = totalNetBalance > 0.01;
+    final bool isNegative = totalNetBalance < -0.01;
+
+    final String statusLabel = isPositive
+        ? 'CẦN NHẬN LẠI TIỀN'
+        : (isNegative ? 'BẠN ĐANG CẦN TRẢ' : 'ĐÃ CÂN BẰNG NỢ');
+
+    final Color statusColor = isPositive
+        ? AppColors.success
+        : (isNegative ? AppColors.error : AppColors.info);
+
+    final String displayAmount = isPositive
+        ? '+${currencyFormatter.format(totalNetBalance)}'
+        : (isNegative
+            ? '-${currencyFormatter.format(totalNetBalance.abs())}'
+            : '0 ₫');
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppDimensions.s20),
@@ -188,18 +238,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('TỔNG SỐ DƯ RÒNG KHOẢN CHI',
+              Text('TỔNG SỐ DƯ RÒNG CÔNG NỢ',
                   style: AppTypography.caption.copyWith(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       letterSpacing: 1.0,
                       fontWeight: FontWeight.w700)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.success,
+                  color: statusColor,
                   borderRadius: AppDimensions.radius8,
                 ),
-                child: Text('CẦN NHẬN LẠI TIỀN',
+                child: Text(statusLabel,
                     style: AppTypography.caption.copyWith(
                         color: Colors.white,
                         fontSize: 10,
@@ -209,37 +259,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ),
           const SizedBox(height: 6),
           Text(
-            '+340.000 ₫',
+            displayAmount,
             style: AppTypography.display.copyWith(
-                color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900),
+                color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: AppDimensions.s16),
           const Divider(height: 1, color: Colors.white24),
           const SizedBox(height: AppDimensions.s12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.arrow_upward_rounded,
-                      color: AppColors.successTint, size: 16),
-                  const SizedBox(width: 4),
-                  Text('Bạn đã ứng: 680.000 ₫',
-                      style: AppTypography.caption
-                          .copyWith(color: Colors.white.withOpacity(0.9))),
-                ],
-              ),
-              Row(
-                children: [
-                  const Icon(Icons.arrow_downward_rounded,
-                      color: AppColors.errorTint, size: 16),
-                  const SizedBox(width: 4),
-                  Text('Nợ phải gánh: 340.000 ₫',
-                      style: AppTypography.caption
-                          .copyWith(color: Colors.white.withOpacity(0.9))),
-                ],
-              ),
-            ],
+          Text(
+            isPositive
+                ? 'Các thành viên trong nhóm đang nợ bạn.'
+                : (isNegative
+                    ? 'Bạn có khoản chi cần thanh toán cho nhóm.'
+                    : 'Bạn không có khoản nợ tồn đọng nào.'),
+            style: AppTypography.caption
+                .copyWith(color: Colors.white.withValues(alpha: 0.9)),
           ),
         ],
       ),
@@ -341,183 +375,150 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  // --- ACTIVE GROUPS SECTION ---
-  Widget _buildActiveGroupsSection() {
+  // --- ACTIVE GROUPS SECTION (ĐỌC TỪ CSDL QUA RIVERPOD) ---
+  Widget _buildActiveGroupsSection(
+      AsyncValue<List<GroupModel>> groupsAsync, List<GroupModel> groupsList) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Nhóm chi tiêu (1)',
+            Text('Nhóm chi tiêu (${groupsList.length})',
                 style: AppTypography.label.copyWith(fontSize: 15)),
-            TextButton(
-              onPressed: () {},
-              child: Text('Tất cả',
-                  style: AppTypography.label
-                      .copyWith(color: AppColors.p600, fontSize: 13)),
-            ),
           ],
         ),
-
-        // Group Card
-        Container(
-          padding: const EdgeInsets.all(AppDimensions.s16),
-          decoration: BoxDecoration(
-            color: AppColors.n0,
-            borderRadius: AppDimensions.radius20,
-            boxShadow: AppDimensions.shadowSm,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.p50,
-                      borderRadius: AppDimensions.radius16,
-                    ),
-                    child: const Icon(Icons.groups_rounded,
-                        color: AppColors.p500, size: 24),
-                  ),
-                  const SizedBox(width: AppDimensions.s12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Du Lịch Hà Giang',
-                            style: AppTypography.title.copyWith(fontSize: 16)),
-                        Text('4 thành viên • Tiền tệ VND',
-                            style: AppTypography.caption),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                        color: AppColors.successTint,
-                        borderRadius: AppDimensions.radius8),
-                    child: Text('Đang hoạt động',
-                        style: AppTypography.caption.copyWith(
-                            color: AppColors.success,
-                            fontWeight: FontWeight.w700)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppDimensions.s16),
-              const Divider(height: 1, color: AppColors.n100),
-              const SizedBox(height: AppDimensions.s12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Tổng chi tiêu nhóm:', style: AppTypography.caption),
-                  Text('2.450.000 ₫',
-                      style: AppTypography.bodyLarge.copyWith(
-                          fontWeight: FontWeight.w800, color: AppColors.p600)),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // --- RECENT EXPENSES SECTION ---
-  Widget _buildRecentExpensesSection(BuildContext context) {
-    final recentExpenses = [
-      {
-        'title': 'Ăn lẩu nướng Gogi House',
-        'category': 'Ăn uống',
-        'icon': Icons.restaurant_rounded,
-        'color': const Color(0xFFFF7675),
-        'amount': 680000.0,
-        'payer': 'Đạt (Tôi)',
-        'time': '3 giờ trước',
-      },
-      {
-        'title': 'Vé xe giường nằm Hà Giang',
-        'category': 'Di chuyển',
-        'icon': Icons.directions_bus_rounded,
-        'color': const Color(0xFF74B9FF),
-        'amount': 1200000.0,
-        'payer': 'Hoàng (Dev 1)',
-        'time': 'Hôm qua',
-      },
-      {
-        'title': 'Cà phê Highland view núi',
-        'category': 'Giải trí',
-        'icon': Icons.local_cafe_rounded,
-        'color': const Color(0xFFFD79A8),
-        'amount': 240000.0,
-        'payer': 'Minh (Dev 3)',
-        'time': '2 ngày trước',
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Khoản chi gần đây',
-                style: AppTypography.label.copyWith(fontSize: 15)),
-            TextButton(
-              onPressed: () {},
-              child: Text('Xem lịch sử',
-                  style: AppTypography.label
-                      .copyWith(color: AppColors.p600, fontSize: 13)),
-            ),
-          ],
-        ),
-        ...recentExpenses.map((exp) {
-          final color = exp['color'] as Color;
-          final icon = exp['icon'] as IconData;
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: AppDimensions.s12),
+        const SizedBox(height: AppDimensions.s12),
+        if (groupsAsync.isLoading && groupsList.isEmpty)
+          const Center(
+              child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: CircularProgressIndicator(),
+          ))
+        else if (groupsList.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppDimensions.s20),
             decoration: BoxDecoration(
               color: AppColors.n0,
               borderRadius: AppDimensions.radius20,
               boxShadow: AppDimensions.shadowSm,
+              border: Border.all(color: AppColors.p100),
             ),
-            child: ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              leading: CircleAvatar(
-                backgroundColor: color.withOpacity(0.15),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              title: Text(exp['title'] as String,
-                  style: AppTypography.bodyMedium
-                      .copyWith(fontWeight: FontWeight.w700)),
-              subtitle: Text('${exp['payer']} • ${exp['time']}',
-                  style: AppTypography.caption),
-              trailing: Text(
-                currencyFormatter.format(exp['amount']),
-                style: AppTypography.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w800, color: AppColors.n900),
-              ),
-              onTap: () {
-                HapticFeedback.lightImpact();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const ExpenseDetailScreen()),
-                );
-              },
+            child: Column(
+              children: [
+                const Icon(Icons.group_off_outlined,
+                    size: 40, color: AppColors.n400),
+                const SizedBox(height: AppDimensions.s8),
+                Text('Bạn chưa có nhóm chi tiêu nào',
+                    style: AppTypography.title.copyWith(fontSize: 15)),
+                const SizedBox(height: 4),
+                Text('Chuyển sang tab "Nhóm" để tạo hoặc tham gia nhóm mới.',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.caption),
+              ],
             ),
-          );
-        }),
+          )
+        else
+          ...groupsList.map((group) {
+            final double balance = group.userBalance ?? 0.0;
+            final bool isPositive = balance > 0.01;
+            final bool isNegative = balance < -0.01;
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: AppDimensions.s12),
+              padding: const EdgeInsets.all(AppDimensions.s16),
+              decoration: BoxDecoration(
+                color: AppColors.n0,
+                borderRadius: AppDimensions.radius20,
+                boxShadow: AppDimensions.shadowSm,
+                border: Border.all(color: AppColors.p100),
+              ),
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => GroupDetailScreen(group: group),
+                    ),
+                  );
+                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.p50,
+                            borderRadius: AppDimensions.radius16,
+                          ),
+                          child: const Icon(Icons.groups_rounded,
+                              color: AppColors.p500, size: 24),
+                        ),
+                        const SizedBox(width: AppDimensions.s12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(group.name,
+                                  style: AppTypography.title
+                                      .copyWith(fontSize: 16)),
+                              Text(
+                                '${group.memberCount} thành viên • ${group.currentUserRole}',
+                                style: AppTypography.caption,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                              color: AppColors.successTint,
+                              borderRadius: AppDimensions.radius8),
+                          child: Text('Đang hoạt động',
+                              style: AppTypography.caption.copyWith(
+                                  color: AppColors.success,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppDimensions.s12),
+                    const Divider(height: 1, color: AppColors.n100),
+                    const SizedBox(height: AppDimensions.s8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Số dư của bạn:', style: AppTypography.caption),
+                        Text(
+                          isPositive
+                              ? '+${currencyFormatter.format(balance)}'
+                              : (isNegative
+                                  ? '-${currencyFormatter.format(balance.abs())}'
+                                  : '0 ₫'),
+                          style: AppTypography.bodyLarge.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: isPositive
+                                ? AppColors.success
+                                : (isNegative
+                                    ? AppColors.error
+                                    : AppColors.n700),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
       ],
     );
   }
 
-  // --- MODAL THÔNG BÁO PUSH REAL-TIME FCM (BE4-SET-02 & FE4-PAY-01) ---
+  // --- MODAL THÔNG BÁO PUSH REAL-TIME FCM ---
   Future<void> _showNotificationSheet(BuildContext context) async {
     final future = _loadNotifications();
     await showModalBottomSheet<void>(

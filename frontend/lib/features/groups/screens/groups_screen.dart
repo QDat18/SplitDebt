@@ -1,26 +1,26 @@
-// Trách nhiệm file: Xây dựng màn hình home screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+// Trách nhiệm file: Xây dựng màn hình danh sách nhóm (groups screen) và điều phối tương tác người dùng với trạng thái nghiệp vụ.
 
 import 'package:flutter/material.dart';
-import '../notifications/notification_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../groups/models/group_model.dart';
-import '../groups/providers/group_provider.dart';
-import '../groups/widgets/group_card.dart';
-import '../groups/widgets/group_card_skeleton.dart';
-import '../groups/widgets/empty_group_state.dart';
-import '../groups/widgets/error_state.dart';
-import '../groups/screens/create_group_dialog.dart';
-import '../groups/screens/group_detail_screen.dart';
-import '../groups/screens/group_settings_screen.dart';
+import '../../notifications/notification_screen.dart';
+import '../models/group_model.dart';
+import '../providers/group_provider.dart';
+import '../widgets/group_card.dart';
+import '../widgets/group_card_skeleton.dart';
+import '../widgets/empty_group_state.dart';
+import '../widgets/error_state.dart';
+import 'create_group_dialog.dart';
+import 'group_detail_screen.dart';
+import 'group_settings_screen.dart';
 
-class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+class GroupsScreen extends ConsumerStatefulWidget {
+  const GroupsScreen({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<GroupsScreen> createState() => _GroupsScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen>
+class _GroupsScreenState extends ConsumerState<GroupsScreen>
     with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;

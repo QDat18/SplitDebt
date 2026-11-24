@@ -1,4 +1,4 @@
-// Trách nhiệm file: Xây dựng màn hình PDF overview screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+// Trách nhiệm file: Xây dựng màn hình lịch sử giao dịch và tổng quan (history screen) và điều phối tương tác người dùng.
 
 import 'package:flutter/material.dart';
 import '../../core/network/dio_client.dart';
@@ -8,14 +8,14 @@ import '../settlements/data/settlement_api_service.dart';
 import '../settlements/models/settlement_models.dart';
 import '../notifications/notification_screen.dart';
 
-class OverviewScreen extends StatefulWidget {
+class HistoryScreen extends StatefulWidget {
   final bool history;
-  const OverviewScreen({super.key, this.history = false});
+  const HistoryScreen({super.key, this.history = false});
   @override
-  State<OverviewScreen> createState() => _OverviewScreenState();
+  State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _OverviewScreenState extends State<OverviewScreen>
+class _HistoryScreenState extends State<HistoryScreen>
     with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;

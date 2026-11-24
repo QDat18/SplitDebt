@@ -9,7 +9,7 @@ import '../providers/group_provider.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/theme/pdf_components.dart';
 import '../../../data/repositories/auth_repository.dart';
-import '../../expenses/pdf_expense_detail.dart';
+import '../../expenses/expense_read_screen.dart';
 import 'add_member_dialog.dart';
 import 'group_settings_screen.dart';
 import '../../settlements/group_settlement_screen.dart';
