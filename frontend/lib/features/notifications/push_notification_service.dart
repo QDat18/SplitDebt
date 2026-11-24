@@ -103,8 +103,7 @@ class PushNotificationService {
   void _handleForegroundMessage(
     RemoteMessage message,
   ) {
-    if (message.data['silent'] == 'true') {
-      debugPrint('FCM data-only message: silent refresh, no foreground notification.');
+    if (message.notification == null && message.data['title'] == null) {
       return;
     }
 

@@ -50,25 +50,18 @@ public class NotificationService {
         payload.put("type", type);
         Long userId = user != null ? user.getId() : null;
         boolean allowPush = shouldPush(userId, type);
-        if (!allowPush) {
-            payload.put("silent", "true");
-        }
 
-        Runnable push = () -> {
-            if (allowPush) {
-                fcmPushService.sendToUserTopic(userId, title, content, payload);
+        if (allowPush) {
+            Runnable push = () -> fcmPushService.sendToUserTopic(userId, title, content, payload);
+            // Clients re-fetch balances on push: the transaction must be visible first.
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() { push.run(); }
+                });
             } else {
-                fcmPushService.sendDataOnlyToUserTopic(userId, payload);
+                push.run();
             }
-        };
-        // Clients re-fetch balances on push: the transaction must be visible first.
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() { push.run(); }
-            });
-        } else {
-            push.run();
         }
 
         return saved;

@@ -5,9 +5,6 @@
 package com.splitdebt.api.service;
 
 import com.google.firebase.FirebaseApp;
-import com.google.firebase.messaging.AndroidConfig;
-import com.google.firebase.messaging.ApnsConfig;
-import com.google.firebase.messaging.Aps;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
@@ -75,89 +72,6 @@ public class FcmPushService {
             );
         }
 
-    }
-
-    public void sendDataOnlyToUserTopic(
-            Long userId,
-            Map<String, String> data
-    ) {
-        if (userId == null) {
-            return;
-        }
-
-        if (FirebaseApp.getApps().isEmpty()) {
-            log.debug(
-                    "Skip FCM data-only because Firebase is not configured. userId={}",
-                    userId
-            );
-            return;
-        }
-
-        List<FcmToken> tokens;
-        try {
-            tokens = fcmTokenRepository.findByUserId(userId);
-        } catch (Exception ex) {
-            log.warn("Could not load FCM tokens for user {}: {}", userId, ex.getMessage());
-            return;
-        }
-
-        for (FcmToken fcmToken : tokens) {
-            sendDataOnlyToToken(fcmToken, data);
-        }
-    }
-
-    private void sendDataOnlyToToken(
-            FcmToken fcmToken,
-            Map<String, String> data
-    ) {
-        try {
-            ApnsConfig apnsConfig = ApnsConfig.builder()
-                    .putHeader("apns-push-type", "background")
-                    .putHeader("apns-priority", "5")
-                    .setAps(Aps.builder().setContentAvailable(true).build())
-                    .build();
-
-            AndroidConfig androidConfig = AndroidConfig.builder()
-                    .setPriority(AndroidConfig.Priority.HIGH)
-                    .build();
-
-            Message message =
-                    Message.builder()
-                            .setToken(fcmToken.getToken())
-                            .putAllData(
-                                    data == null
-                                            ? Map.of()
-                                            : data
-                            )
-                            .setApnsConfig(apnsConfig)
-                            .setAndroidConfig(androidConfig)
-                            .build();
-
-            String messageId =
-                    FirebaseMessaging
-                            .getInstance()
-                            .send(message);
-
-            log.info(
-                    "FCM data-only sent. userId={}, platform={}, messageId={}",
-                    fcmToken.getUser().getId(),
-                    fcmToken.getPlatform(),
-                    messageId
-            );
-        } catch (FirebaseMessagingException ex) {
-            log.warn(
-                    "Could not send FCM data-only token. tokenId={}, code={}, message={}",
-                    fcmToken.getId(),
-                    ex.getMessagingErrorCode(),
-                    ex.getMessage()
-            );
-        } catch (Exception ex) {
-            log.warn(
-                    "Could not send FCM data-only token. tokenId={}, message={}",
-                    fcmToken.getId(),
-                    ex.getMessage()
-            );
-        }
     }
 
     private void sendToToken(
