@@ -33,6 +33,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   String _name = 'Người dùng';
   String _email = '';
+  String? _avatarUrl;
 
   @override
   void initState() {
@@ -40,6 +41,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     if (_cachedProfile != null) {
       _name = _cachedProfile!['fullName']?.toString() ?? 'Người dùng';
       _email = _cachedProfile!['email']?.toString() ?? '';
+      _avatarUrl = _cachedProfile!['avatarUrl']?.toString();
       _loading = false;
     }
     _loadProfile();
@@ -57,6 +59,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         setState(() {
           _name = data['fullName']?.toString() ?? 'Người dùng';
           _email = data['email']?.toString() ?? '';
+          _avatarUrl = data['avatarUrl']?.toString();
         });
       }
     } catch (_) {
@@ -133,13 +136,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     child: CircleAvatar(
                       radius: 32,
                       backgroundColor: AppColors.p500,
-                      child: Text(
-                        _name.isEmpty ? '?' : _name.characters.first,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      backgroundImage: _avatarUrl != null && _avatarUrl!.isNotEmpty
+                          ? NetworkImage(_avatarUrl!)
+                          : null,
+                      onBackgroundImageError: _avatarUrl != null && _avatarUrl!.isNotEmpty
+                          ? (_, __) {}
+                          : null,
+                      child: _avatarUrl != null && _avatarUrl!.isNotEmpty
+                          ? null
+                          : Text(
+                              _name.isEmpty ? '?' : _name.characters.first,
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: AppDimensions.s12),
@@ -184,6 +195,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                             builder: (_) => PersonalInfoScreen(
                               name: _name,
                               email: _email,
+                              avatarUrl: _avatarUrl,
+                              onAvatarChanged: (newUrl) {
+                                setState(() {
+                                  _avatarUrl = newUrl;
+                                  if (_cachedProfile != null) {
+                                    _cachedProfile!['avatarUrl'] = newUrl;
+                                  }
+                                });
+                              },
                             ),
                           ),
                         ),

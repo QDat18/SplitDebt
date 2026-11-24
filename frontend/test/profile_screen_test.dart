@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:split_debt/features/profile/personal_info_screen.dart';
 import 'package:split_debt/features/profile/profile_screen.dart';
 
 void main() {
@@ -115,5 +116,38 @@ void main() {
     expect(find.text('Ngôn ngữ hiển thị'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('personal info screen displays avatar and camera badge',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: PersonalInfoScreen(
+          name: 'Nguyễn Văn A',
+          email: 'a@example.com',
+          avatarUrl: null,
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nguyễn Văn A'), findsWidgets);
+    expect(find.text('a@example.com'), findsOneWidget);
+    expect(find.byIcon(Icons.camera_alt_rounded), findsOneWidget);
+    expect(find.text('Nhấn vào ảnh để thay đổi'), findsOneWidget);
+
+    // Tapping avatar opens image source picker bottom sheet
+    await tester.tap(find.byType(CircleAvatar).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Chọn ảnh đại diện'), findsOneWidget);
+    expect(find.text('Chụp ảnh mới'), findsOneWidget);
+    expect(find.text('Chọn từ thư viện'), findsOneWidget);
   });
 }
