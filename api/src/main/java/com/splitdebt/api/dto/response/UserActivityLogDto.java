@@ -23,3 +23,4 @@ public class UserActivityLogDto {
     private String newValue;
     private LocalDateTime createdAt;
 }
+

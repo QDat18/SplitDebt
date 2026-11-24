@@ -60,3 +60,4 @@
 - [ ] Backend: `.\mvnw.cmd test`
 - [ ] Frontend: `flutter analyze` & `flutter test`
 - [ ] Cập nhật `docs/PROGRESS.md`
+

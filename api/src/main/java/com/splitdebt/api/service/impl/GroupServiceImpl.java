@@ -279,6 +279,35 @@ public class GroupServiceImpl implements GroupService {
                 .orElseThrow(() -> new UserNotFoundException("Không tìm thấy tài khoản"));
     }
 
+    @Override
+    @Transactional
+    public GroupResponseDto joinGroupByInviteCode(String inviteCode, Long currentUserId) {
+        if (inviteCode == null || inviteCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã mời không được để trống");
+        }
+
+        Group group = groupRepository.findByInviteCode(inviteCode.trim())
+                .orElseThrow(() -> new GroupNotFoundException("Mã mời không hợp lệ hoặc nhóm không tồn tại"));
+
+        User currentUser = requireUser(currentUserId);
+
+        java.util.Optional<GroupMember> existingMember = groupMemberRepository.findByGroupIdAndUserId(group.getId(), currentUserId);
+        GroupRole role = GroupRole.MEMBER;
+        if (existingMember.isEmpty()) {
+            GroupMember newMember = GroupMember.builder()
+                    .group(group)
+                    .user(currentUser)
+                    .role(GroupRole.MEMBER)
+                    .build();
+            groupMemberRepository.save(newMember);
+        } else {
+            role = existingMember.get().getRole();
+        }
+
+        int memberCount = groupMemberRepository.countByGroupId(group.getId());
+        return mapToGroupResponseDto(group, role, memberCount);
+    }
+
     private GroupResponseDto mapToGroupResponseDto(Group group, GroupRole currentUserRole, int memberCount) {
         return mapToGroupResponseDto(group, currentUserRole, memberCount, null);
     }
@@ -293,6 +322,7 @@ public class GroupServiceImpl implements GroupService {
                 .createdByName(creator != null ? creator.getFullName() : "Unknown")
                 .currentUserRole(currentUserRole)
                 .memberCount(memberCount)
+                .inviteCode(group.getInviteCode())
                 .userBalance(userBalance)
                 .createdAt(group.getCreatedAt())
                 .updatedAt(group.getUpdatedAt())

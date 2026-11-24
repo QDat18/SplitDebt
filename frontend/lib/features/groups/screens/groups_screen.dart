@@ -15,6 +15,7 @@ import '../widgets/group_card_skeleton.dart';
 import 'create_group_dialog.dart';
 import 'group_detail_screen.dart';
 import 'group_settings_screen.dart';
+import 'join_group_dialog.dart';
 
 class GroupsScreen extends ConsumerStatefulWidget {
   const GroupsScreen({super.key});
@@ -131,6 +132,15 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
                 }
               });
             },
+          ),
+          IconButton(
+            icon: const Icon(
+              Icons.group_add_outlined,
+              color: AppColors.p500,
+              size: 24,
+            ),
+            tooltip: 'Tham gia nhóm',
+            onPressed: () => JoinGroupDialog.show(context),
           ),
           IconButton(
             icon: const Icon(

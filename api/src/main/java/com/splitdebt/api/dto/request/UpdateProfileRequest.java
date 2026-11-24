@@ -24,3 +24,4 @@ public class UpdateProfileRequest {
     @Size(max = 20, message = "Số điện thoại tối đa 20 ký tự")
     private String phone;
 }
+

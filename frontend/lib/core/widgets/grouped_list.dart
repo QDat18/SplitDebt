@@ -111,6 +111,9 @@ class GroupedTile extends StatelessWidget {
     this.onTap,
     this.trailing,
     this.destructive = false,
+    this.expandTitle = true,
+    this.titleWidth,
+    this.crossAxisAlignment = CrossAxisAlignment.center,
   });
 
   final String title;
@@ -121,6 +124,9 @@ class GroupedTile extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget? trailing;
   final bool destructive;
+  final bool expandTitle;
+  final double? titleWidth;
+  final CrossAxisAlignment crossAxisAlignment;
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +188,15 @@ class GroupedTile extends StatelessWidget {
         ],
       );
 
-      rowChildren.add(Expanded(child: titleCol));
+      final Widget titleWidget = titleWidth != null
+          ? SizedBox(width: titleWidth, child: titleCol)
+          : titleCol;
+
+      if (expandTitle) {
+        rowChildren.add(Expanded(child: titleWidget));
+      } else {
+        rowChildren.add(titleWidget);
+      }
 
       if (trailing != null) {
         rowChildren.add(const SizedBox(width: AppDimensions.s8));
@@ -215,6 +229,7 @@ class GroupedTile extends StatelessWidget {
       }
 
       content = Row(
+        crossAxisAlignment: crossAxisAlignment,
         children: rowChildren,
       );
     }

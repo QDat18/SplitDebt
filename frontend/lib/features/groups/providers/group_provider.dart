@@ -41,6 +41,19 @@ class GroupListNotifier extends StateNotifier<AsyncValue<List<GroupModel>>> {
     }
   }
 
+  Future<GroupModel> joinGroup(String inviteCode) async {
+    try {
+      final res = await ApiClient.post('/groups/join', {
+        'inviteCode': inviteCode,
+      });
+      final joinedGroup = GroupModel.fromJson(res as Map<String, dynamic>);
+      await fetchGroups();
+      return joinedGroup;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<GroupModel> updateGroup(
     String groupId,
     String name,

@@ -46,3 +46,4 @@
 ### Task 5: Kiểm thử toàn diện & Cập nhật Tiến độ
 - [ ] Chạy kiểm thử: `flutter test` và `flutter analyze --no-fatal-infos`.
 - [ ] Cập nhật `docs/PROGRESS.md` (giữ <= 30 dòng).
+

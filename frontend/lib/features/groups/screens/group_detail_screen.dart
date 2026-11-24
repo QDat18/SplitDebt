@@ -16,6 +16,7 @@ import '../models/group_member_model.dart';
 import '../models/group_model.dart';
 import '../providers/group_provider.dart';
 import 'add_member_dialog.dart';
+import 'group_invite_dialog.dart';
 import 'group_settings_screen.dart';
 
 class GroupDetailScreen extends ConsumerStatefulWidget {
@@ -183,6 +184,13 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
       builder: (ctx) => CupertinoActionSheet(
         title: Text(widget.group.name),
         actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
+              GroupInviteDialog.show(context, widget.group);
+            },
+            child: const Text('Mã QR & Link mời nhóm'),
+          ),
           if (widget.group.isAdminOrOwner)
             CupertinoActionSheetAction(
               onPressed: () {
@@ -224,6 +232,11 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_rounded, color: AppColors.n800),
+            tooltip: 'Mã QR & Link mời',
+            onPressed: () => GroupInviteDialog.show(context, widget.group),
+          ),
           if (widget.group.isAdminOrOwner)
             IconButton(
               icon: const Icon(Icons.settings_outlined, color: AppColors.n800),
@@ -639,41 +652,74 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                         ],
                       ),
                     ),
-                    if (widget.group.isAdminOrOwner) ...[
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            side: const BorderSide(color: AppColors.p500),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              side: const BorderSide(color: AppColors.p500),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                          ),
-                          onPressed: () async {
-                            await showDialog(
-                              context: context,
-                              builder: (_) =>
-                                  AddMemberDialog(groupId: widget.group.id),
-                            );
-                            ref.invalidate(groupMembersProvider(widget.group.id));
-                          },
-                          icon: const Icon(
-                            Icons.person_add_outlined,
-                            size: 18,
-                            color: AppColors.p500,
-                          ),
-                          label: const Text(
-                            'Thêm thành viên',
-                            style: TextStyle(
+                            onPressed: () =>
+                                GroupInviteDialog.show(context, widget.group),
+                            icon: const Icon(
+                              Icons.qr_code_rounded,
+                              size: 18,
                               color: AppColors.p500,
-                              fontWeight: FontWeight.w600,
+                            ),
+                            label: const Text(
+                              'Mã QR & Link',
+                              style: TextStyle(
+                                color: AppColors.p500,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                        if (widget.group.isAdminOrOwner) ...[
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                backgroundColor: AppColors.p500,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () async {
+                                await showDialog(
+                                  context: context,
+                                  builder: (_) =>
+                                      AddMemberDialog(groupId: widget.group.id),
+                                );
+                                ref.invalidate(
+                                    groupMembersProvider(widget.group.id));
+                              },
+                              icon: const Icon(
+                                Icons.person_add_outlined,
+                                size: 18,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                'Thêm email',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
                 loading: () =>

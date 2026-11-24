@@ -119,3 +119,4 @@ class UserServiceTest {
         assertEquals("Đổi họ và tên thành \"Nguyen Van B\"", logs.get(0).getDescription());
     }
 }
+

@@ -44,6 +44,15 @@ public class GroupController {
                 .body(ApiResponse.ok("Group created successfully", dto));
     }
 
+    @PostMapping("/join")
+    public ResponseEntity<ApiResponse<GroupResponseDto>> joinGroupByInviteCode(
+            @RequestBody java.util.Map<String, String> body) {
+        Long currentUserId = resolveCurrentUserId();
+        String inviteCode = body != null ? body.getOrDefault("inviteCode", body.get("code")) : null;
+        GroupResponseDto dto = groupService.joinGroupByInviteCode(inviteCode, currentUserId);
+        return ResponseEntity.ok(ApiResponse.ok("Tham gia nhóm thành công", dto));
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<GroupResponseDto>>> getUserGroups() {
         Long currentUserId = resolveCurrentUserId();

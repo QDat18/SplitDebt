@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
-import '../../core/theme/app_typography.dart';
 import '../../core/network/dio_client.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../groups/models/group_model.dart';

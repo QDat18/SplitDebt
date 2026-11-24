@@ -16,3 +16,4 @@ public interface UserService {
     List<UserActivityLogDto> getUserLogs(String email);
     void logActivity(Long userId, String action, String description, String oldValue, String newValue);
 }
+

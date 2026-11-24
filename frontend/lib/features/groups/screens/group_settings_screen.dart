@@ -161,10 +161,13 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
                       height: 16,
                       child: CircularProgressIndicator.adaptive(strokeWidth: 2),
                     )
-                  : const Text(
+                  : Text(
                       'Lưu',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
+                        color: (!_isDirty || _isSaving)
+                            ? AppColors.n400
+                            : AppColors.p500,
                       ),
                     ),
             ),
@@ -184,18 +187,30 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
                 if (isAdminOrOwner) ...[
                   GroupedTile(
                     title: 'Tên',
+                    expandTitle: false,
+                    titleWidth: 60,
                     trailing: Expanded(
                       child: TextFormField(
                         controller: _nameController,
-                        textAlign: TextAlign.end,
+                        textAlign: TextAlign.start,
                         style: theme.textTheme.bodyLarge?.copyWith(
-                          color: AppColors.n800,
+                          color: AppColors.n900,
+                          fontWeight: FontWeight.w500,
                         ),
-                        decoration: InputDecoration.collapsed(
+                        decoration: InputDecoration(
                           hintText: 'Bắt buộc',
                           hintStyle: theme.textTheme.bodyLarge?.copyWith(
                             color: AppColors.n400,
                           ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          filled: false,
+                          fillColor: Colors.transparent,
+                          isDense: true,
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 8),
                         ),
                         validator: (val) => val == null || val.trim().isEmpty
                             ? 'Tên nhóm không được để trống'
@@ -205,33 +220,53 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
                   ),
                   GroupedTile(
                     title: 'Mô tả',
+                    expandTitle: false,
+                    titleWidth: 60,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     trailing: Expanded(
-                      child: TextFormField(
-                        controller: _descController,
-                        textAlign: TextAlign.end,
-                        minLines: 1,
-                        maxLines: 4,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: AppColors.n800,
-                        ),
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                          hintText: 'Không bắt buộc',
-                          hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                            color: AppColors.n400,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextFormField(
+                            controller: _descController,
+                            textAlign: TextAlign.start,
+                            minLines: 2,
+                            maxLines: 5,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.n900,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Không bắt buộc',
+                              hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                                color: AppColors.n400,
+                              ),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              filled: false,
+                              fillColor: Colors.transparent,
+                              isDense: true,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 4),
+                            ),
+                            validator: (val) =>
+                                (val != null && val.trim().runes.length > 500)
+                                    ? 'Mô tả tối đa 500 ký tự'
+                                    : null,
                           ),
-                          counterText:
+                          const SizedBox(height: 4),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
                               '${_descController.text.trim().runes.length}/500',
-                          counterStyle: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.n500,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.n400,
+                                fontSize: 11,
+                              ),
+                            ),
                           ),
-                        ),
-                        validator: (val) =>
-                            (val != null && val.trim().runes.length > 500)
-                                ? 'Mô tả tối đa 500 ký tự'
-                                : null,
+                        ],
                       ),
                     ),
                   ),

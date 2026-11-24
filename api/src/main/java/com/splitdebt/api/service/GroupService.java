@@ -30,4 +30,6 @@ public interface GroupService {
     void leaveGroup(Long groupId, Long currentUserId);
 
     void removeMember(Long groupId, Long memberUserId, Long currentUserId);
+
+    GroupResponseDto joinGroupByInviteCode(String inviteCode, Long currentUserId);
 }
