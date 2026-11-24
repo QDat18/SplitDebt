@@ -251,7 +251,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                                 const Center(
                                     child: CircleAvatar(
                                         radius: 32,
-                                        backgroundColor: Color(0xFFE7FBF1),
+                                        backgroundColor: AppColors.successTint,
                                         child: Text('✂️',
                                             style: TextStyle(fontSize: 28)))),
                                 const SizedBox(height: 18),
@@ -371,7 +371,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                 fontSize: 18, fontWeight: FontWeight.w800, color: color))
       ]));
   Widget _countBox(String title, int count, bool after) => Card(
-      color: after ? const Color(0xFFE8FCF3) : Colors.white,
+      color: after ? AppColors.successTint : Colors.white,
       child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(children: [
@@ -382,7 +382,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
             Text('$count giao dịch',
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: after ? pdfGreen : const Color(0xFF202127)))
+                    color: after ? pdfGreen : AppColors.n800))
           ])));
   Widget _debtCard(String name, String subtitle, double amount) => Card(
       child: ListTile(
@@ -419,14 +419,14 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
           side: BorderSide(
               color: record.status == 'PAID'
                   ? Colors.orange
-                  : const Color(0xFFEDEDF3))),
+                  : AppColors.n200)),
       child: Padding(
           padding: const EdgeInsets.all(18),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               CircleAvatar(
-                  backgroundColor: const Color(0xFFE5DFFF),
+                  backgroundColor: AppColors.p50,
                   child: Text(
                       record.debtorName.isEmpty ? '?' : record.debtorName[0])),
               const SizedBox(width: 10),

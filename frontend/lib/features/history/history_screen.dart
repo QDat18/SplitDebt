@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/pdf_components.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../settlements/data/settlement_api_service.dart';
@@ -210,7 +211,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                                 fontWeight: FontWeight.w700,
                                 color: e['amount'] > 0
                                     ? pdfGreen
-                                    : const Color(0xFF202127))))),
+                                    : AppColors.n800)))),
             ] else if (_stats != null) ...[
               Card(
                   child: Padding(
@@ -255,7 +256,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                                     minHeight: 7,
                                     borderRadius: BorderRadius.circular(8),
                                     color: pdfPurple,
-                                    backgroundColor: const Color(0xFFEFEFF5))
+                                    backgroundColor: AppColors.n200)
                               ])),
                       ]))),
               const SizedBox(height: 20),

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/dio_client.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../auth/login_screen.dart';
 import '../notifications/notification_screen.dart';
@@ -104,7 +105,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         leading: Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-                color: const Color(0xFFF0EDFF),
+                color: AppColors.p50,
                 borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: AppTheme.primaryColor, size: 20)),
         title: Text(title,
@@ -140,7 +141,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     Text(_email,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                            color: Color(0xFF778092), fontSize: 13)),
+                            color: AppColors.n600, fontSize: 13)),
                     const SizedBox(height: 26),
                     Card(
                         child: Column(children: [
@@ -189,10 +190,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         child: ListTile(
                             onTap: _logout,
                             leading: const Icon(Icons.logout,
-                                color: Color(0xFFFF5261)),
+                                color: AppColors.error),
                             title: const Text('Đăng xuất',
                                 style: TextStyle(
-                                    color: Color(0xFFFF5261),
+                                    color: AppColors.error,
                                     fontWeight: FontWeight.w700)))),
                   ])));
   }

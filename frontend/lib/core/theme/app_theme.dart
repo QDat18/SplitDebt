@@ -2,16 +2,17 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'app_colors.dart';
 
 class AppTheme {
   // Colors based on Figma design
-  static const Color primaryColor = Color(0xFF6C5CE7);
-  static const Color backgroundColor = Color(0xFFF8F9FC);
-  static const Color surfaceColor = Colors.white;
-  static const Color textPrimaryColor = Color(0xFF202127);
-  static const Color textSecondaryColor = Color(0xFF778092);
-  static const Color errorColor = Color(0xFFE53935);
-  static const Color successColor = Color(0xFF43A047);
+  static const Color primaryColor = AppColors.p500;
+  static const Color backgroundColor = AppColors.n50;
+  static const Color surfaceColor = AppColors.n0;
+  static const Color textPrimaryColor = AppColors.n800;
+  static const Color textSecondaryColor = AppColors.n600;
+  static const Color errorColor = AppColors.error;
+  static const Color successColor = AppColors.success;
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -40,7 +41,7 @@ class AppTheme {
           margin: const EdgeInsets.only(bottom: 12),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18),
-              side: const BorderSide(color: Color(0xFFE8E9EF)))),
+              side: const BorderSide(color: AppColors.n200))),
       filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
               minimumSize: const Size(0, 50),
@@ -51,7 +52,7 @@ class AppTheme {
               textStyle:
                   const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))),
       dividerTheme:
-          const DividerThemeData(color: Color(0xFFECECF2), thickness: 1),
+          const DividerThemeData(color: AppColors.n200, thickness: 1),
       textTheme: GoogleFonts.interTextTheme().copyWith(
         displayLarge: GoogleFonts.inter(
           fontSize: 32,
@@ -91,7 +92,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: textPrimaryColor,
-          side: const BorderSide(color: Color(0xFFE0E0E0)),
+          side: const BorderSide(color: AppColors.n200),
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -109,11 +110,11 @@ class AppTheme {
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderSide: const BorderSide(color: AppColors.n200),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderSide: const BorderSide(color: AppColors.n200),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

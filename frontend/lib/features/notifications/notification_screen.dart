@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/app/app_keys.dart';
+import '../../core/theme/app_colors.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'push_notification_service.dart';
 
@@ -131,7 +132,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                         Card(
                             color: item['isRead'] == true
                                 ? Colors.white
-                                : const Color(0xFFF0EDFF),
+                                : AppColors.p50,
                             child: ListTile(
                                 contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 12),
@@ -141,7 +142,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                                         item['type'] == 'SETTLEMENT_PAID'
                                             ? Icons.payments_outlined
                                             : Icons.notifications_none,
-                                        color: const Color(0xFF6C5CE7),
+                                        color: AppColors.p500,
                                         size: 22)),
                                 title:
                                     Text(item['content']?.toString() ?? item['title']?.toString() ?? 'Thông báo',
@@ -153,8 +154,8 @@ class _NotificationScreenState extends State<NotificationScreen>
                                 subtitle: Padding(
                                     padding: const EdgeInsets.only(top: 6),
                                     child:
-                                        Text(_date(item['createdAt']), style: const TextStyle(fontSize: 12, color: Color(0xFF778092)))),
-                                trailing: item['isRead'] == true ? null : const Icon(Icons.circle, size: 8, color: Color(0xFF6C5CE7)),
+                                        Text(_date(item['createdAt']), style: const TextStyle(fontSize: 12, color: AppColors.n600))),
+                                trailing: item['isRead'] == true ? null : const Icon(Icons.circle, size: 8, color: AppColors.p500),
                                 onTap: () => _read(item))),
                     ])),
       );

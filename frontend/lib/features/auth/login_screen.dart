@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'register_screen.dart';
@@ -191,7 +192,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               // Divider
               Row(
                 children: [
-                  const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+                  const Expanded(child: Divider(color: AppColors.n200)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
@@ -199,7 +200,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
-                  const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+                  const Expanded(child: Divider(color: AppColors.n200)),
                 ],
               ),
               const SizedBox(height: 24),

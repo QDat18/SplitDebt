@@ -2,11 +2,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'app_colors.dart';
 
-const pdfPurple = Color(0xFF6C5CE7);
-const pdfGreen = Color(0xFF10BF8B);
-const pdfRed = Color(0xFFFF5261);
-const pdfMuted = Color(0xFF778092);
+const pdfPurple = AppColors.p500;
+const pdfGreen = AppColors.success;
+const pdfRed = AppColors.error;
+const pdfMuted = AppColors.n600;
 String money(num value) =>
     NumberFormat.currency(locale: 'vi_VN', symbol: 'đ', decimalDigits: 0)
         .format(value);
@@ -37,7 +38,7 @@ class PdfTabs extends StatelessWidget {
   Widget build(BuildContext context) => Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-          color: const Color(0xFFEDEDF2),
+          color: AppColors.n200,
           borderRadius: BorderRadius.circular(10)),
       child: Row(
           children: List.generate(
@@ -60,7 +61,7 @@ class PdfTabs extends StatelessWidget {
                                   style: TextStyle(
                                       fontSize: 12,
                                       color: selected == i
-                                          ? const Color(0xFF202127)
+                                          ? AppColors.n800
                                           : pdfMuted,
                                       fontWeight: selected == i
                                           ? FontWeight.w700

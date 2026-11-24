@@ -1,6 +1,7 @@
 // Trách nhiệm file: Điều phối bố cục chính và thanh điều hướng giữa các khu vực sau đăng nhập.
 
 import 'package:flutter/material.dart';
+import 'core/theme/app_colors.dart';
 import 'features/home/dashboard_screen.dart';
 import 'features/groups/screens/groups_screen.dart';
 import 'features/history/history_screen.dart';
@@ -48,9 +49,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           currentIndex: _index,
           onTap: (i) => setState(() => _index = i),
           type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF18181B),
-          unselectedItemColor: const Color(0xFF87909E),
+          backgroundColor: AppColors.n0,
+          selectedItemColor: AppColors.p500,
+          unselectedItemColor: AppColors.n500,
           selectedFontSize: 10,
           unselectedFontSize: 10,
           iconSize: 22,

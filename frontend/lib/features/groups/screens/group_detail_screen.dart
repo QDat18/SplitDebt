@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/theme/app_colors.dart';
 import '../models/group_model.dart';
 import '../models/group_member_model.dart';
 import '../providers/group_provider.dart';
@@ -194,14 +195,14 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
             Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                    color: const Color(0xFF261C60),
+                    color: AppColors.p900,
                     borderRadius: BorderRadius.circular(20)),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('TỔNG CHI TIÊU',
                           style: TextStyle(
-                              fontSize: 11, color: Color(0xFFC4BAEF))),
+                              fontSize: 11, color: AppColors.p200)),
                       const SizedBox(height: 6),
                       Text(_loading ? '…' : money(total),
                           style: const TextStyle(
@@ -209,7 +210,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                               fontSize: 28,
                               fontWeight: FontWeight.w800)),
                       const SizedBox(height: 18),
-                      const Divider(color: Color(0xFF433783)),
+                      const Divider(color: AppColors.p700),
                       Row(children: [
                         Expanded(
                             child: Column(
@@ -217,7 +218,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                                 children: [
                               const Text('Bạn đang nợ',
                                   style: TextStyle(
-                                      color: Color(0xFFC4BAEF), fontSize: 11)),
+                                      color: AppColors.p200, fontSize: 11)),
                               Text(money(_debt['totalToPay'] ?? 0),
                                   style: const TextStyle(
                                       color: pdfRed,
@@ -229,7 +230,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                                 children: [
                               const Text('Bạn được nhận',
                                   style: TextStyle(
-                                      color: Color(0xFFC4BAEF), fontSize: 11)),
+                                      color: AppColors.p200, fontSize: 11)),
                               Text(money(_debt['totalToReceive'] ?? 0),
                                   style: const TextStyle(
                                       color: pdfGreen,
@@ -248,7 +249,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                         Expanded(
                             child: FilledButton(
                                 style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(0xFF493D7E)),
+                                    backgroundColor: AppColors.p700),
                                 onPressed: () => _open(GroupSettlementScreen(
                                     groupId: int.parse(widget.group.id))),
                                 child: const Text('Thanh toán')))
@@ -295,7 +296,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                               Text(
                                   'Bạn: ${money((e['participants'] as List).where((p) => p['userId'] == _user).fold<num>(0, (sum, p) => sum + (p['amount'] as num)))}',
                                   style: const TextStyle(
-                                      fontSize: 10, color: Color(0xFFFFA000)))
+                                      fontSize: 10, color: AppColors.warning))
                             ]),
                         onTap: () => _open(ExpenseReadScreen(expense: e)))),
             ] else if (_tab == 1) ...[

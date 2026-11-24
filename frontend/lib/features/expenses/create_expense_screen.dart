@@ -96,37 +96,37 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
       NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 
   // Danh mục khoản chi
-  final List<CategoryItem> _categories = const [
+  final List<CategoryItem> _categories = [
     CategoryItem(
         id: 'food',
         name: 'Ăn uống',
         icon: Icons.restaurant_rounded,
-        color: Color(0xFFFF7675)),
+        color: AppColors.error),
     CategoryItem(
         id: 'transport',
         name: 'Di chuyển',
         icon: Icons.directions_car_rounded,
-        color: Color(0xFF74B9FF)),
+        color: AppColors.avatarPalette[1]),
     CategoryItem(
         id: 'shopping',
         name: 'Mua sắm',
         icon: Icons.shopping_bag_rounded,
-        color: Color(0xFFA29BFE)),
+        color: AppColors.avatarPalette[3]),
     CategoryItem(
         id: 'entertainment',
         name: 'Giải trí',
         icon: Icons.local_activity_rounded,
-        color: Color(0xFFFD79A8)),
+        color: AppColors.avatarPalette[0]),
     CategoryItem(
         id: 'stay',
         name: 'Khách sạn',
         icon: Icons.hotel_rounded,
-        color: Color(0xFF55E6C1)),
+        color: AppColors.avatarPalette[2]),
     CategoryItem(
         id: 'other',
         name: 'Khác',
         icon: Icons.more_horiz_rounded,
-        color: Color(0xFFB2BEC3)),
+        color: AppColors.n500),
   ];
 
   late CategoryItem _selectedCategory;
@@ -642,7 +642,7 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
             controller: _amountController,
             keyboardType: TextInputType.number,
             style: const TextStyle(
-                color: Color(0xFF6C5CE7),
+                color: AppColors.p500,
                 fontSize: 26,
                 fontWeight: FontWeight.w800),
             decoration:
@@ -689,10 +689,10 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                     avatar: Icon(cat.icon, size: 14),
                     selected: _selectedCategory.id == cat.id,
                     onSelected: (_) => setState(() => _selectedCategory = cat),
-                    selectedColor: const Color(0xFFE6E0FF),
+                    selectedColor: AppColors.p50,
                     backgroundColor: Colors.white,
                     showCheckmark: false,
-                    side: const BorderSide(color: Color(0xFFE8E9EF)),
+                    side: const BorderSide(color: AppColors.n200),
                     padding: const EdgeInsets.symmetric(horizontal: 4)))
                 .toList()),
       ]);
@@ -864,7 +864,7 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                 _splitMode = mode;
                 _recalculateSplit();
               }),
-          selectedColor: const Color(0xFFE6E0FF),
+          selectedColor: AppColors.p50,
           backgroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 3));
 

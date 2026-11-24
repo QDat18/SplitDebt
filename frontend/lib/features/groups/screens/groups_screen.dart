@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../notifications/notification_screen.dart';
 import '../models/group_model.dart';
 import '../providers/group_provider.dart';
@@ -73,7 +74,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
     final groupsAsync = ref.watch(userGroupsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: AppColors.n50,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () => ref.read(userGroupsProvider.notifier).fetchGroups(),
@@ -94,7 +95,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFF111827),
+                          color: AppColors.n800,
                           letterSpacing: -0.5,
                         ),
                       )
@@ -128,7 +129,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
                         icon: const Icon(
                           Icons.search_rounded,
                           size: 28,
-                          color: Color(0xFF111827),
+                          color: AppColors.n800,
                         ),
                         tooltip: 'Tìm kiếm',
                         onPressed: () => setState(() => _isSearching = true),
@@ -156,7 +157,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
                           return Center(
                             child: Text(
                               'Không tìm thấy nhóm phù hợp với "$_searchQuery"',
-                              style: const TextStyle(color: Color(0xFF6B7280)),
+                              style: const TextStyle(color: AppColors.n600),
                             ),
                           );
                         }

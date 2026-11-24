@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/theme/app_colors.dart';
 import 'notification_repository.dart';
 
 class PushNotificationService {
@@ -125,10 +126,10 @@ class PushNotificationService {
     final String? type = message.data['type']?.toString();
 
     final Color bgColor = switch (type) {
-      'SETTLEMENT_CONFIRMED' => const Color(0xFF15803D), // xanh lá đậm
-      'SETTLEMENT_PAID' => const Color(0xFFD97706), // cam
-      'SETTLEMENT_REQUEST' => const Color(0xFF7C3AED), // tím
-      _ => const Color(0xFF4338CA), // tím đậm mặc định
+      'SETTLEMENT_CONFIRMED' => AppColors.success, // xanh lá đậm
+      'SETTLEMENT_PAID' => AppColors.warning, // cam
+      'SETTLEMENT_REQUEST' => AppColors.p500, // tím
+      _ => AppColors.p700, // tím đậm mặc định
     };
 
     final IconData icon = switch (type) {

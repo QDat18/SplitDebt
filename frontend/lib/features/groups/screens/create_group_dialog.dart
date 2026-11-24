@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/theme/app_colors.dart';
 import '../providers/group_provider.dart';
 
 class CreateGroupDialog extends ConsumerStatefulWidget {
@@ -68,7 +69,7 @@ class _CreateGroupDialogState extends ConsumerState<CreateGroupDialog> {
               const Center(
                   child: CircleAvatar(
                       radius: 38,
-                      backgroundColor: Color(0xFFF0EDFF),
+                      backgroundColor: AppColors.p50,
                       child: Text('🌴', style: TextStyle(fontSize: 38)))),
               const SizedBox(height: 32),
               const Text('Tên nhóm',
@@ -98,14 +99,14 @@ class _CreateGroupDialogState extends ConsumerState<CreateGroupDialog> {
               const Card(
                   child: ListTile(
                       leading: CircleAvatar(
-                          backgroundColor: Color(0xFFF0EDFF),
+                          backgroundColor: AppColors.p50,
                           child: Icon(Icons.person_outline,
-                              color: Color(0xFF6C5CE7))),
+                              color: AppColors.p500)),
                       title: Text('Bạn',
                           style: TextStyle(fontWeight: FontWeight.w600)),
                       subtitle: Text('Trưởng nhóm'))),
               const Text('Thêm thành viên bằng email sau khi tạo nhóm.',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF778092))),
+                  style: TextStyle(fontSize: 12, color: AppColors.n600)),
             ])),
         bottomNavigationBar: SafeArea(
             child: Padding(

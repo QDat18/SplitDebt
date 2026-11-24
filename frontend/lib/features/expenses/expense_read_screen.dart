@@ -1,6 +1,7 @@
 // Trách nhiệm file: Thực hiện phần PDF expense detail của nghiệp vụ tạo, xem và chia khoản chi.
 
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/pdf_components.dart';
 import '../../core/network/dio_client.dart';
 
@@ -146,7 +147,7 @@ class _ExpenseReadScreenState extends State<ExpenseReadScreen> {
                   Expanded(
                       child: FilledButton(
                           style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFFFFECEE),
+                              backgroundColor: AppColors.errorTint,
                               foregroundColor: pdfRed),
                           onPressed: _busy ? null : _delete,
                           child: const Text('Xóa')))
@@ -157,7 +158,7 @@ class _ExpenseReadScreenState extends State<ExpenseReadScreen> {
           const Center(
               child: CircleAvatar(
                   radius: 38,
-                  backgroundColor: Color(0xFFF0EDFF),
+                  backgroundColor: AppColors.p50,
                   child: Text('🍲', style: TextStyle(fontSize: 32)))),
           const SizedBox(height: 18),
           Text(expense['title'] ?? '',
@@ -179,12 +180,12 @@ class _ExpenseReadScreenState extends State<ExpenseReadScreen> {
               child: ListTile(
                   leading: PersonBadge(expense['payerName'] ?? ''),
                   title: const Text('Người thanh toán',
-                      style: TextStyle(fontSize: 11, color: pdfMuted)),
+                       style: TextStyle(fontSize: 11, color: pdfMuted)),
                   subtitle: Text(
                       '${expense['payerName']} đã trả ${money(expense['totalAmount'] ?? 0)}',
                       style: const TextStyle(
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF202127))))),
+                          color: AppColors.n800)))),
           const SizedBox(height: 24),
           Text('CHIA CHO ${parts.length} NGƯỜI',
               style: const TextStyle(

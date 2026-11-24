@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/theme/app_colors.dart';
 import '../providers/group_provider.dart';
 
 class AddMemberDialog extends ConsumerStatefulWidget {
@@ -61,7 +62,7 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: const Row(
         children: [
-          Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF6750A4)),
+          Icon(Icons.person_add_alt_1_rounded, color: AppColors.p500),
           SizedBox(width: 10),
           Text(
             'Thêm Thành Viên',

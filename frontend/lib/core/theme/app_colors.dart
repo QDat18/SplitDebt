@@ -42,6 +42,15 @@ class AppColors {
   static const Color info = Color(0xFF3B82F6);
   static const Color infoTint = Color(0xFFDBEAFE);
 
+  // --- AVATAR / DECORATIVE PALETTE ---
+  static const List<Color> avatarPalette = [
+    Color(0xFFFD79A8),
+    Color(0xFF74B9FF),
+    Color(0xFF55E6C1),
+    Color(0xFFA29BFE),
+    Color(0xFFFFA000),
+  ];
+
   // --- GRADIENTS (DẢI MÀU) ---
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topCenter,

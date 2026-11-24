@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/theme/app_colors.dart';
 import 'login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -52,7 +53,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           height: 210,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                              color: const Color(0xFFF0EDFF),
+                              color: AppColors.p50,
                               borderRadius: BorderRadius.circular(32)),
                           child: Text(_pages[_page].$1,
                               style: const TextStyle(fontSize: 86))),
@@ -65,7 +66,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       Text(_pages[_page].$3,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              color: Color(0xFF778092), fontSize: 14)),
+                              color: AppColors.n600, fontSize: 14)),
                       const SizedBox(height: 28),
                       Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -79,8 +80,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   height: 7,
                                   decoration: BoxDecoration(
                                       color: _page == i
-                                          ? const Color(0xFF6C5CE7)
-                                          : const Color(0xFFE0E0EA),
+                                          ? AppColors.p500
+                                          : AppColors.n200,
                                       borderRadius:
                                           BorderRadius.circular(8))))),
                     ]))),
@@ -97,7 +98,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   TextButton(
                       onPressed: _finish,
                       child: Text(_page == 2 ? 'Đăng nhập' : 'Bỏ qua',
-                          style: const TextStyle(color: Color(0xFF778092))))
+                          style: const TextStyle(color: AppColors.n600))),
                 ])),
       ])));
 }

@@ -1,6 +1,7 @@
 // Trách nhiệm file: Cung cấp widget group card có thể tái sử dụng trong giao diện của feature.
 
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/pdf_components.dart';
 import '../models/group_model.dart';
 
@@ -45,26 +46,26 @@ class GroupCard extends StatelessWidget {
 
     // Determine balance text & color matching Figma design
     String balanceText = group.formattedBalance ?? 'Xem nợ';
-    Color balanceColor = const Color(0xFF6B7280);
+    Color balanceColor = AppColors.n600;
 
     if (balance != null) {
       if (balance > 0) {
         balanceText = '+${money(balance)}';
-        balanceColor = const Color(0xFF10B981);
+        balanceColor = AppColors.success;
       } else if (balance < 0) {
         balanceText = money(balance);
-        balanceColor = const Color(0xFFEF4444);
+        balanceColor = AppColors.error;
       } else {
         balanceText = 'Đã cân bằng';
-        balanceColor = const Color(0xFF6B7280);
+        balanceColor = AppColors.n600;
       }
     } else {
       if (balanceText.startsWith('+')) {
-        balanceColor = const Color(0xFF10B981);
+        balanceColor = AppColors.success;
       } else if (balanceText.startsWith('-')) {
-        balanceColor = const Color(0xFFEF4444);
+        balanceColor = AppColors.error;
       } else {
-        balanceColor = const Color(0xFF6B7280);
+        balanceColor = AppColors.n600;
       }
     }
 
@@ -78,7 +79,7 @@ class GroupCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFEEF2F6), width: 1.5),
+        border: Border.all(color: AppColors.n200, width: 1.5),
         boxShadow: const [
           BoxShadow(
             color: Color(0x08000000),
@@ -105,7 +106,7 @@ class GroupCard extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0EDFF),
+                    color: AppColors.p50,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Center(
@@ -124,7 +125,7 @@ class GroupCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF111827),
+                          color: AppColors.n800,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -134,7 +135,7 @@ class GroupCard extends StatelessWidget {
                         '${group.memberCount} thành viên • $timeAgoStr',
                         style: const TextStyle(
                           fontSize: 13,
-                          color: Color(0xFF6B7280),
+                          color: AppColors.n600,
                           fontWeight: FontWeight.w400,
                         ),
                         maxLines: 1,
@@ -207,7 +208,7 @@ class GroupCard extends StatelessWidget {
                         child: const Icon(
                           Icons.more_horiz_rounded,
                           size: 18,
-                          color: Color(0xFF9CA3AF),
+                          color: AppColors.n500,
                         ),
                       ),
                     ],
