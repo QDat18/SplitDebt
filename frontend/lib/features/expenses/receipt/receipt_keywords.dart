@@ -4,6 +4,9 @@ class ReceiptKeywords {
   static const List<String> ignoreAlways = [
     'tien khach dua',
     'khach dua',
+    'khach thanh toan',
+    'khach tra',
+    'da thanh toan',
     'tien thua',
     'tra lai',
     'tien mat',
@@ -51,6 +54,7 @@ class ReceiptKeywords {
     'tong tien hang',
     'tam tinh',
     'cong tien hang',
+    'sub total',
     'subtotal',
   ];
 

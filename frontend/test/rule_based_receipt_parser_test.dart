@@ -141,4 +141,16 @@ void main() {
     expect(parsed.items.length, 1);
     expect(parsed.items.first.name, 'Com tam');
   });
+
+  test('amount paid by customer does not override total', () {
+    final parsed = parser.parse([
+      'QUAN TEST',
+      'Mon A  550.000',
+      'Tổng cộng  550.000',
+      'Khách thanh toán  600.000',
+    ]);
+
+    expect(parsed.totalAmount, 550000);
+    expect(parsed.warnings, isEmpty);
+  });
 }

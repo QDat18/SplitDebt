@@ -91,6 +91,7 @@ class RuleBasedReceiptParser implements ReceiptParser {
     final rawAdjustments = <_RawAdjustment>[];
     int? subtotal;
     int? explicitTotal;
+    var explicitTotalPriority = 0;
     var lastConsumedTextIdx = -1;
 
     bool isMergeableTextRow(int idx) {
@@ -134,7 +135,11 @@ class RuleBasedReceiptParser implements ReceiptParser {
           break;
         case RowKind.total:
           if (tokens.isNotEmpty) {
-            explicitTotal = tokens.last.value;
+            final prio = _totalPriority(row);
+            if (prio >= explicitTotalPriority) {
+              explicitTotalPriority = prio;
+              explicitTotal = tokens.last.value;
+            }
           }
           break;
         case RowKind.vat:
@@ -258,6 +263,16 @@ class RuleBasedReceiptParser implements ReceiptParser {
       amount: amount,
       percent: percent,
     );
+  }
+
+  int _totalPriority(String row) {
+    final norm = normalizeForMatch(row);
+    if (norm.contains('tong thanh toan') || norm.contains('can thanh toan')) {
+      return 4;
+    }
+    if (norm.contains('tong cong')) return 3;
+    if (norm.contains('total') || norm.contains('tong tien')) return 2;
+    return 1;
   }
 
   bool _isMostlyDigits(String s) {

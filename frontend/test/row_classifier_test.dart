@@ -45,4 +45,8 @@ void main() {
     expect(classifyRow('ĐT 0901 234 567', hasMoney: false), RowKind.ignore);
     expect(classifyRow('Tel: 028 3822 1234', hasMoney: false), RowKind.ignore);
   });
+
+  test('"Sub Total" with a space is subtotal', () {
+    expect(classifyRow('Sub Total 300.000', hasMoney: true), RowKind.subtotal);
+  });
 }
