@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +13,7 @@ import 'package:split_debt/features/groups/models/group_model.dart';
 class MockChatRepository implements ChatRepository {
   List<ChatMessage> initialMessages = [];
   Completer<ChatMessage>? sendCompleter;
+  DioException? sendDioException;
   int? markedReadId;
   String? lastSentContent;
   String? lastSentClientMessageId;
@@ -35,6 +37,7 @@ class MockChatRepository implements ChatRepository {
   Future<ChatMessage> send(int groupId, String content, String clientMessageId) async {
     lastSentContent = content;
     lastSentClientMessageId = clientMessageId;
+    if (sendDioException != null) throw sendDioException!;
     if (sendCompleter != null) {
       return sendCompleter!.future;
     }
@@ -279,5 +282,38 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Tin bị từ chối'), findsNothing);
+  });
+
+  testWidgets('HTTP 403 on send hides input bar and shows removed message', (tester) async {
+    final mockRepo = MockChatRepository();
+    mockRepo.sendDioException = DioException(
+      requestOptions: RequestOptions(path: '/groups/10/messages'),
+      response: Response(
+        requestOptions: RequestOptions(path: '/groups/10/messages'),
+        statusCode: 403,
+      ),
+      type: DioExceptionType.badResponse,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          chatRepositoryProvider.overrideWithValue(mockRepo),
+          chatCurrentUserIdProvider.overrideWith((ref) => Future.value(1)),
+        ],
+        child: MaterialApp(
+          home: GroupChatScreen(group: group),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'Hello');
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.send_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TextField), findsNothing);
+    expect(find.text('Bạn không còn là thành viên của nhóm này.'), findsOneWidget);
   });
 }

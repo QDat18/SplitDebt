@@ -70,6 +70,7 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
 
   void _startPolling() {
     _pollTimer?.cancel();
+    if (ref.read(chatNotifierProvider(_groupId)).removed) return;
     _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (mounted) {
         ref.read(chatNotifierProvider(_groupId).notifier).refreshNewer();
@@ -147,6 +148,11 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<ChatState>(chatNotifierProvider(_groupId), (_, next) {
+      if (next.removed) {
+        _stopPolling();
+      }
+    });
     final chatState = ref.watch(chatNotifierProvider(_groupId));
     final currentUserIdAsync = ref.watch(chatCurrentUserIdProvider);
     final currentUserId = currentUserIdAsync.valueOrNull ?? 0;
@@ -254,8 +260,37 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                           },
                         ),
             ),
-            _buildInputBar(),
+            chatState.removed
+                ? _buildRemovedBanner(context)
+                : _buildInputBar(),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRemovedBanner(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: Colors.black.withValues(alpha: 0.08),
+            width: 0.5,
+          ),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Text(
+        context.tr(
+          'Bạn không còn là thành viên của nhóm này.',
+          'You are no longer a member of this group.',
+        ),
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 13,
+          color: AppColors.n500,
         ),
       ),
     );

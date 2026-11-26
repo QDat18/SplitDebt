@@ -13,6 +13,7 @@ class FakeChatRepository implements ChatRepository {
   bool shouldFailSend = false;
   DioException? sendDioException;
   bool shouldFailAfter = false;
+  DioException? afterDioException;
   bool shouldFailLatest = false;
   int latestCallCount = 0;
   int afterCallCount = 0;
@@ -34,6 +35,7 @@ class FakeChatRepository implements ChatRepository {
   @override
   Future<List<ChatMessage>> after(int groupId, int id) async {
     afterCallCount++;
+    if (afterDioException != null) throw afterDioException!;
     if (shouldFailAfter) throw Exception('Network error');
     return mockAfter;
   }
@@ -252,6 +254,40 @@ void main() {
       // removeLocalMessage removes it locally
       notifier.removeLocalMessage(msg.clientMessageId);
       expect(notifier.state.messages, isEmpty);
+    });
+
+    test('refreshNewer HTTP 403 sets removed = true and subsequent refreshNewer is skipped', () async {
+      repo.afterDioException = DioException(
+        requestOptions: RequestOptions(path: '/groups/10/messages'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/groups/10/messages'),
+          statusCode: 403,
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      await notifier.refreshNewer();
+
+      expect(notifier.state.removed, isTrue);
+      expect(repo.afterCallCount, equals(1));
+
+      await notifier.refreshNewer();
+      expect(repo.afterCallCount, equals(1));
+    });
+
+    test('send HTTP 403 sets removed = true', () async {
+      repo.sendDioException = DioException(
+        requestOptions: RequestOptions(path: '/groups/10/messages'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/groups/10/messages'),
+          statusCode: 403,
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      await notifier.send('Hello?');
+
+      expect(notifier.state.removed, isTrue);
     });
   });
 }

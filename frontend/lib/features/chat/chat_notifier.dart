@@ -13,6 +13,7 @@ class ChatState {
   final bool loadingOlder;
   final bool hasMore;
   final String? error;
+  final bool removed;
 
   const ChatState({
     this.messages = const [],
@@ -20,6 +21,7 @@ class ChatState {
     this.loadingOlder = false,
     this.hasMore = false,
     this.error,
+    this.removed = false,
   });
 
   int? get newestServerId {
@@ -40,6 +42,7 @@ class ChatState {
     bool? loadingOlder,
     bool? hasMore,
     String? error,
+    bool? removed,
   }) {
     return ChatState(
       messages: messages ?? this.messages,
@@ -47,6 +50,7 @@ class ChatState {
       loadingOlder: loadingOlder ?? this.loadingOlder,
       hasMore: hasMore ?? this.hasMore,
       error: error,
+      removed: removed ?? this.removed,
     );
   }
 }
@@ -124,7 +128,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
   }
 
   Future<void> refreshNewer() async {
-    if (state.loadingInitial || _isRefreshingNewer) return;
+    if (state.loadingInitial || _isRefreshingNewer || state.removed) return;
     if (state.newestServerId == null && state.error != null) {
       await loadInitial();
       return;
@@ -139,14 +143,17 @@ class ChatNotifier extends StateNotifier<ChatState> {
           messages: mergeMessages(state.messages, newMsgs),
         );
       }
-    } catch (_) {
-      // Silent on poll error
+    } catch (e) {
+      if (mounted && e is DioException && e.response?.statusCode == 403) {
+        state = state.copyWith(removed: true);
+      }
     } finally {
       _isRefreshingNewer = false;
     }
   }
 
   Future<void> send(String text) async {
+    if (state.removed) return;
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
 
@@ -216,15 +223,21 @@ class ChatNotifier extends StateNotifier<ChatState> {
   void _markSendFailure(String clientMessageId, Object error) {
     ChatStatus status = ChatStatus.failed;
     String? errorMessage;
-    if (error is DioException && error.response?.statusCode == 400) {
-      status = ChatStatus.rejected;
-      final data = error.response?.data;
-      if (data is Map &&
-          data['message'] is String &&
-          (data['message'] as String).isNotEmpty) {
-        errorMessage = data['message'] as String;
-      } else {
-        errorMessage = 'Tin nhắn không hợp lệ';
+    bool removed = state.removed;
+    if (error is DioException) {
+      final code = error.response?.statusCode;
+      if (code == 403) {
+        removed = true;
+      } else if (code == 400) {
+        status = ChatStatus.rejected;
+        final data = error.response?.data;
+        if (data is Map &&
+            data['message'] is String &&
+            (data['message'] as String).isNotEmpty) {
+          errorMessage = data['message'] as String;
+        } else {
+          errorMessage = 'Tin nhắn không hợp lệ';
+        }
       }
     }
     final updated = state.messages.map((m) {
@@ -233,7 +246,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
       }
       return m;
     }).toList();
-    state = state.copyWith(messages: updated);
+    state = state.copyWith(messages: updated, removed: removed);
   }
 
   void removeLocalMessage(String clientMessageId) {
