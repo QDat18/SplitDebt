@@ -156,3 +156,4 @@ class GroupChatPushServiceTest {
         assertEquals("555", data.get("messageId"));
     }
 }
+

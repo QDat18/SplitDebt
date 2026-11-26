@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/localization/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../notifications/notification_screen.dart';
@@ -111,7 +112,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
     return Scaffold(
       backgroundColor: AppColors.n100,
       appBar: AppBar(
-        title: const Text('Nhóm'),
+        title: Text(context.tr('Nhóm', 'Groups')),
         backgroundColor: AppColors.n100,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -122,7 +123,9 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
               _isSearching ? Icons.close_rounded : Icons.search_rounded,
               color: AppColors.n800,
             ),
-            tooltip: _isSearching ? 'Đóng tìm kiếm' : 'Tìm kiếm nhóm',
+            tooltip: _isSearching
+                ? context.tr('Đóng tìm kiếm', 'Close search')
+                : context.tr('Tìm kiếm nhóm', 'Search groups'),
             onPressed: () {
               setState(() {
                 _isSearching = !_isSearching;
@@ -139,7 +142,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
               color: AppColors.p500,
               size: 24,
             ),
-            tooltip: 'Tham gia nhóm',
+            tooltip: context.tr('Tham gia nhóm', 'Join group'),
             onPressed: () => JoinGroupDialog.show(context),
           ),
           IconButton(
@@ -148,7 +151,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen>
               color: AppColors.p500,
               size: 28,
             ),
-            tooltip: 'Tạo nhóm mới',
+            tooltip: context.tr('Tạo nhóm mới', 'Create group'),
             onPressed: _openCreateGroupDialog,
           ),
           const SizedBox(width: 4),

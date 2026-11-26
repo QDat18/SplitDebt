@@ -1,6 +1,7 @@
 // Trách nhiệm file: Điều phối bố cục chính và thanh điều hướng giữa các khu vực sau đăng nhập.
 
 import 'package:flutter/material.dart';
+import 'core/localization/app_strings.dart';
 import 'core/theme/app_colors.dart';
 import 'features/home/dashboard_screen.dart';
 import 'features/groups/screens/groups_screen.dart';
@@ -56,26 +57,26 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           unselectedFontSize: 10,
           iconSize: 22,
           elevation: 0,
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard),
-              label: 'Trang chủ',
+              icon: const Icon(Icons.dashboard_outlined),
+              activeIcon: const Icon(Icons.dashboard),
+              label: context.tr('Trang chủ', 'Home'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people),
-              label: 'Nhóm',
+              icon: const Icon(Icons.people_outline),
+              activeIcon: const Icon(Icons.people),
+              label: context.tr('Nhóm', 'Groups'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.history_outlined),
-              activeIcon: Icon(Icons.history),
-              label: 'Lịch sử',
+              icon: const Icon(Icons.history_outlined),
+              activeIcon: const Icon(Icons.history),
+              label: context.tr('Lịch sử', 'History'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Cá nhân',
+              icon: const Icon(Icons.person_outline),
+              activeIcon: const Icon(Icons.person),
+              label: context.tr('Cá nhân', 'Profile'),
             ),
           ],
         ),

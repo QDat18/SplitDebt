@@ -91,12 +91,11 @@ class GroupJoinTest {
                 .build();
 
         when(groupMemberRepository.findByGroupIdAndUserId(100L, 2L)).thenReturn(Optional.of(existingMember));
-        when(groupMemberRepository.countByGroupId(100L)).thenReturn(2);
 
-        GroupResponseDto result = groupService.joinGroupByInviteCode("INVITE12345678901234", 2L);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                groupService.joinGroupByInviteCode("INVITE12345678901234", 2L));
 
-        assertNotNull(result);
-        assertEquals(GroupRole.ADMIN, result.getCurrentUserRole());
+        assertEquals("Bạn đã ở trong nhóm này rồi", ex.getMessage());
         verify(groupMemberRepository, never()).save(any());
     }
 

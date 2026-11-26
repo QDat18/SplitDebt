@@ -3,3 +3,4 @@
 class ActiveChat {
   static int? groupId;
 }
+

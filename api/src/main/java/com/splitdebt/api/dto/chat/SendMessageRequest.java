@@ -4,3 +4,4 @@ public record SendMessageRequest(
         String content,
         String clientMessageId
 ) {}
+

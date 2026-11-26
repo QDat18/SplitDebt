@@ -64,6 +64,20 @@ class _JoinGroupDialogState extends ConsumerState<JoinGroupDialog> {
       return;
     }
 
+    final existingGroups = ref.read(userGroupsProvider).valueOrNull ?? [];
+    final alreadyInGroup = existingGroups.any(
+      (g) =>
+          (g.inviteCode != null && g.inviteCode == inviteCode) ||
+          g.id == inviteCode,
+    );
+    if (alreadyInGroup) {
+      HapticFeedback.heavyImpact();
+      setState(() {
+        _errorMessage = 'Bạn đã ở trong nhóm này rồi';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;

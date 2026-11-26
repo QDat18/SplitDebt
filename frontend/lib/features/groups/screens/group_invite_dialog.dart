@@ -32,10 +32,14 @@ class GroupInviteDialog extends StatelessWidget {
     final inviteUrl = InviteCodeParser.buildInviteUrl(inviteCode);
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
           children: [
             // iOS drag indicator
             Container(
@@ -203,6 +207,7 @@ class GroupInviteDialog extends StatelessWidget {
             ),
             const SizedBox(height: 10),
           ],
+        ),
         ),
       ),
     );

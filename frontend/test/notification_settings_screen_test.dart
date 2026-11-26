@@ -61,3 +61,4 @@ void main() {
     expect(fake.prefs.notifyOnGroupMessage, isFalse);
   });
 }
+

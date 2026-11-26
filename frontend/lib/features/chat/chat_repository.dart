@@ -78,3 +78,4 @@ class DioChatRepository implements ChatRepository {
     );
   }
 }
+

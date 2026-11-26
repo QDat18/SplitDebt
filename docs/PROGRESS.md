@@ -1,17 +1,14 @@
 # SplitDebt Progress Tracking
 
-- **Status**: Hoàn thành toàn bộ 6 Tasks tính năng Nhắn tin nhóm (Group Chat).
+- **Status**: Hoàn thành sửa lỗi post-login/QR/FCM, chuyển đổi ngôn ngữ VI/EN và lập plan OCR.
 - **Done**:
-  - Task 1: Backend lưu, gửi và lấy tin nhắn nhóm (REST API, idempotent clientMessageId, phân trang cursor, 8 tests).
-  - Task 2: Đánh dấu đã đọc (`markRead`), đếm số tin chưa đọc (`unreadMessageCount`), dọn dẹp tin nhắn khi xoá nhóm (13 tests).
-  - Task 3: Push tin mới qua FCM cho thành viên khác người gửi, tuỳ chọn tắt trong UserSetting (18 tests).
-  - Task 4: App — tầng dữ liệu và logic chat: `ChatMessage`, `uuidV4`, `ChatRepository`, `mergeMessages`, `buildChatRows`, `ChatNotifier` (10 tests).
-  - Task 5: App — màn chat `GroupChatScreen` HIG, lối vào AppBar, badge số tin chưa đọc trên card/chi tiết nhóm, suppress push foreground khi đang chat.
-  - Task 6: App — công tắc "Tin nhắn nhóm" trong cài đặt thông báo, lưu trữ qua `UserPreferences` (64 tests).
-  - Khắc phục lỗi tương thích constructor `GroupResponseDto`.
+  - Sửa `DashboardScreen` (`valueOrNull`) + invalidate `userGroupsProvider` khi đăng nhập; sửa `FcmTokenService` chống lỗi trùng token; sửa `GroupInviteDialog` hết tràn màn hình ngang.
+  - Sửa `joinGroupByInviteCode` (backend + `JoinGroupDialog`) báo đúng khi đã ở trong nhóm.
+  - Tính năng đa ngôn ngữ Tiếng Việt / English (`LocaleNotifier`, `AppLocaleScope`, `LanguageSettingsScreen`, `ProfileScreen`, `MainLayoutScreen`, `DashboardScreen`, `GroupsScreen`, `GroupChatScreen`, `HistoryScreen`).
+  - Lập kế hoạch OCR tại `docs/superpowers/plans/2026-11-25-receipt-ocr.md`.
 - **Verification**:
   - Backend: 72/72 tests passed (`mvnw test`).
-  - Frontend: 64/64 tests passed (`flutter test`).
-- **In progress**: Hoàn tất bàn giao và hướng dẫn người dùng.
-- **Next**: Khởi động lại backend server để áp dụng các thay đổi mới nhất.
+  - Frontend: 67/67 tests passed (`flutter test`).
+- **In progress**: Chờ chốt phương án OCR (không dùng DeepSeek / API key trả phí).
+- **Next**: Cập nhật plan OCR sang ML Kit + Rule-based Parser (nếu được duyệt) và triển khai.
 - **Blockers**: Không có.

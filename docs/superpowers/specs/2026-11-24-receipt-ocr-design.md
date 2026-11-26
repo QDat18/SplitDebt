@@ -1,162 +1,138 @@
-# Thiết kế: Quét hoá đơn (OCR + AI đọc hiểu)
+# Thiết kế: Quét hoá đơn (OCR trên máy + bộ phân tích quy tắc)
 
-**Ngày:** 2026-11-24 · **Trạng thái:** chờ duyệt · **Thay thế:** phần kiến trúc trong `OCR.md` (Cloud Vision + regex)
+**Ngày:** 2026-11-24 · **Cập nhật:** 2026-11-26 (bỏ DeepSeek, chuyển sang bộ phân tích quy tắc chạy trong app) · **Trạng thái:** đã duyệt hướng đi
+**Thay thế:** phần kiến trúc trong `OCR.md` (Cloud Vision + regex trên server)
 
 ## 1. Mục đích
 
 Người dùng chụp hoặc chọn ảnh hoá đơn quán ăn thật. App tự điền tên quán, ngày, danh sách món và giá vào màn "Tạo khoản chi" ở chế độ **Chia theo món**. Người dùng xem lại, sửa, gán món cho từng người rồi tự bấm lưu.
 
-- **Để làm gì:** đây là tính năng "wow" khi bảo vệ đồ án. Nó cũng giúp người dùng thật bỏ qua việc gõ tay từng món khi app lên CH Play và App Store.
-- **Thế nào là thành công:** demo trên điện thoại cắm USB, quét hoá đơn quán ăn thật. Trong vài giây, danh sách món hiện ra gần đúng, tổng khớp với hoá đơn, và lưu được ngay sau khi gán người.
+Thành công khi: demo trên điện thoại cắm USB, quét hoá đơn in nhiệt của quán thật. Danh sách món hiện ra gần đúng, tổng khớp hoá đơn (hoặc có cảnh báo rõ ràng khi lệch), và lưu được ngay sau khi gán người.
+
+Khi thuyết trình, gọi tính năng là **"OCR trên thiết bị + bộ phân tích quy tắc"**. Đây không phải AI.
 
 ## 2. Mục tiêu / Không làm / Thất bại dù chạy được
 
 **Mục tiêu**
-- Chạy được trên Android và iOS, cùng một luồng.
+- Chạy được trên Android và iOS. **Hoàn toàn offline, chi phí 0 đồng,** không gọi mạng ra ngoài, không cần API key.
 - Đọc được: tên quán, ngày, các món (tên, số lượng, đơn giá, thành tiền), VAT, phí dịch vụ, giảm giá, tổng tiền.
-- Điền sẵn vào chế độ Chia theo món sao cho **tổng các món bằng tổng hoá đơn**, để qua được validation hiện có ở cả app và backend.
-- Chi phí AI gần như bằng 0. API key chỉ nằm trên server.
+- Điền sẵn vào chế độ Chia theo món sao cho **tổng các món bằng tổng hoá đơn**.
+- **Đo được độ chính xác** trên bộ hoá đơn thật (mục 6), không dùng con số đoán.
 
-**Không làm (lần này)**
-- Không lưu ảnh hoá đơn lên server (trường `receiptUrl` để trống).
-- Không tự gán món cho người.
-- Không hỗ trợ hoá đơn nhiều trang hay nhiều ảnh, không xử lý PDF.
-- Không chạy model AI trên điện thoại, không dùng ONNX.
+**Không làm**
+- Không dùng LLM hay dịch vụ AI bên ngoài, không có endpoint backend, không có quota.
+- Không lưu ảnh hoá đơn. Không tự gán món cho người. Không hỗ trợ hoá đơn nhiều ảnh hay PDF.
 
-**Thất bại dù kỹ thuật vẫn chạy**
+**Thất bại dù chạy được**
 - Tự lưu khoản chi mà người dùng chưa xác nhận.
 - Điền xong nhưng bấm lưu bị lỗi "tổng các món phải bằng tổng khoản chi".
-- Lộ API key DeepSeek trong APK hoặc IPA.
-- Một người spam quét làm cạn tiền API.
+- Lấy "Tiền khách đưa" hoặc "Tiền thừa" làm tổng hoá đơn.
+- Coi số trong tên món ("Bia 333") là giá hay số lượng.
 - Mất dữ liệu đã nhập tay khi quét lỗi.
+- Hiển thị kết quả sai mà không cảnh báo, khi tổng các món lệch tổng hoá đơn.
 
 ## 3. Ràng buộc
 
-- Backend: Spring Boot 3.3.0, Java 17. App: Flutter, Riverpod 2.5, Dio.
-- DeepSeek API chỉ nhận văn bản. Đây là giả định cần xác minh trong Bước 0. Vì vậy OCR phải chạy trên điện thoại.
-- Backend sẽ deploy lên server công khai, vì app phát hành trên store. Khi demo bằng USB, dùng `adb reverse tcp:8081 tcp:8081`.
-- App đã bắt buộc tổng món bằng tổng tiền (`create_expense_screen.dart:266-277`), và backend `ExpenseServiceImpl.validateItems` cũng kiểm tra như vậy.
-- Model món trong app (`ExpenseItemDetail`) chỉ có `name`, `price`, `assignedMemberIds`. App luôn gửi `quantity: 1`.
-- Chữ trên hoá đơn được gửi tới DeepSeek (bên thứ ba). Khi lên store, phải ghi việc này vào chính sách quyền riêng tư, vào mục Data safety của CH Play và vào privacy label của App Store.
-- Dependency mới được phép, chỉ cho tính năng này: `image_picker`, `google_mlkit_text_recognition` (Flutter). Backend **không** thêm SDK mới; gọi DeepSeek bằng `RestClient` có sẵn trong Spring 6.1.
+- Flutter, Riverpod 2.5. Dependency mới được phép duy nhất là `google_mlkit_text_recognition`; `image_picker` đã có.
+- App đã bắt buộc tổng món bằng tổng tiền (`create_expense_screen.dart`, khoảng dòng 266-277), và backend `ExpenseServiceImpl.validateItems` cũng kiểm tra như vậy.
+- Model món trong app (`ExpenseItemDetail`) chỉ có `name`, `price`, `assignedMemberIds`.
+- ML Kit nhận diện chữ chạy trên máy và miễn phí. Model Latin làm app nặng thêm vài MB.
 
 ## 4. Các phương án đã cân nhắc
 
 | Phương án | Ưu | Nhược | Kết luận |
 |---|---|---|---|
-| Cloud Vision + regex (OCR.md cũ) | Có toạ độ chữ tốt | Phải bật Billing; regex vỡ với hoá đơn thật | Loại: người dùng chọn AI đọc hiểu |
-| Gửi ảnh → backend → Claude (Opus/Haiku) | Chính xác nhất, ít code | Tốn tiền theo lượt quét | Loại: người dùng thấy đắt |
-| Model local (PaddleOCR + Ollama, hoặc ONNX trên máy) | Miễn phí | Không phục vụ được người dùng store; LLM trên điện thoại không thực tế | Loại |
-| **ML Kit trên máy → chữ → backend → DeepSeek → JSON** | OCR miễn phí, offline; AI rẻ vì chỉ gửi chữ; key ở server | Hoá đơn mờ hoặc nhàu đọc kém hơn; dấu tiếng Việt cần thử | **Đã chọn** |
+| Cloud Vision + regex (OCR.md cũ) | Toạ độ chữ tốt | Phải bật Billing | Loại |
+| Gửi ảnh cho Claude | Chính xác nhất | Tốn tiền theo lượt | Loại: chi phí |
+| ML Kit + DeepSeek trên backend (bản thiết kế trước) | Hiểu hoá đơn lạ tốt | Cần API key, quota, chuyển dữ liệu ra nước ngoài, phải có đồng ý riêng | Loại: chi phí, quyền riêng tư, độ phức tạp |
+| Model local (PaddleOCR/ONNX/LLM trên máy) | Miễn phí | Nặng, chậm, công sức lớn | Loại |
+| **ML Kit + bộ phân tích quy tắc bằng Dart trong app** | 0 đồng, offline, dữ liệu không rời máy, test được bằng unit test | Kém hơn LLM với hoá đơn lệch cột nặng hoặc viết tắt lạ | **Đã chọn** |
 
-## 5. Thiết kế
+Có interface `ReceiptParser` để sau này thêm bản cài dùng LLM mà không phải sửa luồng.
+
+## 5. Thiết kế (toàn bộ nằm trong `frontend/lib/features/expenses/receipt/`)
 
 ### 5.1 Luồng
 
 ```
-[App] Quét bill → chọn Camera/Thư viện (image_picker)
-   → ML Kit TextRecognizer(script: latin) → RecognizedText (blocks/lines + boundingBox)
-   → gom dòng theo toạ độ Y → List<String> rows (trái→phải, trên→dưới)
-   → POST /api/v1/receipts/parse {rows}
-[Backend] ReceiptController → ReceiptService
-   → kiểm tra quota → DeepSeekClient (JSON mode) → validate + chuẩn hoá → ReceiptParseResponse
-[App] Hiện màn xem trước kết quả → "Dùng kết quả" → điền vào form Chia theo món
+Bấm "Quét hoá đơn" → chọn Camera hoặc Thư viện (image_picker)
+ → ML Kit TextRecognizer(script: latin) → các TextLine kèm boundingBox
+ → buildReceiptRows(lines) → List<String> rows
+ → RuleBasedReceiptParser.parse(rows) → ParsedReceipt
+ → ReceiptPreviewSheet (xem trước, có cảnh báo) → "Dùng kết quả"
+ → ReceiptApplier.apply(parsed, now) → điền vào form Chia theo món
 ```
 
-### 5.2 App: gom dòng (`receipt_text_rows.dart`, hàm thuần, test được)
+### 5.2 Gom dòng: `buildReceiptRows(List<OcrLine> lines) → List<String>`
 
-Hoá đơn thường có tên món bên trái và giá bên phải, nhưng ML Kit có thể tách chúng thành hai block khác nhau. Cách xử lý:
-- Lấy mọi `TextLine` kèm `boundingBox`.
-- Sắp theo tâm Y.
-- Hai line thuộc cùng một hàng nếu chênh tâm Y nhỏ hơn `0.5 × chiều cao trung bình của line`.
-- Trong mỗi hàng, sắp theo X rồi nối bằng `"  "` (hai dấu cách).
+`OcrLine {String text; double top, bottom, left;}` là kiểu riêng, để test không phụ thuộc ML Kit.
 
-Kết quả là `List<String>`, mỗi phần tử một hàng. Bỏ hàng rỗng. Tối đa 150 hàng, mỗi hàng tối đa 200 ký tự.
+- Sắp các line theo tâm Y. Hai line thuộc cùng một hàng nếu chênh tâm Y nhỏ hơn `0.5 × chiều cao trung bình`.
+- Trong mỗi hàng, sắp theo X rồi nối bằng `"  "` (2 dấu cách).
+- Bỏ hàng rỗng. Tối đa 150 hàng, mỗi hàng tối đa 200 ký tự.
 
-Hàm có signature `List<String> buildReceiptRows(List<OcrLine> lines)`, trong đó `OcrLine {String text; double top, bottom, left;}` là kiểu riêng để test không phụ thuộc ML Kit.
+### 5.3 Kết quả phân tích: `ParsedReceipt`
 
-### 5.3 Backend: API
-
-`POST /api/v1/receipts/parse` (cần JWT)
-
-Request:
-```json
-{ "rows": ["NHÀ HÀNG ABC", "Thịt bò ba chỉ  2  120.000  240.000", "VAT 8%  25.600", "TỔNG CỘNG  345.600"] }
-```
-
-Response 200, theo envelope `ApiResponse` giống các controller khác:
-```json
-{
-  "storeName": "Nhà hàng ABC",
-  "receiptDate": "2026-10-07",
-  "currency": "VND",
-  "items": [
-    { "name": "Thịt bò ba chỉ", "quantity": 2, "unitPrice": 120000, "totalPrice": 240000 }
-  ],
-  "adjustments": [
-    { "type": "VAT", "label": "VAT 8%", "amount": 25600 },
-    { "type": "DISCOUNT", "label": "Giảm giá thành viên", "amount": -10000 }
-  ],
-  "totalAmount": 345600,
-  "warnings": ["Tổng các món và phụ phí lệch 1.000đ so với tổng hoá đơn"]
+```dart
+class ParsedReceipt {
+  String? storeName; DateTime? receiptDate;
+  List<ParsedItem> items;              // ParsedItem {String name; int quantity; int? unitPrice; int totalPrice;}
+  List<ParsedAdjustment> adjustments;  // ParsedAdjustment {AdjustmentType type; String label; int amount;}  // DISCOUNT âm
+  int? subtotal;                       // "Tổng tiền hàng", "Tạm tính", "Cộng tiền hàng"
+  int totalAmount;                     // tổng cuối
+  List<String> warnings;
 }
+enum AdjustmentType { vat, service, discount, other }
 ```
 
-- `type` ∈ `VAT | SERVICE | DISCOUNT | OTHER`. `DISCOUNT` luôn âm, các loại khác dương.
-- Tiền là số (`BigDecimal`), không có dấu phân cách.
-- `storeName`, `receiptDate` có thể là `null`.
+Tiền là số nguyên VND.
 
-Lỗi:
-| Mã | Khi nào | Thông báo (tiếng Việt) |
-|---|---|---|
-| 400 | `rows` rỗng hoặc quá giới hạn | "Không đọc được chữ trên ảnh. Hãy chụp rõ hơn." |
-| 422 | AI không tìm thấy món nào hoặc JSON không hợp lệ sau 1 lần thử lại | "Không nhận ra hoá đơn. Hãy thử ảnh khác hoặc nhập tay." |
-| 429 | Vượt quota ngày | "Bạn đã dùng hết lượt quét hôm nay (20 lượt)." |
-| 503 | DeepSeek lỗi, timeout, hoặc chưa cấu hình key | "Dịch vụ quét đang bận. Vui lòng thử lại sau." |
+### 5.4 Bộ phân tích quy tắc: `RuleBasedReceiptParser implements ReceiptParser`
 
-### 5.4 Backend: các thành phần
+Các bước chạy theo thứ tự. Mỗi bước là một hàm thuần, test riêng được.
 
-- `ReceiptController`: chỉ nhận request, lấy user hiện tại, gọi service, bọc `ApiResponse`.
-- `ReceiptService`: điều phối 4 việc: kiểm tra quota → gọi extractor → validate và chuẩn hoá → tăng quota (chỉ khi thành công).
-- `ReceiptExtractor` (interface): `ReceiptParseResponse extract(List<String> rows)`. Bản cài: `DeepSeekReceiptExtractor`. Interface này cho phép sau này đổi nhà cung cấp mà không sửa service.
-- `DeepSeekReceiptExtractor`: `RestClient` gọi `POST {base-url}/chat/completions`, `model` lấy từ cấu hình, `response_format: {"type":"json_object"}`, `temperature: 0`.
-  - System prompt mô tả đúng schema ở 5.3, quy tắc tiền Việt ("120.000" và "120,000" đều là 120000), và yêu cầu bỏ qua địa chỉ, SĐT, số bàn, mã hoá đơn.
-  - Timeout 20 giây.
-  - JSON parse lỗi thì thử lại 1 lần, vẫn lỗi thì trả 422.
-- `ReceiptNormalizer` (hàm thuần, test kỹ nhất):
-  - Bỏ món có `totalPrice ≤ 0` hoặc tên rỗng.
-  - Nếu thiếu `totalPrice` thì tính `quantity × unitPrice`.
-  - Ép dấu của adjustment theo `type`.
-  - Làm tròn về số nguyên (VND).
-  - Nếu `totalAmount` null thì gán bằng tổng món cộng tổng adjustment.
-  - Nếu `|tổng món + tổng adjustment − totalAmount| > 1000` thì thêm warning.
-  - Không còn món nào thì ném lỗi 422.
-- `OcrUsage` (entity, bảng `ocr_usage`): `userId`, `usageDate` (LocalDate), `count`, ràng buộc unique trên (`userId`, `usageDate`). Quota mặc định **20 lượt/người/ngày**.
-- Cấu hình trong `application.yaml`, giá trị lấy từ biến môi trường:
-  ```yaml
-  app.receipt:
-    deepseek-api-key: ${DEEPSEEK_API_KEY:}
-    deepseek-base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
-    deepseek-model: ${DEEPSEEK_MODEL:deepseek-chat}
-    daily-quota: ${RECEIPT_DAILY_QUOTA:20}
-  ```
-  Key rỗng thì endpoint trả 503; ứng dụng vẫn khởi động bình thường.
-- 422/429/503 cần exception riêng (ví dụ `ReceiptUnreadableException`, `ReceiptQuotaExceededException`, `ReceiptServiceUnavailableException`) và handler tương ứng trong `GlobalExceptionHandler`, trả `ApiResponse.error(code, message)`.
-- Không log nội dung `rows` hay phản hồi AI ở mức INFO, vì hoá đơn có thể chứa tên hoặc SĐT. Chỉ log độ dài và thời gian xử lý.
+1. **Chuẩn hoá hàng:** bỏ dấu tiếng Việt và đưa về chữ thường để so khớp từ khoá (`normalizeForMatch`), nhưng giữ bản gốc để hiển thị tên món.
+2. **Đọc số tiền** (`parseMoneyTokens(row) → List<MoneyToken>`), lấy từ phải sang trái:
+   - nhận các dạng `120.000`, `120,000`, `120 000`, `120000`, `45k`, `45K`, `1.250.000đ`, `1,250,000 VND`;
+   - sửa lỗi OCR **chỉ trong token đã giống số**: `O`/`o`→`0`, `l`/`I`→`1`, `S`→`5`, `B`→`8`;
+   - token có phần lẻ thập phân kiểu `12.5` **không** được coi là tiền;
+   - số tiền hợp lệ khi từ 1.000 tới 100.000.000.
+3. **Phân loại hàng** theo từ khoá (so trên chuỗi đã chuẩn hoá). Thứ tự ưu tiên:
+   - **Bỏ qua:** `tien khach dua`, `khach dua`, `tien thua`, `tra lai`, `tien mat`, `chuyen khoan`, `the`, `don gia`, `thanh tien` khi hàng **không** có số tiền (đó là dòng tiêu đề cột), `sl`, `ban`, `gio vao`, `gio ra`, `thu ngan`, `nhan vien`, `hotline`, `dt:`, `sdt`, `mst`, `dia chi`, `wifi`, `cam on`, `hen gap lai`, `so hd`, `ma hd`, `hoa don`;
+   - **Tổng cuối:** `tong thanh toan`, `thanh toan`, `tong cong`, `tong tien`, `total`, `can thanh toan`;
+   - **Tạm tính:** `tong tien hang`, `tam tinh`, `cong tien hang`, `subtotal`;
+   - **VAT:** `vat`, `thue`. Hàng có `da bao gom` hoặc `included` thì **bỏ qua**, không cộng VAT thêm;
+   - **Phí dịch vụ:** `phi dich vu`, `service`, `phi phuc vu`;
+   - **Giảm giá:** `giam gia`, `chiet khau`, `khuyen mai`, `discount`, `voucher`. Nếu có `%` mà không có số tiền thì quy ra tiền theo tạm tính, nếu không có tạm tính thì theo tổng các món;
+   - **Món:** hàng còn lại có ít nhất 1 số tiền và có phần chữ (≥ 2 chữ cái) ở bên trái số tiền đầu tiên.
+4. **Tách món** (`parseItemRow`):
+   - số tiền cuối cùng là `totalPrice`;
+   - nếu có số tiền kế cuối và `số lượng × số tiền kế cuối ≈ totalPrice` (lệch ≤ 1.000) thì đó là `unitPrice`;
+   - **số lượng** là số nguyên nhỏ từ 1 tới 99, đứng ngay trước các số tiền hoặc dạng `x2`/`2x`. Không có thì bằng 1;
+   - **tên món** là phần chữ bên trái phần số. Số dính liền với chữ trong tên (`Bia 333`, `Combo 2 người`, `Lẩu 3 ngăn`) **thuộc về tên** nếu nó đứng trước một chữ cái, hoặc nếu không thoả quy tắc số lượng × đơn giá.
+5. **Gộp tên món xuống dòng:** hàng không có số tiền, không khớp từ khoá nào, nằm **ngay trên** một hàng món, có từ 2 tới 40 ký tự, không phải tên quán, thì nối vào đầu tên món đó.
+6. **Tên quán:** trong 5 hàng đầu, lấy hàng đầu tiên có từ 4 ký tự chữ trở lên và không khớp từ khoá bỏ qua, SĐT, địa chỉ hay ngày.
+7. **Ngày:** regex `dd/MM/yyyy`, `dd-MM-yyyy`, `dd.MM.yyyy`, `dd/MM/yy` trên toàn bộ hoá đơn, lấy kết quả đầu tiên hợp lệ.
+8. **Tổng và tự kiểm tra:**
+   - `totalAmount` = số tiền trên hàng tổng cuối cùng (nằm thấp nhất).
+   - Không có hàng tổng thì `totalAmount` = tổng món + tổng adjustment, kèm warning "Không tìm thấy dòng tổng, đã cộng từ các món.".
+   - Nếu `|Σ món + Σ adjustment − totalAmount| > 1.000` thì thêm warning "Tổng các món lệch {x}đ so với tổng hoá đơn. Hãy kiểm tra lại.".
+   - Nếu có `subtotal` và `|Σ món − subtotal| > 1.000` thì thêm warning về tạm tính.
+   - Không có món nào thì ném `ReceiptUnreadable("Không nhận ra món nào trên hoá đơn. Hãy chụp rõ hơn hoặc nhập tay.")`.
 
-### 5.5 App: điền vào form
+Danh sách từ khoá đặt trong một file hằng (`receipt_keywords.dart`) để bổ sung dần khi gặp hoá đơn mới.
 
-`ReceiptApplier` (hàm thuần trong `features/expenses/receipt/`), test kỹ:
-- **Phân bổ adjustment vào món theo tỉ lệ thành tiền.** Mỗi món nhận `round(totalAdjustment × totalPrice_i / Σ totalPrice)`. Phần dư do làm tròn cộng vào món đắt nhất. Nhờ vậy `Σ price == totalAmount` chính xác đến từng đồng.
-- Mỗi món thành một `ExpenseItemDetail(name: <tên> hoặc "<tên> x<qty>" nếu qty > 1, price: <giá đã phân bổ>, assignedMemberIds: [])`.
-- Sau khi điền:
-  - `_totalAmount = totalAmount`.
-  - `_titleController` = `storeName` (nếu trống thì `"Hoá đơn dd/MM"`).
-  - `_expenseDate` = `receiptDate` nếu có và không nằm ở tương lai.
-  - `_splitMode = SplitMode.item`.
-- Nếu form đang có món nhập tay, hỏi trước khi ghi đè: "Thay danh sách món hiện tại bằng kết quả quét?"
+### 5.5 Điền vào form: `ReceiptApplier.apply(ParsedReceipt, DateTime now) → AppliedReceipt`
 
-### 5.6 App: màn xem trước (bottom sheet)
+`AppliedReceipt {List<ExpenseItemDetail> items; int totalAmount; String title; DateTime? expenseDate;}`
+
+- **Phân bổ adjustment vào món theo tỉ lệ thành tiền.** Mỗi món nhận `round(Σadj × totalPrice_i / Σ totalPrice)`. Phần dư do làm tròn cộng vào món đắt nhất. Nhờ vậy `Σ price == totalAmount` chính xác.
+- **Nếu còn lệch giữa tổng món sau phân bổ và `totalAmount`** (do bộ phân tích bỏ sót món), **không** tự dồn tiền. Dùng `Σ price` làm `totalAmount` của form, để form luôn hợp lệ. Màn xem trước đã cảnh báo, và người dùng tự sửa.
+- Tên món: `"<tên> x<qty>"` khi `qty > 1`.
+- Tiêu đề: `storeName`, không có thì `"Hoá đơn dd/MM"` (theo ngày hoá đơn, không có thì theo `now`).
+- `expenseDate` = `receiptDate`, trừ khi ngày đó nằm ở tương lai thì để `null`.
+
+### 5.6 Màn xem trước: `ReceiptPreviewSheet`
 
 ```
 ┌──────────────────────────────────┐
@@ -169,7 +145,7 @@ Lỗi:
 │ VAT 8%                  +25.600  │
 │ Giảm giá                -10.000  │
 │ TỔNG                    335.600  │
-│ ⚠ Tổng lệch 1.000đ, hãy kiểm tra │
+│ ⚠ Tổng các món lệch 1.000đ…      │
 ├──────────────────────────────────┤
 │ VAT/phí/giảm giá sẽ được chia    │
 │ theo tỉ lệ giá từng món.         │
@@ -177,41 +153,56 @@ Lỗi:
 └──────────────────────────────────┘
 ```
 
-Trạng thái:
-- **Đang đọc ảnh, đang phân tích:** spinner kèm chữ "Đang đọc hoá đơn…". Nút Quét bị khoá trong lúc này.
-- **Lỗi:** SnackBar hiện thông báo theo bảng ở 5.3, form giữ nguyên dữ liệu.
-- **ML Kit không ra chữ nào:** báo lỗi ngay, không gọi backend.
+Chữ lấy từ `Theme.of(context).textTheme`, màu lấy từ `AppColors`. Dòng chú thích chỉ hiện khi có adjustment.
 
-### 5.7 Nền tảng
+### 5.7 Tích hợp vào `CreateExpenseScreen`
 
-- **Android:** `image_picker` không cần thêm quyền với Photo Picker. Camera thì `image_picker` tự xử lý. ML Kit Latin dùng model kèm trong app (bundled), nên app nặng thêm vài MB.
-- **iOS:** thêm `NSCameraUsageDescription` và `NSPhotoLibraryUsageDescription` (bằng tiếng Việt) vào `Info.plist`. ML Kit đòi iOS deployment target tối thiểu theo tài liệu của plugin (kiểm tra ở bước làm), có thể phải nâng `platform :ios` trong Podfile. Phải build trên máy Mac.
+- Nút "Quét hoá đơn" (thay hàm giả `_scanReceiptOCR`). Bấm thì hiện action sheet: "Chụp ảnh" / "Chọn từ thư viện".
+- Trong lúc đọc: hiện "Đang đọc hoá đơn…" và khoá nút.
+- ML Kit không ra chữ nào → SnackBar "Không đọc được chữ trên ảnh. Hãy chụp rõ hơn.". Gặp `ReceiptUnreadable` → SnackBar với thông báo của exception. Dữ liệu trong form giữ nguyên.
+- Form đang có món nhập tay thì hỏi trước: "Thay danh sách món hiện tại bằng kết quả quét?".
+- "Dùng kết quả": gán `AppliedReceipt` vào form và chuyển `_splitMode = SplitMode.item`.
 
-## 6. Bước 0: xác minh trước khi code (spike, không giữ code)
+### 5.8 Nền tảng
 
-1. **DeepSeek:** xác nhận API chỉ nhận text, endpoint `/chat/completions` tương thích OpenAI, `response_format: json_object` chạy được với model đang chọn, và giá hiện tại.
-2. **ML Kit tiếng Việt:** chụp 5 hoá đơn thật và in `rows` ra console. Tiêu chí đạt: số tiền đúng ≥ 90%, tên món đọc được (sai dấu chấp nhận được). Nếu không đạt thì dừng lại và quay về bàn phương án.
-3. **Một lần gọi tay:** gửi `rows` thật tới DeepSeek với prompt ở 5.4, kiểm tra JSON trả về.
+- **iOS:** thêm `NSCameraUsageDescription` và `NSPhotoLibraryUsageDescription` (chữ thống nhất với spec quyền riêng tư mục 6.4). Có thể phải nâng `platform :ios` trong Podfile theo README của plugin ML Kit.
+- **Android:** không cần quyền mới, vì `image_picker` dùng intent chụp ảnh và Photo Picker.
+
+## 6. Dữ liệu thật và đo độ chính xác (bắt buộc)
+
+- **Task 0:** chụp **10–15 hoá đơn quán ăn thật**, càng nhiều quán khác nhau càng tốt, cả hoá đơn in nhiệt lẫn hoá đơn in A5. Dùng một màn tạm in `rows` (đầu ra của `buildReceiptRows`) ra console, rồi lưu mỗi hoá đơn thành:
+  - `frontend/test/fixtures/receipts/r01.rows.txt`: mỗi hàng một dòng, đúng như OCR trả về;
+  - `frontend/test/fixtures/receipts/r01.expected.json`: kết quả đúng do người đọc hoá đơn gõ tay (tên quán, ngày, các món với `totalPrice`, adjustment, tổng).
+- **Không lưu ảnh gốc vào repo.** Xoá hoặc che SĐT, tên nhân viên, mã thẻ trong file `.txt` nếu có.
+- `frontend/test/receipt_fixtures_test.dart` chạy parser trên mọi fixture và in ra bảng chỉ số:
+  - **tổng khớp:** `totalAmount` đúng;
+  - **số tiền món đúng:** tỉ lệ món có `totalPrice` khớp, ghép theo thứ tự;
+  - **số món đúng.**
+- **Ngưỡng tối thiểu để test pass:**
+  - tổng khớp ở ≥ 80% số hoá đơn;
+  - số tiền món đúng ≥ 85% (tính gộp mọi món);
+  - mọi hoá đơn có lệch tổng đều có warning (không có trường hợp sai mà im lặng).
+
+  Đây là **ngưỡng tối thiểu do Claude đặt**. Con số thật được ghi vào `docs/PROGRESS.md` và dùng khi thuyết trình.
 
 ## 7. Kiểm thử
 
-- **Backend unit:**
-  - `ReceiptNormalizer`: ép dấu, tính thiếu `totalPrice`, cảnh báo lệch, không có món → lỗi.
-  - `DeepSeekReceiptExtractor` với `MockRestServiceServer`: JSON hợp lệ; JSON hỏng rồi thử lại; timeout → 503; key rỗng → 503.
-- **Backend tích hợp (MockMvc, profile test, extractor mock):** 401 khi không có token; 400 khi rows rỗng; 429 ở lượt thứ 21 trong ngày; quota không tăng khi extractor lỗi.
-- **App unit:**
-  - `buildReceiptRows`: hai line cùng hàng được gộp, khác hàng được tách.
-  - `ReceiptApplier`: phân bổ VAT 8% trên 3 món cho tổng khớp từng đồng; giảm giá âm; một món duy nhất; tổng không chia hết.
-- **Thủ công:** 5 hoá đơn thật trên Android qua USB, và ít nhất 1 lần trên iOS.
+- **Unit:**
+  - `parseMoneyTokens` (mọi định dạng ở 5.4 bước 2, sửa lỗi OCR, từ chối `12.5` và số dưới 1.000);
+  - phân loại hàng (mỗi nhóm từ khoá, "đã bao gồm VAT", dòng tiêu đề cột);
+  - `parseItemRow` (3 số, `x2`, "Bia 333", "Combo 2 người");
+  - gộp tên xuống dòng; tên quán; ngày;
+  - giảm giá theo %;
+  - không có món → `ReceiptUnreadable`;
+  - `buildReceiptRows`; `ReceiptApplier` (VAT 8% trên 3 món khớp từng đồng, giảm giá âm, 1 món, phần dư, `x2`, tiêu đề dự phòng, ngày ở tương lai, trường hợp lệch giữ `Σ price`).
+- **Fixture:** như mục 6.
+- **Widget:** `ReceiptPreviewSheet` (hiển thị đủ các phần, warning, dòng chú thích).
+- **Thủ công:** quét 5 hoá đơn thật từ đầu tới lúc lưu thành công trên Android qua USB; thử ít nhất 1 lần trên iOS khi có máy Mac.
 
-## 8. Quyết định của Claude (bạn kiểm tra giúp)
+## 8. Quyết định của Claude
 
-1. VAT, phí dịch vụ, giảm giá **được chia theo tỉ lệ giá món**, thay vì thành một dòng riêng chia đều cho mọi người.
-2. Quota **20 lượt/người/ngày**, lưu trong DB, chỉ trừ khi quét thành công.
-3. Món có số lượng > 1 thành **một dòng** "Tên x2", không tách thành nhiều dòng (dù app chỉ hỗ trợ gán cả dòng cho một nhóm người).
-4. Không lưu ảnh hoá đơn.
-5. Endpoint đặt ở `/api/v1/receipts/parse`, theo kiểu `/api/v1/expenses`.
-
-## 9. Để người triển khai tự quyết
-
-Tên class và file chi tiết, cách viết system prompt (miễn đúng schema), giao diện bottom sheet (theo `AppColors`), cách tách `create_expense_screen.dart` (1.566 dòng) để thêm logic mà không làm file to thêm, ví dụ đưa code quét vào `features/expenses/receipt/`.
+1. Bộ phân tích chạy **trong app**, không chạy ở backend.
+2. Lệch tổng thì **không tự dồn tiền** vào món; dùng tổng các món làm tổng của form và cảnh báo.
+3. Ngưỡng chính xác tối thiểu: **80% tổng khớp, 85% số tiền món đúng** trên bộ fixture.
+4. Món có số lượng lớn hơn 1 giữ thành một dòng `"Tên xN"`.
+5. Không lưu ảnh hoá đơn, không đưa ảnh gốc vào repo.

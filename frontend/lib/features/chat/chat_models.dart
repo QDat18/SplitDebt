@@ -81,3 +81,4 @@ class MessagePage {
     required this.hasMore,
   });
 }
+

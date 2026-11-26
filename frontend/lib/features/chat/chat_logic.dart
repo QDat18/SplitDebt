@@ -144,3 +144,4 @@ List<ChatRow> buildChatRows(
 
   return rows;
 }
+

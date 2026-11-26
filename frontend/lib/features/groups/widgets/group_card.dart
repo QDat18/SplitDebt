@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/pdf_components.dart';
@@ -23,7 +24,7 @@ class GroupCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final balance = group.userBalance;
 
-    String balanceText = 'Đã cân bằng';
+    String balanceText = context.tr('Đã cân bằng', 'Settled');
     Color balanceColor = AppColors.n500;
 
     if (balance != null) {
@@ -34,7 +35,7 @@ class GroupCard extends StatelessWidget {
         balanceText = money(balance);
         balanceColor = AppColors.error;
       } else {
-        balanceText = 'Đã cân bằng';
+        balanceText = context.tr('Đã cân bằng', 'Settled');
         balanceColor = AppColors.n500;
       }
     } else if (group.formattedBalance != null && group.formattedBalance!.isNotEmpty) {
@@ -123,8 +124,8 @@ class GroupCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         timeAgoStr.isNotEmpty
-                            ? '${group.memberCount} thành viên • $timeAgoStr'
-                            : '${group.memberCount} thành viên',
+                            ? '${group.memberCount} ${context.tr('thành viên', 'members')} • $timeAgoStr'
+                            : '${group.memberCount} ${context.tr('thành viên', 'members')}',
                         style: const TextStyle(
                           fontSize: 13,
                           color: AppColors.n500,

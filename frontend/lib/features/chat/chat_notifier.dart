@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'chat_logic.dart';
@@ -81,6 +82,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
         );
       }
     } catch (e) {
+      debugPrint('Chat send error: $e');
       if (mounted) {
         state = state.copyWith(
           loadingInitial: false,
@@ -113,6 +115,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
         );
       }
     } catch (e) {
+      debugPrint('Chat send error: $e');
       if (mounted) {
         state = state.copyWith(loadingOlder: false);
       }
@@ -164,6 +167,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
         );
       }
     } catch (e) {
+      debugPrint('Chat send error: $e');
       if (mounted) {
         final updated = state.messages.map((m) {
           if (m.clientMessageId == clientMsgId) {
@@ -203,6 +207,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
         );
       }
     } catch (e) {
+      debugPrint('Chat send error: $e');
       if (mounted) {
         final failedAgain = state.messages.map((m) {
           if (m.clientMessageId == clientMessageId) {

@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/localization/app_strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../groups/models/group_model.dart';
 import 'active_chat.dart';
@@ -179,7 +180,7 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
               overflow: TextOverflow.ellipsis,
             ),
             Text(
-              '${widget.group.memberCount} thành viên',
+              '${widget.group.memberCount} ${context.tr('thành viên', 'members')}',
               style: const TextStyle(
                 fontSize: 12,
                 color: AppColors.n500,
@@ -200,7 +201,10 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                   : displayRows.isEmpty
                       ? Center(
                           child: Text(
-                            'Chưa có tin nhắn nào.\nHãy gửi lời chào đến cả nhóm!',
+                            context.tr(
+                              'Chưa có tin nhắn nào.\nHãy gửi lời chào đến cả nhóm!',
+                              'No messages yet.\nSay hello to the group!',
+                            ),
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 14,
@@ -372,9 +376,9 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                             ),
                           ),
                           const SizedBox(width: 4),
-                          const Text(
-                            'Đang gửi',
-                            style: TextStyle(
+                          Text(
+                            context.tr('Đang gửi', 'Sending'),
+                            style: const TextStyle(
                               fontSize: 10,
                               color: Colors.white70,
                             ),
@@ -396,9 +400,12 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                       .read(chatNotifierProvider(_groupId).notifier)
                       .retry(message.clientMessageId);
                 },
-                child: const Text(
-                  'Chưa gửi được · Chạm để thử lại',
-                  style: TextStyle(
+                child: Text(
+                  context.tr(
+                    'Chưa gửi được · Chạm để thử lại',
+                    'Failed to send · Tap to retry',
+                  ),
+                  style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.error,
                     fontWeight: FontWeight.w500,
@@ -442,9 +449,9 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                 maxLines: 5,
                 textCapitalization: TextCapitalization.sentences,
                 onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(
-                  hintText: 'Nhập tin nhắn...',
-                  hintStyle: TextStyle(
+                decoration: InputDecoration(
+                  hintText: context.tr('Nhập tin nhắn...', 'Type a message...'),
+                  hintStyle: const TextStyle(
                     fontSize: 15,
                     color: AppColors.n500,
                   ),

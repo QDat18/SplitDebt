@@ -38,3 +38,4 @@ public class GroupMessage extends BaseEntity {
     @Column(name = "client_message_id", nullable = false, length = 36)
     private String clientMessageId;
 }
+

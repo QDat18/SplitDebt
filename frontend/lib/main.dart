@@ -9,6 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/app/app_keys.dart';
 import 'core/app/mobile_app_frame.dart';
+import 'core/localization/app_strings.dart';
+import 'core/localization/locale_provider.dart';
 import 'core/navigation/route_observer.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/splash_screen.dart';
@@ -119,7 +121,7 @@ Future<void> main() async {
   );
 }
 
-class SplitDebtApp extends StatelessWidget {
+class SplitDebtApp extends ConsumerWidget {
   const SplitDebtApp({
     super.key,
   });
@@ -127,15 +129,20 @@ class SplitDebtApp extends StatelessWidget {
   @override
   Widget build(
     BuildContext context,
+    WidgetRef ref,
   ) {
-    return MaterialApp(
-      title: 'SplitDebt',
-      debugShowCheckedModeBanner: false,
-      scaffoldMessengerKey: scaffoldMessengerKey,
-      navigatorObservers: [appRouteObserver],
-      theme: AppTheme.lightTheme,
-      builder: (context, child) => MobileAppFrame(child: child!),
-      home: const SplashScreen(),
+    final locale = ref.watch(localeProvider);
+    return AppLocaleScope(
+      locale: locale,
+      child: MaterialApp(
+        title: 'SplitDebt',
+        debugShowCheckedModeBanner: false,
+        scaffoldMessengerKey: scaffoldMessengerKey,
+        navigatorObservers: [appRouteObserver],
+        theme: AppTheme.lightTheme,
+        builder: (context, child) => MobileAppFrame(child: child!),
+        home: const SplashScreen(),
+      ),
     );
   }
 }

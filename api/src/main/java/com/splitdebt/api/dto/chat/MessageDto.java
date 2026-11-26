@@ -11,3 +11,4 @@ public record MessageDto(
         LocalDateTime createdAt,
         String clientMessageId
 ) {}
+

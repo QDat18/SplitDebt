@@ -301,23 +301,19 @@ public class GroupServiceImpl implements GroupService {
         User currentUser = requireUser(currentUserId);
 
         java.util.Optional<GroupMember> existingMember = groupMemberRepository.findByGroupIdAndUserId(group.getId(), currentUserId);
-        GroupRole role = GroupRole.MEMBER;
-        if (existingMember.isEmpty()) {
-            GroupMember newMember = GroupMember.builder()
-                    .group(group)
-                    .user(currentUser)
-                    .role(GroupRole.MEMBER)
-                    .build();
-            groupMemberRepository.save(newMember);
-        } else {
-            role = existingMember.get().getRole();
+        if (existingMember.isPresent()) {
+            throw new IllegalArgumentException("Bạn đã ở trong nhóm này rồi");
         }
 
+        GroupMember newMember = GroupMember.builder()
+                .group(group)
+                .user(currentUser)
+                .role(GroupRole.MEMBER)
+                .build();
+        groupMemberRepository.save(newMember);
+
         int memberCount = groupMemberRepository.countByGroupId(group.getId());
-        Long lastReadId = existingMember.map(GroupMember::getLastReadMessageId).orElse(null);
-        if (lastReadId == null) lastReadId = 0L;
-        int unreadCount = (int) groupMessageRepository.countUnread(group.getId(), lastReadId, currentUserId);
-        return mapToGroupResponseDto(group, role, memberCount, null, unreadCount);
+        return mapToGroupResponseDto(group, GroupRole.MEMBER, memberCount, null, 0);
     }
 
     private GroupResponseDto mapToGroupResponseDto(Group group, GroupRole currentUserRole, int memberCount) {

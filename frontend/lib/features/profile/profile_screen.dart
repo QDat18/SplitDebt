@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/localization/app_strings.dart';
+import '../../core/localization/locale_provider.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/theme/app_colors.dart';
@@ -91,18 +93,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final confirmed = await showAdaptiveDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog.adaptive(
-        title: const Text('Đăng xuất?'),
-        content: const Text('Bạn sẽ cần đăng nhập lại để dùng ứng dụng.'),
+        title: Text(context.tr('Đăng xuất?', 'Sign out?')),
+        content: Text(context.tr(
+          'Bạn sẽ cần đăng nhập lại để dùng ứng dụng.',
+          'You will need to sign in again to use the app.',
+        )),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Huỷ'),
+            child: Text(context.tr('Huỷ', 'Cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text(
-              'Đăng xuất',
-              style: TextStyle(
+            child: Text(
+              context.tr('Đăng xuất', 'Sign out'),
+              style: const TextStyle(
                 color: AppColors.error,
                 fontWeight: FontWeight.bold,
               ),
@@ -121,6 +126,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   Widget build(BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
+    final locale = ref.watch(localeProvider);
 
     return Scaffold(
       backgroundColor: AppColors.n100,
@@ -184,11 +190,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   ),
                   const SizedBox(height: AppDimensions.s32),
                   GroupedSection(
-                    header: 'Tài khoản',
+                    header: context.tr('Tài khoản', 'Account'),
                     children: [
                       GroupedTile(
                         icon: Icons.person_outline,
-                        title: 'Thông tin cá nhân',
+                        title: context.tr('Thông tin cá nhân', 'Personal info'),
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -222,11 +228,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   ),
                   const SizedBox(height: AppDimensions.s32),
                   GroupedSection(
-                    header: 'Ứng dụng',
+                    header: context.tr('Ứng dụng', 'App'),
                     children: [
                       GroupedTile(
                         icon: Icons.notifications_none,
-                        title: 'Thông báo',
+                        title: context.tr('Thông báo', 'Notifications'),
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -237,7 +243,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       ),
                       GroupedTile(
                         icon: Icons.attach_money,
-                        title: 'Tiền tệ',
+                        title: context.tr('Tiền tệ', 'Currency'),
                         value: 'VND',
                         onTap: () => Navigator.push(
                           context,
@@ -248,8 +254,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       ),
                       GroupedTile(
                         icon: Icons.language,
-                        title: 'Ngôn ngữ',
-                        value: 'Tiếng Việt',
+                        title: context.tr('Ngôn ngữ', 'Language'),
+                        value: AppStrings.languageName(locale),
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -261,11 +267,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   ),
                   const SizedBox(height: AppDimensions.s32),
                   GroupedSection(
-                    header: 'Hỗ trợ',
+                    header: context.tr('Hỗ trợ', 'Support'),
                     children: [
                       GroupedTile(
                         icon: Icons.help_outline,
-                        title: 'Trợ giúp',
+                        title: context.tr('Trợ giúp', 'Help'),
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -275,7 +281,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       ),
                       GroupedTile(
                         icon: Icons.info_outline,
-                        title: 'Giới thiệu',
+                        title: context.tr('Giới thiệu', 'About'),
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -289,7 +295,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   GroupedSection(
                     children: [
                       GroupedTile(
-                        title: 'Đăng xuất',
+                        title: context.tr('Đăng xuất', 'Sign out'),
                         destructive: true,
                         onTap: _confirmLogout,
                       ),

@@ -2,6 +2,7 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../../core/localization/app_strings.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -158,7 +159,9 @@ class _HistoryScreenState extends State<HistoryScreen>
       backgroundColor: AppColors.n100,
       appBar: AppBar(
         title: Text(
-          widget.history ? 'Lịch sử' : 'Thống kê',
+          widget.history
+              ? context.tr('Lịch sử', 'History')
+              : context.tr('Thống kê', 'Statistics'),
           style: AppTypography.title.copyWith(fontSize: 17, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,

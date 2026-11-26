@@ -6,3 +6,4 @@ public record MessagePageDto(
         List<MessageDto> messages,
         boolean hasMore
 ) {}
+

@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/localization/app_strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/widgets/grouped_list.dart';
@@ -27,7 +28,7 @@ class _NotificationSettingsScreenState
     return Scaffold(
       backgroundColor: AppColors.n100,
       appBar: AppBar(
-        title: const Text('Thông báo'),
+        title: Text(context.tr('Thông báo', 'Notifications')),
         backgroundColor: AppColors.n100,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -37,8 +38,11 @@ class _NotificationSettingsScreenState
         padding: const EdgeInsets.symmetric(vertical: AppDimensions.s24),
         children: [
           GroupedSection(
-            header: 'Nhận thông báo khi',
-            footer: 'Thông báo trong ứng dụng vẫn được lưu kể cả khi tắt.',
+            header: context.tr('Nhận thông báo khi', 'Notify me when'),
+            footer: context.tr(
+              'Thông báo trong ứng dụng vẫn được lưu kể cả khi tắt.',
+              'In-app notifications are still saved even when muted.',
+            ),
             children: prefsAsync.when(
               loading: () => [
                 ConstrainedBox(
@@ -61,8 +65,11 @@ class _NotificationSettingsScreenState
               data: (prefs) => [
                 GroupedSwitchTile(
                   icon: Icons.payments_outlined,
-                  title: 'Nhắc thanh toán nợ',
-                  subtitle: 'Khi có người yêu cầu bạn thanh toán',
+                  title: context.tr('Nhắc thanh toán nợ', 'Debt reminders'),
+                  subtitle: context.tr(
+                    'Khi có người yêu cầu bạn thanh toán',
+                    'When someone requests a payment from you',
+                  ),
                   value: prefs.notifyOnDebtReminder,
                   onChanged: isSaving
                       ? null
@@ -83,9 +90,11 @@ class _NotificationSettingsScreenState
                 ),
                 GroupedSwitchTile(
                   icon: Icons.task_alt,
-                  title: 'Cập nhật quyết toán',
-                  subtitle:
-                      'Khi khoản thanh toán được đánh dấu hoặc xác nhận',
+                  title: context.tr('Cập nhật quyết toán', 'Settlement updates'),
+                  subtitle: context.tr(
+                    'Khi khoản thanh toán được đánh dấu hoặc xác nhận',
+                    'When a payment is marked paid or confirmed',
+                  ),
                   value: prefs.notifyOnSettlement,
                   onChanged: isSaving
                       ? null
@@ -106,8 +115,11 @@ class _NotificationSettingsScreenState
                 ),
                 GroupedSwitchTile(
                   icon: Icons.chat_bubble_outline,
-                  title: 'Tin nhắn nhóm',
-                  subtitle: 'Khi có tin nhắn mới trong nhóm',
+                  title: context.tr('Tin nhắn nhóm', 'Group messages'),
+                  subtitle: context.tr(
+                    'Khi có tin nhắn mới trong nhóm',
+                    'When there is a new message in a group',
+                  ),
                   value: prefs.notifyOnGroupMessage,
                   onChanged: isSaving
                       ? null

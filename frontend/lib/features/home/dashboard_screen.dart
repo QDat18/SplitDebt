@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/localization/app_strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/network/dio_client.dart';
@@ -86,7 +87,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   Widget build(BuildContext context) {
     super.build(context);
     final groupsAsync = ref.watch(userGroupsProvider);
-    final groupsList = groupsAsync.value ?? [];
+    final groupsList = groupsAsync.valueOrNull ?? [];
 
     double totalNetBalance = 0;
     for (final g in groupsList) {
@@ -162,7 +163,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Xin chào, $_userName!',
+                  '${context.tr('Xin chào', 'Hello')}, $_userName!',
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
@@ -170,9 +171,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   ),
                 ),
                 const SizedBox(height: 2),
-                const Text(
-                  'Sổ tay chi tiêu nhóm',
-                  style: TextStyle(
+                Text(
+                  context.tr('Sổ tay chi tiêu nhóm', 'Group expense notebook'),
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.n500,
                   ),
@@ -252,9 +253,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'TỔNG SỐ DƯ RÒNG CÔNG NỢ',
-                  style: TextStyle(
+                Text(
+                  context.tr('TỔNG SỐ DƯ RÒNG CÔNG NỢ', 'TOTAL NET BALANCE'),
+                  style: const TextStyle(
                     color: AppColors.n400,
                     fontSize: 11,
                     letterSpacing: 0.8,
@@ -267,9 +268,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     color: AppColors.n600,
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
-                    'LỖI TẢI DỮ LIỆU',
-                    style: TextStyle(
+                  child: Text(
+                    context.tr('LỖI TẢI DỮ LIỆU', 'LOAD ERROR'),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -290,9 +291,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             const SizedBox(height: 12),
             const Divider(height: 1, color: Colors.white12),
             const SizedBox(height: 10),
-            const Text(
-              'Không thể tính toán số dư do tải danh sách nhóm thất bại.',
-              style: TextStyle(color: AppColors.n400, fontSize: 12),
+            Text(
+              context.tr(
+                'Không thể tính toán số dư do tải danh sách nhóm thất bại.',
+                'Unable to calculate balance because loading groups failed.',
+              ),
+              style: const TextStyle(color: AppColors.n400, fontSize: 12),
             ),
           ],
         ),
@@ -303,8 +307,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final bool isNegative = totalNetBalance < -0.01;
 
     final String statusLabel = isPositive
-        ? 'CẦN THU VỀ'
-        : (isNegative ? 'CẦN TRẢ LẠI' : 'KHÔNG CÒN NỢ');
+        ? context.tr('CẦN THU VỀ', 'OWED TO YOU')
+        : (isNegative
+            ? context.tr('CẦN TRẢ LẠI', 'YOU OWE')
+            : context.tr('KHÔNG CÒN NỢ', 'SETTLED UP'));
 
     final Color statusTextColor = isPositive
         ? const Color(0xFF34C759) // iOS green
@@ -346,9 +352,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'TỔNG TIỀN CẦN THU / TRẢ',
-                style: TextStyle(
+              Text(
+                context.tr('TỔNG TIỀN CẦN THU / TRẢ', 'TOTAL NET BALANCE'),
+                style: const TextStyle(
                   color: AppColors.n400,
                   fontSize: 11,
                   letterSpacing: 0.8,
@@ -387,10 +393,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           const SizedBox(height: 10),
           Text(
             isPositive
-                ? 'Các thành viên trong nhóm đang nợ bạn.'
+                ? context.tr(
+                    'Các thành viên trong nhóm đang nợ bạn.',
+                    'Group members currently owe you.',
+                  )
                 : (isNegative
-                    ? 'Bạn có khoản chi cần thanh toán cho nhóm.'
-                    : 'Bạn và các thành viên đều đã sòng phẳng.'),
+                    ? context.tr(
+                        'Bạn có khoản chi cần thanh toán cho nhóm.',
+                        'You have pending payments to settle.',
+                      )
+                    : context.tr(
+                        'Bạn và các thành viên đều đã sòng phẳng.',
+                        'You and all members are settled up.',
+                      )),
             style: const TextStyle(
               color: AppColors.n400,
               fontSize: 12,
@@ -433,22 +448,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Tạo chi tiêu',
-                          style: TextStyle(
+                          context.tr('Tạo chi tiêu', 'Add expense'),
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: AppColors.n800,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
-                          'Nhập chi tiêu mới',
-                          style: TextStyle(
+                          context.tr('Nhập chi tiêu mới', 'New group expense'),
+                          style: const TextStyle(
                             fontSize: 11,
                             color: AppColors.n500,
                           ),
@@ -492,22 +507,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Quyết toán',
-                          style: TextStyle(
+                          context.tr('Quyết toán', 'Settle up'),
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: AppColors.n800,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
-                          'Tính tiền phải trả',
-                          style: TextStyle(
+                          context.tr('Tính tiền phải trả', 'Calculate payouts'),
+                          style: const TextStyle(
                             fontSize: 11,
                             color: AppColors.n500,
                           ),
@@ -533,7 +548,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
-            'NHÓM CHI TIÊU (${groupsList.length})',
+            '${context.tr('NHÓM CHI TIÊU', 'EXPENSE GROUPS')} (${groupsList.length})',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -551,7 +566,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           )
         else if (groupsAsync.hasError)
           ErrorStateWidget(
-            errorMessage: 'Không thể tải danh sách nhóm.',
+            errorMessage: context.tr(
+              'Không thể tải danh sách nhóm.',
+              'Failed to load groups.',
+            ),
             onRetry: () => ref.read(userGroupsProvider.notifier).fetchGroups(),
           )
         else if (groupsList.isEmpty)
@@ -563,23 +581,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               borderRadius: BorderRadius.circular(14),
               boxShadow: AppDimensions.shadowSm,
             ),
-            child: const Column(
+            child: Column(
               children: [
-                Icon(Icons.group_off_rounded, size: 44, color: AppColors.n400),
-                SizedBox(height: 10),
+                const Icon(Icons.group_off_rounded, size: 44, color: AppColors.n400),
+                const SizedBox(height: 10),
                 Text(
-                  'Bạn chưa có nhóm chi tiêu nào',
-                  style: TextStyle(
+                  context.tr(
+                    'Bạn chưa có nhóm chi tiêu nào',
+                    'You have no expense groups yet',
+                  ),
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: AppColors.n800,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'Chuyển sang tab "Nhóm" để tạo hoặc tham gia nhóm mới.',
+                  context.tr(
+                    'Chuyển sang tab "Nhóm" để tạo hoặc tham gia nhóm mới.',
+                    'Switch to the "Groups" tab to create or join a group.',
+                  ),
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: AppColors.n500),
+                  style: const TextStyle(fontSize: 12, color: AppColors.n500),
                 ),
               ],
             ),
@@ -644,7 +668,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '${group.memberCount} thành viên • ${group.currentUserRole}',
+                                    '${group.memberCount} ${context.tr('thành viên', 'members')} • ${group.currentUserRole}',
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: AppColors.n500,
@@ -666,9 +690,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Số dư của bạn:',
-                              style: TextStyle(
+                            Text(
+                              context.tr('Số dư của bạn:', 'Your balance:'),
+                              style: const TextStyle(
                                 fontSize: 13,
                                 color: AppColors.n500,
                               ),
