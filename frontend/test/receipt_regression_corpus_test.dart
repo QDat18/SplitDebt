@@ -309,5 +309,16 @@ void main() {
         if (c.expectNullStoreName) expect(parsed.storeName, isNull);
       }, skip: c.skip);
     }
+
+    test('5.4b.7: 40-item supermarket receipt parses all 40 items', () {
+      final rows = <String>[
+        'SIÊU THỊ BÁCH HOÁ',
+        for (var i = 1; i <= 40; i++) 'Sản phẩm số $i  10.000',
+        'Tổng cộng  400.000',
+      ];
+      final parsed = parser.parse(rows);
+      expect(parsed.items, hasLength(40));
+      expect(parsed.totalAmount, 400000);
+    });
   });
 }
