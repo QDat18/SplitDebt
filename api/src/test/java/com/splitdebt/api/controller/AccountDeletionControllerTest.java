@@ -108,7 +108,7 @@ public class AccountDeletionControllerTest {
     }
 
     @Test
-    void wrongPassword_is401() throws Exception {
+    void wrongPassword_is400() throws Exception {
         TestUser a = register("wrongpw");
         DeletionRequest req = new DeletionRequest("WrongPass123!");
 
@@ -116,7 +116,8 @@ public class AccountDeletionControllerTest {
                         .header("Authorization", "Bearer " + a.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isUnauthorized())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.data.code").value("WRONG_PASSWORD"))
                 .andExpect(jsonPath("$.message", containsString("Mật khẩu không đúng")));
     }
 

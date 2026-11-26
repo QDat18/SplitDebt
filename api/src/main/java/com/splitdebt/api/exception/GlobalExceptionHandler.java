@@ -27,8 +27,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidPasswordException.class)
     public ResponseEntity<ApiResponse<Object>> handleInvalidPassword(InvalidPasswordException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error(401, ex.getMessage()));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Object>builder()
+                        .status(400)
+                        .message(ex.getMessage())
+                        .data(java.util.Map.of("code", "WRONG_PASSWORD"))
+                        .build());
     }
 
     @ExceptionHandler(OutstandingBalanceException.class)
