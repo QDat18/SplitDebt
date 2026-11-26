@@ -13,6 +13,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/widgets/grouped_list.dart';
 import '../auth/login_screen.dart';
 import '../expenses/receipt/receipt_ocr_lab_screen.dart';
+import '../privacy/privacy_center_screen.dart';
 import 'about_screen.dart';
 import 'currency_settings_screen.dart';
 import 'help_screen.dart';
@@ -226,6 +227,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           ),
                         ),
                       ),
+                      GroupedTile(
+                        icon: Icons.privacy_tip_outlined,
+                        title: context.tr('Quyền riêng tư', 'Privacy'),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PrivacyCenterScreen(),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: AppDimensions.s32),
@@ -299,6 +310,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           context,
                           MaterialPageRoute(
                             builder: (_) => const AboutScreen(),
+                          ),
+                        ),
+                      ),
+                      GroupedTile(
+                        icon: Icons.privacy_tip_outlined,
+                        title: context.tr('Quyền riêng tư', 'Privacy'),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PrivacyCenterScreen(),
                           ),
                         ),
                       ),

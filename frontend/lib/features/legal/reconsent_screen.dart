@@ -10,6 +10,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/widgets/grouped_list.dart';
 import '../../main_layout_screen.dart';
 import '../auth/login_screen.dart';
+import '../privacy/delete_account_flow.dart';
 import 'legal_document_screen.dart';
 import 'legal_texts.dart';
 
@@ -192,11 +193,10 @@ class _ReconsentScreenState extends ConsumerState<ReconsentScreen> {
                       onPressed: _submitting
                           ? null
                           : () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Vui lòng liên hệ hỗ trợ hoặc dùng mục Xoá tài khoản trong Trung tâm Quyền riêng tư.',
-                                  ),
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const DeleteAccountFlowScreen(),
                                 ),
                               );
                             },
