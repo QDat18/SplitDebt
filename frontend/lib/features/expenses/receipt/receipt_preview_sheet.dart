@@ -190,7 +190,8 @@ class ReceiptPreviewSheet extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            if (formTotal != receipt.totalAmount) ...[
+                            if (!applied.adjustmentSkipped &&
+                                (formTotal - receipt.totalAmount).abs() > 1000) ...[
                               const SizedBox(height: AppDimensions.s8),
                               Align(
                                 alignment: Alignment.centerLeft,
