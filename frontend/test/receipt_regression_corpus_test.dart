@@ -121,6 +121,9 @@ void main() {
     _ClassifyCase('R4: Thẻ: ignored', 'Thẻ: 300.000', hasMoney: true, expected: RowKind.ignore),
     _ClassifyCase('R4: VISA ignored', 'VISA 300.000', hasMoney: true, expected: RowKind.ignore),
     _ClassifyCase('R4: ATM ignored', 'ATM 300.000', hasMoney: true, expected: RowKind.ignore),
+    // R5
+    _ClassifyCase('R5: column header ignored', 'Món SL Giá T.Tiền', hasMoney: false, expected: RowKind.ignore),
+    _ClassifyCase('R5: table A1 ignored', 'Bàn A1', hasMoney: false, expected: RowKind.ignore),
   ];
 
   const itemCases = <_ItemCase>[
@@ -171,7 +174,6 @@ void main() {
       itemCount: 1,
       firstItemName: 'Phở bò',
       firstItemTotal: 50000,
-      skip: 'R5',
     ),
     _ReceiptCase(
       'R5: table A1 row not merged into item name',
@@ -179,7 +181,6 @@ void main() {
       itemCount: 1,
       firstItemName: 'Phở bò',
       firstItemTotal: 50000,
-      skip: 'R5',
     ),
     // R6
     _ReceiptCase(

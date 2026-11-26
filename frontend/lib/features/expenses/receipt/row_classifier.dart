@@ -20,13 +20,22 @@ bool _matchesAny(String normalizedRow, List<String> keywords) {
   return false;
 }
 
+int _countMatches(String normalizedRow, List<String> keywords) {
+  var count = 0;
+  for (final kw in keywords) {
+    if (_hasKeyword(normalizedRow, kw)) count++;
+  }
+  return count;
+}
+
 RowKind classifyRow(String row, {required bool hasMoney}) {
   final norm = normalizeForMatch(row);
   if (norm.isEmpty) return RowKind.ignore;
 
   if (_matchesAny(norm, ReceiptKeywords.ignoreAlways) ||
-      RegExp(r'^ban\s*\d+').hasMatch(norm) ||
-      (hasMoney && RegExp(r'^the\b').hasMatch(norm))) {
+      RegExp(r'^ban\s*[a-z]?\d+').hasMatch(norm) ||
+      (hasMoney && RegExp(r'^the\b').hasMatch(norm)) ||
+      _countMatches(norm, ReceiptKeywords.ignoreWhenNoMoney) >= 2) {
     return RowKind.ignore;
   }
   if (!hasMoney && _matchesAny(norm, ReceiptKeywords.ignoreWhenNoMoney)) {

@@ -50,6 +50,12 @@ class ReceiptKeywords {
     'don gia',
     'thanh tien',
     'ten mon',
+    'sl',
+    'gia',
+    't.tien',
+    'tt',
+    'mat hang',
+    'ten hang',
   ];
 
   static const List<String> total = [
