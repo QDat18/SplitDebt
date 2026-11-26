@@ -32,6 +32,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -48,6 +49,8 @@ public class AccountDeletionControllerTest {
     @Autowired private GroupRepository groupRepository;
     @Autowired private GroupMemberRepository groupMemberRepository;
     @Autowired private GroupMessageRepository groupMessageRepository;
+    @Autowired private ExpenseRepository expenseRepository;
+    @Autowired private SettlementRepository settlementRepository;
     @Autowired private UserConsentRepository userConsentRepository;
     @Autowired private FcmTokenRepository fcmTokenRepository;
     @Autowired private UserSettingRepository userSettingRepository;
@@ -333,6 +336,102 @@ public class AccountDeletionControllerTest {
         mockMvc.perform(get("/api/users/me")
                         .header("Authorization", "Bearer " + a.token()))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void soleOwnerGroupWithExpenses_isPurged() throws Exception {
+        TestUser a = register("soleexp");
+        long g = createGroup(a.token(), "Sole Expense Group");
+
+        var expense = Map.of(
+                "groupId", g,
+                "payerId", a.id(),
+                "title", "Solo coffee",
+                "totalAmount", 50000,
+                "expenseDate", "2026-11-26",
+                "splitType", "EQUAL",
+                "participants", List.of(Map.of("userId", a.id()))
+        );
+        mockMvc.perform(post("/api/v1/expenses")
+                        .header("Authorization", "Bearer " + a.token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(expense)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/users/me/deletion")
+                        .header("Authorization", "Bearer " + a.token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new DeletionRequest("Password123!"))))
+                .andExpect(status().isNoContent());
+
+        assertTrue(groupRepository.findById(g).isEmpty());
+        assertTrue(expenseRepository.findByGroupId(g).isEmpty());
+        assertTrue(settlementRepository.findByGroupId(g).isEmpty());
+    }
+
+    @Test
+    void soleOwnerWithFormerMembers_isPurged() throws Exception {
+        TestUser a = register("soleformer_a");
+        TestUser b = register("soleformer_b");
+        long g = createGroup(a.token(), "Former Member Group");
+        addMember(a.token(), g, b.email(), GroupRole.MEMBER);
+
+        var expense = Map.of(
+                "groupId", g,
+                "payerId", a.id(),
+                "title", "Lunch",
+                "totalAmount", 100000,
+                "expenseDate", "2026-11-26",
+                "splitType", "EQUAL",
+                "participants", List.of(Map.of("userId", a.id()), Map.of("userId", b.id()))
+        );
+        mockMvc.perform(post("/api/v1/expenses")
+                        .header("Authorization", "Bearer " + a.token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(expense)))
+                .andExpect(status().isCreated());
+
+        MvcResult sRes = mockMvc.perform(post("/api/groups/" + g + "/settlements")
+                        .param("userId", b.id().toString())
+                        .header("Authorization", "Bearer " + b.token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "debtorId", b.id(),
+                                "creditorId", a.id(),
+                                "amount", 50000
+                        ))))
+                .andExpect(status().isOk())
+                .andReturn();
+        long sId = objectMapper.readTree(sRes.getResponse().getContentAsString()).path("data").path("id").asLong();
+
+        mockMvc.perform(post("/api/groups/" + g + "/settlements/" + sId + "/pay")
+                        .header("Authorization", "Bearer " + b.token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "debtorUserId", b.id(),
+                                "paymentMethod", "CASH"
+                        ))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/groups/" + g + "/settlements/" + sId + "/confirm")
+                        .header("Authorization", "Bearer " + a.token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(delete("/api/groups/" + g + "/members/me")
+                        .header("Authorization", "Bearer " + b.token()))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/users/me/deletion")
+                        .header("Authorization", "Bearer " + a.token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new DeletionRequest("Password123!"))))
+                .andExpect(status().isNoContent());
+
+        assertTrue(groupRepository.findById(g).isEmpty());
+        assertTrue(expenseRepository.findByGroupId(g).isEmpty());
+        assertTrue(settlementRepository.findByGroupId(g).isEmpty());
     }
 }
 

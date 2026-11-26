@@ -5,6 +5,8 @@
 package com.splitdebt.api.service;
 
 import com.splitdebt.api.dto.settlement.NetBalanceDto;
+import com.splitdebt.api.entity.Expense;
+import com.splitdebt.api.entity.ExpenseItem;
 import com.splitdebt.api.entity.GroupMember;
 import com.splitdebt.api.entity.GroupMessage;
 import com.splitdebt.api.entity.User;
@@ -37,7 +39,13 @@ public class AccountDeletionService {
     private final PasswordEncoder passwordEncoder;
     private final GroupMemberRepository groupMemberRepository;
     private final DebtCalculationService debtCalculationService;
-    private final GroupService groupService;
+    private final GroupRepository groupRepository;
+    private final GroupSettingRepository groupSettingRepository;
+    private final ExpenseRepository expenseRepository;
+    private final ExpenseItemRepository expenseItemRepository;
+    private final ItemParticipantRepository itemParticipantRepository;
+    private final ExpenseParticipantRepository expenseParticipantRepository;
+    private final SettlementRepository settlementRepository;
     private final GroupMessageRepository groupMessageRepository;
     private final FcmTokenRepository fcmTokenRepository;
     private final UserSettingRepository userSettingRepository;
@@ -92,7 +100,7 @@ public class AccountDeletionService {
                                 .thenComparing(GroupMember::getId))
                         .toList();
                 if (others.isEmpty()) {
-                    groupService.deleteGroup(groupId, userId);
+                    purgeGroup(groupId);
                 } else {
                     GroupMember successor = others.get(0);
                     successor.setRole(GroupRole.OWNER);
@@ -138,6 +146,26 @@ public class AccountDeletionService {
                 }
             });
         }
+    }
+
+    private void purgeGroup(Long groupId) {
+        List<Expense> expenses = expenseRepository.findByGroupId(groupId);
+        for (Expense expense : expenses) {
+            List<ExpenseItem> items = expenseItemRepository.findByExpenseId(expense.getId());
+            for (ExpenseItem item : items) {
+                itemParticipantRepository.deleteByItemId(item.getId());
+            }
+            expenseItemRepository.deleteByExpenseId(expense.getId());
+            expenseParticipantRepository.deleteByExpenseId(expense.getId());
+        }
+        if (!expenses.isEmpty()) {
+            expenseRepository.deleteAll(expenses);
+        }
+        settlementRepository.deleteAll(settlementRepository.findByGroupId(groupId));
+        groupSettingRepository.findByGroupId(groupId).ifPresent(groupSettingRepository::delete);
+        groupMessageRepository.deleteByGroupId(groupId);
+        groupMemberRepository.deleteAll(groupMemberRepository.findByGroupId(groupId));
+        groupRepository.deleteById(groupId);
     }
 }
 
