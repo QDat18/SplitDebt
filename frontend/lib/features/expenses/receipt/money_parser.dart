@@ -62,8 +62,11 @@ String? _fixOcrNumeric(String raw) {
 final RegExp _dateLikeRegex = RegExp(
   r'(?<!\d)\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}(?!\d)',
 );
-final RegExp _phoneLikeRegex = RegExp(
-  r'(?<![0-9A-Za-z.,])(?:\+84[\s.-]?[1-9](?:[\s.-]?\d){7,8}|0[1-9](?:[\s.-]?\d){7,9}|(?:1800|1900)[\s.-]?\d{4,6})(?![0-9A-Za-z.,])',
+final RegExp _phoneKeywordRegex = RegExp(
+  r'\b(?:dt|sdt|tel|phone|hotline|dien thoai)\b',
+);
+final RegExp _standardPhoneRegex = RegExp(
+  r'(?<![0-9A-Za-z])(?:\+84[\s.-]?[1-9]\d{1,2}[ .-]?\d{3,4}[ .-]?\d{3,4}|0\d{2,3}[ .-]?\d{3,4}[ .-]?\d{3,4}|0\d{9,10}|(?:1800|1900)[ .]\d{4})(?![0-9A-Za-z])',
 );
 
 List<MoneyToken> parseMoneyTokens(String row) {
@@ -72,10 +75,15 @@ List<MoneyToken> parseMoneyTokens(String row) {
     _dateLikeRegex,
     (m) => ' ' * (m.end - m.start),
   );
-  sanitizedRow = sanitizedRow.replaceAllMapped(
-    _phoneLikeRegex,
-    (m) => ' ' * (m.end - m.start),
-  );
+  final hasPhoneKeyword = _phoneKeywordRegex.hasMatch(normalizeForMatch(row));
+  sanitizedRow = sanitizedRow.replaceAllMapped(_standardPhoneRegex, (m) {
+    if (hasPhoneKeyword) return ' ' * (m.end - m.start);
+    final prefix = normalizeForMatch(row.substring(0, m.start));
+    if (RegExp(r'[a-z]{2,}').hasMatch(prefix)) {
+      return m.group(0)!;
+    }
+    return ' ' * (m.end - m.start);
+  });
   sanitizedRow = sanitizedRow.replaceAllMapped(
     RegExp(r'\.{2,}|(?<=\d)[.,-]+(?=\s|$)'),
     (m) => ' ' * (m.end - m.start),

@@ -95,10 +95,10 @@ void main() {
     _MoneyCase('R1: trailing comma-dash after price', '50.000,-', [50000]),
     _MoneyCase('R1: reject decimal 12.5', '12.5', []),
     // R2
-    _MoneyCase('R2: item with 02 qty and unformatted prices', 'Trà đá 02 5000 10000', [5000, 10000], skip: 'R2'),
-    _MoneyCase('R2: item with 02 qty and space-thousands prices', 'Phở 02 25 000 50 000', [25000, 50000], skip: 'R2'),
-    _MoneyCase('R2: 8-digit total starting with 1900', 'Tổng cộng 19000000', [19000000], skip: 'R2'),
-    _MoneyCase('R2: Tel landline', 'Tel: 028 3822 1234', [], skip: 'R2'),
+    _MoneyCase('R2: item with 02 qty and unformatted prices', 'Trà đá 02 5000 10000', [5000, 10000]),
+    _MoneyCase('R2: item with 02 qty and space-thousands prices', 'Phở 02 25 000 50 000', [25000, 50000]),
+    _MoneyCase('R2: 8-digit total starting with 1900', 'Tổng cộng 19000000', [19000000]),
+    _MoneyCase('R2: Tel landline', 'Tel: 028 3822 1234', []),
     // R3
     _MoneyCase('R3: two space-thousands prices', 'Bia 120 000 240 000', [120000, 240000], skip: 'R3'),
     _MoneyCase('R3: qty plus two space-thousands prices', 'Bia 2 125 000 250 000', [125000, 250000], skip: 'R3'),
