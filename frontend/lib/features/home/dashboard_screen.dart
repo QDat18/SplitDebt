@@ -1,9 +1,11 @@
 // Trách nhiệm file: Xây dựng màn hình dashboard screen và điều phối tương tác người dùng theo chuẩn Apple HIG.
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/localization/app_strings.dart';
 import '../../core/theme/app_colors.dart';
@@ -14,6 +16,8 @@ import '../groups/models/group_model.dart';
 import '../groups/providers/group_provider.dart';
 import '../groups/screens/group_detail_screen.dart';
 import '../groups/widgets/error_state.dart';
+import '../notifications/notification_prompt_policy.dart';
+import '../notifications/push_notification_service.dart';
 
 /// ----------------------------------------------------------------------------
 /// MÀN HÌNH DASHBOARD TRANG CHỦ (MAIN DASHBOARD SCREEN - APPLE HIG)
@@ -57,6 +61,40 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
     _loadUserProfile();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybePromptNotifications();
+    });
+  }
+
+  Future<void> _maybePromptNotifications() async {
+    try {
+      if (!await FirebaseMessaging.instance.isSupported()) return;
+      final status = await PushNotificationService.instance.currentStatus();
+      if (status == AuthorizationStatus.authorized) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final count = prefs.getInt('notif_prompt_count') ?? 0;
+      final lastMs = prefs.getInt('notif_prompt_last');
+      final last = lastMs != null
+          ? DateTime.fromMillisecondsSinceEpoch(lastMs)
+          : null;
+      final now = DateTime.now();
+
+      if (!shouldPromptNotifications(count: count, last: last, now: now)) {
+        return;
+      }
+      if (!mounted) return;
+
+      await prefs.setInt('notif_prompt_count', count + 1);
+      await prefs.setInt('notif_prompt_last', now.millisecondsSinceEpoch);
+
+      final granted = await PushNotificationService.instance
+          .requestPermissionWithRationale(context);
+      if (granted) {
+        final userId = await AuthRepository().getCurrentUserId();
+        await PushNotificationService.instance.subscribeToUser(userId);
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadUserProfile() async {

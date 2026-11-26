@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../chat/active_chat.dart';
+import 'notification_rationale_sheet.dart';
 import 'notification_repository.dart';
 
 class PushNotificationService {
@@ -32,8 +33,37 @@ class PushNotificationService {
         debugPrint('Không cập nhật được FCM token: $error');
       }
     }, onError: (Object error) => debugPrint('FCM token refresh: $error'));
-    await FirebaseMessaging.instance
-        .requestPermission(alert: true, badge: true, sound: true);
+  }
+
+  Future<AuthorizationStatus> currentStatus() async {
+    try {
+      if (!await FirebaseMessaging.instance.isSupported()) {
+        return AuthorizationStatus.notDetermined;
+      }
+      final settings =
+          await FirebaseMessaging.instance.getNotificationSettings();
+      return settings.authorizationStatus;
+    } catch (_) {
+      return AuthorizationStatus.notDetermined;
+    }
+  }
+
+  Future<bool> requestPermissionWithRationale(BuildContext context) async {
+    try {
+      if (!await FirebaseMessaging.instance.isSupported()) return false;
+      final status = await currentStatus();
+      if (status == AuthorizationStatus.authorized) return true;
+      if (!context.mounted) return false;
+      final accepted = await NotificationRationaleSheet.show(context);
+      if (!accepted) return false;
+      final settings = await FirebaseMessaging.instance
+          .requestPermission(alert: true, badge: true, sound: true);
+      return settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+    } catch (error) {
+      debugPrint('Không xin được quyền thông báo: $error');
+      return false;
+    }
   }
 
   Future<String?> getToken() async {
