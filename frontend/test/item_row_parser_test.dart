@@ -43,13 +43,22 @@ void main() {
     expect(combo.totalPrice, 299000);
   });
 
-  test('qty without unit price', () {
-    final item = parseItemRow('Cơm chiên  2  90.000');
+  test('qty without unit price stays in name unless xN notation', () {
+    final item = parseItemRow('Combo 2  99.000');
     expect(item, isNotNull);
-    expect(item!.name, 'Cơm chiên');
-    expect(item.quantity, 2);
-    expect(item.totalPrice, 90000);
+    expect(item!.name, 'Combo 2');
+    expect(item.quantity, 1);
+    expect(item.totalPrice, 99000);
     expect(item.unitPrice, isNull);
+  });
+
+  test('qty between unit price and total', () {
+    final item = parseItemRow('Cafe 25.000 2 50.000');
+    expect(item, isNotNull);
+    expect(item!.name, 'Cafe');
+    expect(item.quantity, 2);
+    expect(item.unitPrice, 25000);
+    expect(item.totalPrice, 50000);
   });
 
   test('item rows with 3 numbers parse fully', () {

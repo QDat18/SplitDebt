@@ -1,15 +1,12 @@
 # SplitDebt Progress Tracking
 
-- **Status**: Chờ fixture thật để chạy kiểm tra độ chính xác.
+- **Status**: Hoàn thành OCR Round 1 (O1 → O10); chờ fixture hoá đơn thật để đo độ chính xác.
 - **Done**:
-  - Task 0 (code): `google_mlkit_text_recognition: ^1.0.3`, `receipt_text_rows.dart` (3/3 tests).
-  - Task 1: `receipt_models.dart`, `receipt_keywords.dart`, `money_parser.dart`, `row_classifier.dart` (13/13 tests).
-  - Task 2: `item_row_parser.dart`, `rule_based_receipt_parser.dart` (13/13 unit tests), `receipt_fixtures_test.dart` (skip).
-  - Task 3: `expense_item_detail.dart`, `receipt_applier.dart` (9/9 tests).
-  - Task 4: `receipt_preview_sheet.dart`, `receipt_scanner.dart`, `ios/Runner/Info.plist` (4/4 tests; `ios/Podfile` chưa có trong repo).
-  - Task 5 (tích hợp UI): `receipt_flow.dart`, `create_expense_screen.dart`, `receipt_ocr_lab_screen.dart` (chỉ hiện khi `kDebugMode`).
+  - Task 0 (code) → Task 5: Hệ thống OCR trên máy (`google_mlkit_text_recognition: ^1.0.3`, `buildReceiptRows`, `RuleBasedReceiptParser`, `ReceiptApplier`, `ReceiptPreviewSheet`, `ReceiptFlow`, `ReceiptOcrLabScreen` khi `kDebugMode`).
+  - O1–O10: Tách `qty/unit/total` cách nhau bằng dấu cách; ghép dòng tên + dòng số; loại SĐT VN; huỷ chọn ảnh thoát im lặng; tổng xem trước khớp tổng form; ưu tiên dòng tổng & bỏ `Khách thanh toán`; sửa từ khoá ngắn `the/ban`; nâng iOS `15.0` + tạo `ios/Podfile` (cần chạy `pod install` và test trên máy Mac); bỏ phân bổ nếu món $\le 0$; hỗ trợ số lượng giữa đơn giá–thành tiền & giữ `Combo 2`.
 - **Verification**:
-  - `flutter analyze`: 0 errors; `flutter test`: 109 passed, 1 skipped (`Chưa có fixture hoá đơn thật`).
+  - `flutter analyze`: 0 errors.
+  - `flutter test`: 126 passed, 1 skipped (`Chưa có fixture hoá đơn thật`).
 - **In progress**: Chờ fixture thật để chạy kiểm tra độ chính xác.
-- **Next**: Khi có dữ liệu OCR từ hoá đơn thật (qua `ReceiptOcrLabScreen`), tạo `rNN.rows.txt` + `rNN.expected.json` và tinh chỉnh parser đạt ngưỡng $\ge 80\%$ tổng, $\ge 85\%$ món.
-- **Blockers**: Chưa có fixture hoá đơn thật.
+- **Next**: Tạo `rNN.rows.txt` + `rNN.expected.json` từ hoá đơn thật qua `ReceiptOcrLabScreen` và ghi bảng chỉ số thật.
+- **Blockers**: Chưa có fixture hoá đơn thật; iOS `pod install` cần kiểm tra trên máy Mac.
