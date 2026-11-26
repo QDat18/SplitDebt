@@ -197,7 +197,6 @@ void main() {
       firstItemName: 'Bun bo hue',
       firstItemTotal: 100000,
       expectNullStoreName: true,
-      skip: 'R7',
     ),
     // R8
     _ReceiptCase(

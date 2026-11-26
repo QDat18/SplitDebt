@@ -48,12 +48,27 @@ class RuleBasedReceiptParser implements ReceiptParser {
       kinds.add(classifyRow(row, hasMoney: tokens.isNotEmpty));
     }
 
-    // Bước 6: Tìm tên quán trong 5 hàng đầu
+    // Bước 6: Tìm tên quán trong 5 hàng đầu (trước hàng món đầu tiên, không chọn hàng ngay trước hàng số liệu món)
+    var firstItemIdx = cleanedRows.length;
+    for (var i = 0; i < cleanedRows.length; i++) {
+      if (kinds[i] == RowKind.item) {
+        firstItemIdx = i;
+        break;
+      }
+    }
+
     String? storeName;
     int? storeNameIdx;
     final headerLimit = cleanedRows.length < 5 ? cleanedRows.length : 5;
-    for (var i = 0; i < headerLimit; i++) {
+    for (var i = 0; i < headerLimit && i < firstItemIdx; i++) {
       if (kinds[i] != RowKind.text) continue;
+      if (i + 1 < cleanedRows.length &&
+          kinds[i + 1] == RowKind.text &&
+          rowTokens[i + 1].isNotEmpty &&
+          (rowTokens[i + 1].length >= 2 ||
+              RegExp(r'[.,kK]').hasMatch(cleanedRows[i + 1]))) {
+        continue;
+      }
       final row = cleanedRows[i];
       if (_dateRegex.hasMatch(row) || _phoneRegex.hasMatch(row)) continue;
       final norm = normalizeForMatch(row);
