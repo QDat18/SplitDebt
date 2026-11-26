@@ -19,6 +19,10 @@ final RegExp _vatItemPrefixRegex = RegExp(
   caseSensitive: false,
 );
 final RegExp _barcodeRegex = RegExp(r'\b\d{8,14}\b');
+final RegExp _standaloneWeightRegex = RegExp(
+  r'^\s*(\d+[.,]\d+)\s*(kg|gr|g|lit|l|ml)\s*$',
+  caseSensitive: false,
+);
 
 class _RawAdjustment {
   final AdjustmentType type;
@@ -121,6 +125,7 @@ class RuleBasedReceiptParser implements ReceiptParser {
     int? subtotal;
     final totalCandidates = <int>[];
     var lastConsumedTextIdx = -1;
+    var lastItemRowIdx = -1;
     var seenSummaryOrAdj = false;
 
     bool isMergeableTextRow(int idx) {
@@ -129,6 +134,7 @@ class RuleBasedReceiptParser implements ReceiptParser {
       }
       if (kinds[idx] != RowKind.text) return false;
       final prev = cleanedRows[idx];
+      if (_standaloneWeightRegex.hasMatch(prev)) return false;
       final withoutBarcode =
           prev.replaceFirst(RegExp(r'^\d{8,14}\s+'), '').trim();
       if (withoutBarcode.length < 2 || withoutBarcode.length > 40) {
@@ -162,6 +168,7 @@ class RuleBasedReceiptParser implements ReceiptParser {
               );
             }
             items.add(parsedItem);
+            lastItemRowIdx = i;
           }
           break;
         case RowKind.subtotal:
@@ -191,6 +198,21 @@ class RuleBasedReceiptParser implements ReceiptParser {
               .add(_extractAdjustment(AdjustmentType.discount, row, tokens));
           break;
         case RowKind.text:
+          final weightMatch = _standaloneWeightRegex.firstMatch(row);
+          if (weightMatch != null) {
+            if (lastItemRowIdx == i - 1 && items.isNotEmpty) {
+              final prevItem = items.last;
+              final weightVal = weightMatch.group(1)!.replaceAll('.', ',');
+              final unit = weightMatch.group(2)!.toLowerCase();
+              items[items.length - 1] = ParsedItem(
+                name: '${prevItem.name} ($weightVal $unit)',
+                quantity: 1,
+                unitPrice: prevItem.unitPrice,
+                totalPrice: prevItem.totalPrice,
+              );
+            }
+            break;
+          }
           if (!seenSummaryOrAdj &&
               tokens.isNotEmpty &&
               isMergeableTextRow(i - 1)) {
@@ -200,6 +222,7 @@ class RuleBasedReceiptParser implements ReceiptParser {
             if (mergedItem != null) {
               lastConsumedTextIdx = i - 1;
               items.add(mergedItem);
+              lastItemRowIdx = i;
             }
           }
           break;

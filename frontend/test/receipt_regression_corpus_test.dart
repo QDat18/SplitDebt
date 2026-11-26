@@ -285,6 +285,20 @@ void main() {
       adjustmentCount: 0,
       totalAmount: 38500,
     ),
+    // S3 Standalone weight row after item
+    _ReceiptCase(
+      'S3: standalone weight row attaches to previous item',
+      [
+        '00000002950001 Ca rot Da Lat kg',
+        'VAT05%  30,000.00  12,600.00',
+        '0.420 KG',
+        'Tong so tien thanh toan:  12,600.00',
+      ],
+      itemCount: 1,
+      firstItemName: 'Ca rot Da Lat kg (0,420 kg)',
+      firstItemTotal: 12600,
+      totalAmount: 12600,
+    ),
   ];
 
   group('money parser regression corpus', () {
