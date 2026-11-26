@@ -1,14 +1,12 @@
 # SplitDebt Progress Tracking
 
-- **Status**: Hoàn thành sửa lỗi post-login/QR/FCM, chuyển đổi ngôn ngữ VI/EN và lập plan OCR.
+- **Status**: Đang thực hiện OCR Task 0 (đã xong Step 1–2; chờ thu thập 10–15 hoá đơn thật ở Step 3–5).
 - **Done**:
-  - Sửa `DashboardScreen` (`valueOrNull`) + invalidate `userGroupsProvider` khi đăng nhập; sửa `FcmTokenService` chống lỗi trùng token; sửa `GroupInviteDialog` hết tràn màn hình ngang.
-  - Sửa `joinGroupByInviteCode` (backend + `JoinGroupDialog`) báo đúng khi đã ở trong nhóm.
-  - Tính năng đa ngôn ngữ Tiếng Việt / English (`LocaleNotifier`, `AppLocaleScope`, `LanguageSettingsScreen`, `ProfileScreen`, `MainLayoutScreen`, `DashboardScreen`, `GroupsScreen`, `GroupChatScreen`, `HistoryScreen`).
-  - Lập kế hoạch OCR tại `docs/superpowers/plans/2026-11-25-receipt-ocr.md`.
+  - Task 0 Step 1: Thêm `google_mlkit_text_recognition: ^1.0.3` vào `frontend/pubspec.yaml`, chạy `flutter pub get`.
+  - Task 0 Step 2: Viết `receipt_text_rows.dart` (`OcrLine`, `buildReceiptRows`) theo TDD, 3/3 tests passed (`receipt_text_rows_test.dart`).
 - **Verification**:
-  - Backend: 72/72 tests passed (`mvnw test`).
-  - Frontend: 67/67 tests passed (`flutter test`).
-- **In progress**: Chờ chốt phương án OCR (không dùng DeepSeek / API key trả phí).
-- **Next**: Cập nhật plan OCR sang ML Kit + Rule-based Parser (nếu được duyệt) và triển khai.
-- **Blockers**: Không có.
+  - `flutter analyze lib/features/expenses/receipt/receipt_text_rows.dart test/receipt_text_rows_test.dart`: No issues found.
+  - `flutter test test/receipt_text_rows_test.dart`: 3/3 passed.
+- **In progress**: Task 0 Step 3–5: Chạy ML Kit trên 10–15 hoá đơn thật để tạo `test/fixtures/receipts/rNN.rows.txt` + `rNN.expected.json` và đánh giá tỉ lệ đọc số tiền.
+- **Next**: Khi có dữ liệu hoá đơn thật (hoặc xác nhận bỏ qua thu thập ảnh thật ở Task 0), commit Task 0 và làm Task 1 → 5.
+- **Blockers**: Thiếu 10–15 ảnh hoá đơn thật và thao tác chụp/chọn trên thiết bị thật để đo độ chính xác ML Kit.
