@@ -1,12 +1,11 @@
 # SplitDebt Progress Tracking
 
-- **Status**: Đang thực hiện OCR Task 0 (đã xong Step 1–2; chờ thu thập 10–15 hoá đơn thật ở Step 3–5).
+- **Status**: Hoàn thành OCR Task 0 (code) và Task 1; đang làm Task 2.
 - **Done**:
-  - Task 0 Step 1: Thêm `google_mlkit_text_recognition: ^1.0.3` vào `frontend/pubspec.yaml`, chạy `flutter pub get`.
-  - Task 0 Step 2: Viết `receipt_text_rows.dart` (`OcrLine`, `buildReceiptRows`) theo TDD, 3/3 tests passed (`receipt_text_rows_test.dart`).
+  - Task 0 (code): `google_mlkit_text_recognition: ^1.0.3`, `receipt_text_rows.dart` (3/3 tests).
+  - Task 1: `receipt_models.dart`, `receipt_keywords.dart`, `money_parser.dart`, `row_classifier.dart` (13/13 tests).
 - **Verification**:
-  - `flutter analyze lib/features/expenses/receipt/receipt_text_rows.dart test/receipt_text_rows_test.dart`: No issues found.
-  - `flutter test test/receipt_text_rows_test.dart`: 3/3 passed.
-- **In progress**: Task 0 Step 3–5: Chạy ML Kit trên 10–15 hoá đơn thật để tạo `test/fixtures/receipts/rNN.rows.txt` + `rNN.expected.json` và đánh giá tỉ lệ đọc số tiền.
-- **Next**: Khi có dữ liệu hoá đơn thật (hoặc xác nhận bỏ qua thu thập ảnh thật ở Task 0), commit Task 0 và làm Task 1 → 5.
-- **Blockers**: Thiếu 10–15 ảnh hoá đơn thật và thao tác chụp/chọn trên thiết bị thật để đo độ chính xác ML Kit.
+  - `flutter analyze`: 0 issues; `money_parser_test` & `row_classifier_test`: 13/13 passed.
+- **In progress**: Task 2: `item_row_parser.dart`, `rule_based_receipt_parser.dart`, `receipt_fixtures_test.dart`.
+- **Next**: Task 3 (`ReceiptApplier`), Task 4 (`ReceiptPreviewSheet` & `ReceiptScanner`), Task 5 (`CreateExpenseScreen` & `ReceiptOcrLabScreen`).
+- **Blockers**: Chờ fixture thật để chạy kiểm tra độ chính xác.
