@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:split_debt/features/expenses/receipt/receipt_text_rows.dart';
 
@@ -64,6 +65,105 @@ void main() {
     expect(line.corners, hasLength(4));
     expect(line.corners!.first.x, 5);
     expect(line.corners!.first.y, 10);
+  });
+
+  test('deskewLines restores 90, 180, 270 and 12 degree rotated receipts', () {
+    OcrLine makeBox(String text, double x, double y, double w, double h) {
+      return OcrLine(
+        text: text,
+        top: y,
+        bottom: y + h,
+        left: x,
+        corners: [
+          OcrPoint(x, y),
+          OcrPoint(x + w, y),
+          OcrPoint(x + w, y + h),
+          OcrPoint(x, y + h),
+        ],
+      );
+    }
+
+    OcrLine rotateLine(OcrLine line, double deg) {
+      final rad = deg * math.pi / 180.0;
+      final c = math.cos(rad);
+      final s = math.sin(rad);
+      final rotatedCorners = line.corners!.map((p) {
+        return OcrPoint(p.x * c - p.y * s, p.x * s + p.y * c);
+      }).toList();
+      final ys = rotatedCorners.map((p) => p.y);
+      final xs = rotatedCorners.map((p) => p.x);
+      return OcrLine(
+        text: line.text,
+        top: ys.reduce(math.min),
+        bottom: ys.reduce(math.max),
+        left: xs.reduce(math.min),
+        corners: rotatedCorners,
+      );
+    }
+
+    final upright = [
+      makeBox('QUÁN BÚN BÒ', 20, 20, 180, 20),
+      makeBox('12/10/2026', 250, 20, 100, 20),
+      makeBox('Bún bò đặc biệt', 20, 60, 180, 20),
+      makeBox('65.000', 260, 60, 80, 20),
+      makeBox('Trà đá chanh', 20, 100, 160, 20),
+      makeBox('10.000', 260, 100, 80, 20),
+      makeBox('Bánh quẩy', 20, 140, 140, 20),
+      makeBox('15.000', 260, 140, 80, 20),
+      makeBox('Tổng cộng', 20, 180, 140, 20),
+      makeBox('90.000', 260, 180, 80, 20),
+    ];
+
+    final expected = buildReceiptRows(upright);
+    expect(expected, [
+      'QUÁN BÚN BÒ  12/10/2026',
+      'Bún bò đặc biệt  65.000',
+      'Trà đá chanh  10.000',
+      'Bánh quẩy  15.000',
+      'Tổng cộng  90.000',
+    ]);
+
+    for (final deg in [90.0, 180.0, 270.0, 12.0]) {
+      final rotated = upright.map((l) => rotateLine(l, deg)).toList();
+      expect(
+        buildReceiptRows(rotated),
+        expected,
+        reason: 'Failed at rotation $deg degrees',
+      );
+    }
+  });
+
+  test('deskewLines skips rotation when fewer than 3 lines have corners', () {
+    final lines = [
+      const OcrLine(
+        text: 'Hàng 1',
+        top: 10,
+        bottom: 100,
+        left: 50,
+        corners: [
+          OcrPoint(50, 10),
+          OcrPoint(50, 100),
+          OcrPoint(30, 100),
+          OcrPoint(30, 10),
+        ],
+      ),
+      const OcrLine(
+        text: 'Hàng 2',
+        top: 10,
+        bottom: 100,
+        left: 90,
+        corners: [
+          OcrPoint(90, 10),
+          OcrPoint(90, 100),
+          OcrPoint(70, 100),
+          OcrPoint(70, 10),
+        ],
+      ),
+    ];
+
+    final result = deskewLines(lines);
+    expect(result[0].top, 10);
+    expect(result[0].left, 50);
   });
 }
 
