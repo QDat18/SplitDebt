@@ -146,6 +146,13 @@ void main() {
     // 5.4b.5 VAT-included total & tax summary table
     _ClassifyCase('5.4b.5: total with đã gồm VAT is total', 'Tổng tiền (đã gồm VAT) 512.000', hasMoney: true, expected: RowKind.total),
     _ClassifyCase('5.4b.5: tax summary table row ignored', 'Thuế suất 8%  Tiền thuế 12.345', hasMoney: true, expected: RowKind.ignore),
+    // S5 Additional ignore keywords
+    _ClassifyCase('S5: Tien thoi lai ignored', 'Tien thoi lai ====>  -1,500.00', hasMoney: true, expected: RowKind.ignore),
+    _ClassifyCase('S5: Gia goc ignored', 'Gia goc:  9,900.00', hasMoney: true, expected: RowKind.ignore),
+    _ClassifyCase('S5: Bao gom thue GTGT ignored', 'Bao gom thue GTGT 10%:  1,200.00', hasMoney: true, expected: RowKind.ignore),
+    _ClassifyCase('S5: Phuong thuc thanh toan ignored', 'Phuong thuc thanh toan:', hasMoney: false, expected: RowKind.ignore),
+    _ClassifyCase('S5: So the ignored', 'So the:  XXX', hasMoney: false, expected: RowKind.ignore),
+    _ClassifyCase('S5: Ma HD ignored', 'Ma HD: ABCDEF 10:20', hasMoney: false, expected: RowKind.ignore),
   ];
 
   const itemCases = <_ItemCase>[

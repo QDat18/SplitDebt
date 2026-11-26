@@ -60,6 +60,12 @@ class ReceiptKeywords {
     'ngay in',
     'thue suat',
     'tien thue',
+    'tien thoi lai',
+    'tien thoi',
+    'gia goc',
+    'bao gom thue',
+    'phuong thuc thanh toan',
+    'so the',
   ];
 
   static const List<String> ignoreWhenNoMoney = [
