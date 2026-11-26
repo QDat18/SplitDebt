@@ -100,9 +100,9 @@ void main() {
     _MoneyCase('R2: 8-digit total starting with 1900', 'Tổng cộng 19000000', [19000000]),
     _MoneyCase('R2: Tel landline', 'Tel: 028 3822 1234', []),
     // R3
-    _MoneyCase('R3: two space-thousands prices', 'Bia 120 000 240 000', [120000, 240000], skip: 'R3'),
-    _MoneyCase('R3: qty plus two space-thousands prices', 'Bia 2 125 000 250 000', [125000, 250000], skip: 'R3'),
-    _MoneyCase('R3: single 7-digit space-thousands', '1 250 000', [1250000], skip: 'R3'),
+    _MoneyCase('R3: two space-thousands prices', 'Bia 120 000 240 000', [120000, 240000]),
+    _MoneyCase('R3: qty plus two space-thousands prices', 'Bia 2 125 000 250 000', [125000, 250000]),
+    _MoneyCase('R3: single 7-digit space-thousands', '1 250 000', [1250000]),
   ];
 
   const classifyCases = <_ClassifyCase>[
@@ -130,7 +130,7 @@ void main() {
     _ItemCase('O10: qty between unit and total', 'Cafe 25.000 2 50.000', name: 'Cafe', qty: 2, unit: 25000, total: 50000),
     _ItemCase('O10: Combo 2 keeps 2 in name', 'Combo 2  99.000', name: 'Combo 2', qty: 1, total: 99000),
     // R3
-    _ItemCase('R3: Bia 2 125 000 250 000', 'Bia 2 125 000 250 000', name: 'Bia', qty: 2, unit: 125000, total: 250000, skip: 'R3'),
+    _ItemCase('R3: Bia 2 125 000 250 000', 'Bia 2 125 000 250 000', name: 'Bia', qty: 2, unit: 125000, total: 250000),
     // R9
     _ItemCase('R9: Bia Tiger  3  45.000', 'Bia Tiger  3  45.000', name: 'Bia Tiger', qty: 3, total: 45000, skip: 'R9'),
     _ItemCase('R9: Cơm chiên  2  90.000', 'Cơm chiên  2  90.000', name: 'Cơm chiên', qty: 2, total: 90000, skip: 'R9'),

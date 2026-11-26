@@ -69,6 +69,61 @@ final RegExp _standardPhoneRegex = RegExp(
   r'(?<![0-9A-Za-z])(?:\+84[\s.-]?[1-9]\d{1,2}[ .-]?\d{3,4}[ .-]?\d{3,4}|0\d{2,3}[ .-]?\d{3,4}[ .-]?\d{3,4}|0\d{9,10}|(?:1800|1900)[ .]\d{4})(?![0-9A-Za-z])',
 );
 
+List<MoneyToken>? trySplitSpaceMoney(String fixed, int baseOffset) {
+  final groups = fixed.split(' ');
+  if (groups.length < 3) return null;
+
+  List<MoneyToken>? bestTwoPart(List<String> g, int offset, {int? expectedQty}) {
+    if (g.length < 2) return null;
+    List<MoneyToken>? fallback;
+    var groupStart = offset;
+    for (var cut = 1; cut < g.length; cut++) {
+      groupStart += g[cut - 1].length + 1;
+      if (g[0].startsWith('0') || g[cut].startsWith('0')) continue;
+      final leftVal = int.tryParse(g.sublist(0, cut).join());
+      final rightVal = int.tryParse(g.sublist(cut).join());
+      if (leftVal == null || rightVal == null) continue;
+      if (leftVal < 1000 || leftVal > 100000000) continue;
+      if (rightVal < 1000 || rightVal > 100000000) continue;
+
+      final leftEnd = groupStart - 1;
+      final rightEnd = offset + g.join(' ').length;
+      final pair = [
+        MoneyToken(value: leftVal, start: offset, end: leftEnd),
+        MoneyToken(value: rightVal, start: groupStart, end: rightEnd),
+      ];
+
+      if (expectedQty != null && (expectedQty * leftVal - rightVal).abs() <= 1000) {
+        return pair;
+      }
+      if (rightVal >= leftVal && rightVal % leftVal == 0 && (rightVal ~/ leftVal) <= 20) {
+        return pair;
+      }
+      fallback ??= pair;
+    }
+    return fallback;
+  }
+
+  // Prefer 2-part split where right is a small integer multiple of left.
+  final twoPart = bestTwoPart(groups, baseOffset);
+  if (twoPart != null &&
+      twoPart[1].value >= twoPart[0].value &&
+      twoPart[1].value % twoPart[0].value == 0 &&
+      (twoPart[1].value ~/ twoPart[0].value) <= 20) {
+    return twoPart;
+  }
+
+  // If leading group is a small quantity (1..99), try splitting the rest.
+  final qty = int.tryParse(groups[0]);
+  if (qty != null && qty >= 1 && qty <= 99 && groups.length >= 3) {
+    final restOffset = baseOffset + groups[0].length + 1;
+    final withQty = bestTwoPart(groups.sublist(1), restOffset, expectedQty: qty);
+    if (withQty != null) return withQty;
+  }
+
+  return twoPart;
+}
+
 List<MoneyToken> parseMoneyTokens(String row) {
   final tokens = <MoneyToken>[];
   var sanitizedRow = row.replaceAllMapped(
@@ -113,6 +168,13 @@ List<MoneyToken> parseMoneyTokens(String row) {
     if (parsed == null) continue;
 
     final value = isK ? parsed * 1000 : parsed;
+    if (value > 100000000 && !isK && fixed.contains(' ')) {
+      final split = trySplitSpaceMoney(fixed, match.start);
+      if (split != null) {
+        tokens.addAll(split);
+        continue;
+      }
+    }
     if (value < 1000 || value > 100000000) continue;
 
     tokens.add(MoneyToken(value: value, start: match.start, end: match.end));
