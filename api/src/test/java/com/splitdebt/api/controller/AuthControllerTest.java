@@ -5,8 +5,10 @@
 package com.splitdebt.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.splitdebt.api.config.LegalProperties;
 import com.splitdebt.api.dto.LoginRequest;
 import com.splitdebt.api.dto.RegisterRequest;
+import com.splitdebt.api.dto.consent.RegisterConsentsDto;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -29,12 +31,22 @@ public class AuthControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private LegalProperties legalProperties;
+
     @Test
     void register_success() throws Exception {
         RegisterRequest req = new RegisterRequest();
         req.setFullName("Test User");
         req.setEmail("test" + System.currentTimeMillis() + "@test.com");
         req.setPassword("Password123!");
+        req.setConsents(new RegisterConsentsDto(
+                legalProperties.getTermsVersion(),
+                legalProperties.getPrivacyVersion(),
+                true
+        ));
+        req.setPlatform("android");
+        req.setAppVersion("1.0.0");
         
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)

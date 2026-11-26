@@ -5,10 +5,13 @@
 package com.splitdebt.api.controller;
 
 import com.splitdebt.api.dto.UserDto;
+import com.splitdebt.api.dto.consent.ConsentStatusDto;
+import com.splitdebt.api.dto.consent.ConsentUpdateRequest;
 import com.splitdebt.api.dto.request.UpdateProfileRequest;
 import com.splitdebt.api.dto.response.UserActivityLogDto;
 import com.splitdebt.api.entity.User;
 import com.splitdebt.api.repository.UserRepository;
+import com.splitdebt.api.service.ConsentService;
 import com.splitdebt.api.service.SupabaseStorageService;
 import com.splitdebt.api.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +36,7 @@ public class UserController {
     private final UserRepository userRepository;
     private final SupabaseStorageService supabaseStorageService;
     private final UserService userService;
+    private final ConsentService consentService;
 
     @Operation(summary = "Lấy thông tin người dùng đang đăng nhập", description = "Dựa trên JWT Token để lấy thông tin cá nhân của user.")
     @GetMapping("/me")
@@ -40,6 +44,15 @@ public class UserController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName();
         return ResponseEntity.ok(userService.getCurrentUser(email));
+    }
+
+    @Operation(summary = "Cập nhật đồng ý điều khoản và chính sách", description = "Ghi thêm bản ghi đồng ý mới và trả về trạng thái đồng ý hiện tại.")
+    @PostMapping("/me/consents")
+    public ResponseEntity<ConsentStatusDto> updateConsents(@RequestBody ConsentUpdateRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(consentService.update(user.getId(), request));
     }
 
     @Operation(summary = "Cập nhật thông tin cá nhân", description = "Cập nhật họ tên, số điện thoại và tự động lưu nhật ký hoạt động.")

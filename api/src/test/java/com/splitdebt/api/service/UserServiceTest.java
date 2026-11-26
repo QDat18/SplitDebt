@@ -33,6 +33,9 @@ class UserServiceTest {
     @Mock
     private UserActivityLogRepository userActivityLogRepository;
 
+    @Mock
+    private ConsentService consentService;
+
     @InjectMocks
     private UserServiceImpl userService;
 

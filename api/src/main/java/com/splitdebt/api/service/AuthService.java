@@ -29,6 +29,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
+    private final ConsentService consentService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -43,7 +44,8 @@ public class AuthService {
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         
-        userRepository.save(user);
+        user = userRepository.save(user);
+        consentService.recordRegistration(user, request.getConsents(), request.getPlatform(), request.getAppVersion());
 
         String token = jwtUtils.generateJwtToken(user.getEmail());
         return new AuthResponse(token);

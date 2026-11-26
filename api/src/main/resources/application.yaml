@@ -54,6 +54,9 @@ app:
     url: ${SUPABASE_URL:https://zvgpxmzznstotmqfwjet.supabase.co}
     key: ${SUPABASE_KEY:}
     bucket: ${SUPABASE_AVATAR_BUCKET:Avatar}
+  legal:
+    terms-version: ${LEGAL_TERMS_VERSION:2026-11-26}
+    privacy-version: ${LEGAL_PRIVACY_VERSION:2026-11-26}
 
 springdoc:
   api-docs:

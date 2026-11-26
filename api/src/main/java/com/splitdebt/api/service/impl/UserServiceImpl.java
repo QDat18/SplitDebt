@@ -11,6 +11,7 @@ import com.splitdebt.api.entity.User;
 import com.splitdebt.api.entity.UserActivityLog;
 import com.splitdebt.api.repository.UserActivityLogRepository;
 import com.splitdebt.api.repository.UserRepository;
+import com.splitdebt.api.service.ConsentService;
 import com.splitdebt.api.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final UserActivityLogRepository userActivityLogRepository;
+    private final ConsentService consentService;
 
     @Override
     @Transactional(readOnly = true)
@@ -115,6 +117,7 @@ public class UserServiceImpl implements UserService {
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .avatarUrl(user.getAvatarUrl())
+                .consent(consentService.status(user.getId()))
                 .build();
     }
 }
