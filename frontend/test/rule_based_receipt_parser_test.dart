@@ -112,4 +112,33 @@ void main() {
       throwsA(isA<ReceiptUnreadable>()),
     );
   });
+
+  test('name row followed by numbers-only row forms one item', () {
+    final parsed = parser.parse([
+      'QUAN AN NGON',
+      'Bun bo hue',
+      '2  50.000  100.000',
+      'Com tam  45.000',
+      'Tong cong  145.000',
+    ]);
+
+    expect(parsed.items.length, 2);
+    expect(parsed.items[0].name, 'Bun bo hue');
+    expect(parsed.items[0].quantity, 2);
+    expect(parsed.items[0].totalPrice, 100000);
+    expect(parsed.items[1].name, 'Com tam');
+    expect(parsed.items[1].totalPrice, 45000);
+  });
+
+  test('mostly-digit rows are never merged into a name', () {
+    final parsed = parser.parse([
+      'QUAN AN NGON',
+      '123456 789',
+      'Com tam  45.000',
+      'Tong cong  45.000',
+    ]);
+
+    expect(parsed.items.length, 1);
+    expect(parsed.items.first.name, 'Com tam');
+  });
 }

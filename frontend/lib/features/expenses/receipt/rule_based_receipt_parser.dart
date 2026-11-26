@@ -86,11 +86,24 @@ class RuleBasedReceiptParser implements ReceiptParser {
       }
     }
 
-    // Bước 4 & 5: Tách món + gộp tên món xuống dòng
+    // Bước 4 & 5: Tách món + gộp tên món xuống dòng / hàng số ngay sau hàng chữ
     final items = <ParsedItem>[];
     final rawAdjustments = <_RawAdjustment>[];
     int? subtotal;
     int? explicitTotal;
+    var lastConsumedTextIdx = -1;
+
+    bool isMergeableTextRow(int idx) {
+      if (idx < 0 || idx == storeNameIdx || idx == lastConsumedTextIdx) {
+        return false;
+      }
+      if (kinds[idx] != RowKind.text) return false;
+      final prev = cleanedRows[idx];
+      if (prev.length < 2 || prev.length > 40) return false;
+      if (_dateRegex.hasMatch(prev) || _phoneRegex.hasMatch(prev)) return false;
+      if (_isMostlyDigits(prev)) return false;
+      return true;
+    }
 
     for (var i = 0; i < cleanedRows.length; i++) {
       final kind = kinds[i];
@@ -101,21 +114,15 @@ class RuleBasedReceiptParser implements ReceiptParser {
         case RowKind.item:
           var parsedItem = parseItemRow(row);
           if (parsedItem != null) {
-            if (i > 0 &&
-                kinds[i - 1] == RowKind.text &&
-                (i - 1) != storeNameIdx) {
+            if (isMergeableTextRow(i - 1)) {
               final prev = cleanedRows[i - 1];
-              if (prev.length >= 2 &&
-                  prev.length <= 40 &&
-                  !_dateRegex.hasMatch(prev) &&
-                  !_phoneRegex.hasMatch(prev)) {
-                parsedItem = ParsedItem(
-                  name: '$prev ${parsedItem.name}',
-                  quantity: parsedItem.quantity,
-                  unitPrice: parsedItem.unitPrice,
-                  totalPrice: parsedItem.totalPrice,
-                );
-              }
+              lastConsumedTextIdx = i - 1;
+              parsedItem = ParsedItem(
+                name: '$prev ${parsedItem.name}',
+                quantity: parsedItem.quantity,
+                unitPrice: parsedItem.unitPrice,
+                totalPrice: parsedItem.totalPrice,
+              );
             }
             items.add(parsedItem);
           }
@@ -141,8 +148,17 @@ class RuleBasedReceiptParser implements ReceiptParser {
           rawAdjustments
               .add(_extractAdjustment(AdjustmentType.discount, row, tokens));
           break;
-        case RowKind.ignore:
         case RowKind.text:
+          if (tokens.isNotEmpty && isMergeableTextRow(i - 1)) {
+            final prev = cleanedRows[i - 1];
+            final mergedItem = parseItemRow('$prev  $row');
+            if (mergedItem != null) {
+              lastConsumedTextIdx = i - 1;
+              items.add(mergedItem);
+            }
+          }
+          break;
+        case RowKind.ignore:
           break;
       }
     }
@@ -242,6 +258,13 @@ class RuleBasedReceiptParser implements ReceiptParser {
       amount: amount,
       percent: percent,
     );
+  }
+
+  bool _isMostlyDigits(String s) {
+    final compact = s.replaceAll(RegExp(r'\s+'), '');
+    if (compact.isEmpty) return false;
+    final digits = RegExp(r'\d').allMatches(compact).length;
+    return digits * 2 >= compact.length;
   }
 
   String _formatVnd(int value) {
