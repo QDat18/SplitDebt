@@ -28,6 +28,13 @@ int _countMatches(String normalizedRow, List<String> keywords) {
   return count;
 }
 
+bool isTotalKeywordRow(String row) {
+  final norm = normalizeForMatch(row);
+  if (norm.isEmpty) return false;
+  if (_matchesAny(norm, ReceiptKeywords.ignoreAlways)) return false;
+  return _matchesAny(norm, ReceiptKeywords.total);
+}
+
 RowKind classifyRow(String row, {required bool hasMoney}) {
   final norm = normalizeForMatch(row);
   if (norm.isEmpty) return RowKind.ignore;

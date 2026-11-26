@@ -299,6 +299,29 @@ void main() {
       firstItemTotal: 12600,
       totalAmount: 12600,
     ),
+    // S4 Split total label and amount
+    _ReceiptCase(
+      'S4: total label without valid money takes numbers-only row above',
+      [
+        'Mon A  50,000.00',
+        'Mon B  42,000.00',
+        '92,000.00',
+        'Tong so tien thanh toan:  4',
+        'Tong so luong hang:',
+      ],
+      totalAmount: 92000,
+    ),
+    _ReceiptCase(
+      'S4: Tổng số with small qty and price is lowest-priority total candidate',
+      [
+        'Mon A  1  60,000  60,000',
+        'Mon B  1  28,000  28,000',
+        'Tổng số:  2  88,000',
+        'Tổng cộng :',
+        'Tiền khách trả:  VND  88,000',
+      ],
+      totalAmount: 88000,
+    ),
   ];
 
   group('money parser regression corpus', () {

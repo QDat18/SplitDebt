@@ -23,6 +23,7 @@ final RegExp _standaloneWeightRegex = RegExp(
   r'^\s*(\d+[.,]\d+)\s*(kg|gr|g|lit|l|ml)\s*$',
   caseSensitive: false,
 );
+final RegExp _tongSoTotalRegex = RegExp(r'\btong so:\s*\d{1,3}\s+');
 
 class _RawAdjustment {
   final AdjustmentType type;
@@ -124,6 +125,8 @@ class RuleBasedReceiptParser implements ReceiptParser {
     final rawAdjustments = <_RawAdjustment>[];
     int? subtotal;
     final totalCandidates = <int>[];
+    final lowPriorityTotalCandidates = <int>[];
+    final consumedItemRows = <int>{};
     var lastConsumedTextIdx = -1;
     var lastItemRowIdx = -1;
     var seenSummaryOrAdj = false;
@@ -155,6 +158,12 @@ class RuleBasedReceiptParser implements ReceiptParser {
 
       switch (kind) {
         case RowKind.item:
+          if (tokens.isNotEmpty &&
+              _tongSoTotalRegex.hasMatch(normalizeForMatch(row))) {
+            seenSummaryOrAdj = true;
+            lowPriorityTotalCandidates.add(tokens.last.value);
+            break;
+          }
           var parsedItem = parseItemRow(row);
           if (parsedItem != null) {
             if (isMergeableTextRow(i - 1)) {
@@ -168,6 +177,7 @@ class RuleBasedReceiptParser implements ReceiptParser {
               );
             }
             items.add(parsedItem);
+            consumedItemRows.add(i);
             lastItemRowIdx = i;
           }
           break;
@@ -222,11 +232,26 @@ class RuleBasedReceiptParser implements ReceiptParser {
             if (mergedItem != null) {
               lastConsumedTextIdx = i - 1;
               items.add(mergedItem);
+              consumedItemRows.add(i);
               lastItemRowIdx = i;
             }
           }
           break;
         case RowKind.ignore:
+          if (tokens.isEmpty && isTotalKeywordRow(row)) {
+            seenSummaryOrAdj = true;
+            if (i > 0 &&
+                kinds[i - 1] == RowKind.text &&
+                rowTokens[i - 1].isNotEmpty &&
+                !consumedItemRows.contains(i - 1)) {
+              totalCandidates.add(rowTokens[i - 1].last.value);
+            } else if (i + 1 < cleanedRows.length &&
+                kinds[i + 1] == RowKind.text &&
+                rowTokens[i + 1].isNotEmpty &&
+                !consumedItemRows.contains(i + 1)) {
+              totalCandidates.add(rowTokens[i + 1].last.value);
+            }
+          }
           break;
       }
     }
@@ -264,13 +289,16 @@ class RuleBasedReceiptParser implements ReceiptParser {
     final warnings = <String>[];
 
     late final int totalAmount;
-    if (totalCandidates.isNotEmpty) {
+    final effectiveTotals = totalCandidates.isNotEmpty
+        ? totalCandidates
+        : lowPriorityTotalCandidates;
+    if (effectiveTotals.isNotEmpty) {
       final expectedTotal = sumItems + sumAdj;
-      var chosen = totalCandidates.last;
+      var chosen = effectiveTotals.last;
       if (chosen < expectedTotal - 1000) {
-        for (var i = totalCandidates.length - 2; i >= 0; i--) {
-          if ((totalCandidates[i] - expectedTotal).abs() <= 1000) {
-            chosen = totalCandidates[i];
+        for (var i = effectiveTotals.length - 2; i >= 0; i--) {
+          if ((effectiveTotals[i] - expectedTotal).abs() <= 1000) {
+            chosen = effectiveTotals[i];
             break;
           }
         }
