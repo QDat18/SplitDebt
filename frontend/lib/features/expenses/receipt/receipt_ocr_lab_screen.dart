@@ -30,6 +30,10 @@ class _ReceiptOcrLabScreenState extends State<ReceiptOcrLabScreen> {
     try {
       final rows = await _scanner.scan(source);
       if (!mounted) return;
+      if (rows == null) {
+        setState(() => _scanning = false);
+        return;
+      }
       for (var i = 0; i < rows.length; i++) {
         debugPrint('[OCR_LAB] $i: ${rows[i]}');
       }

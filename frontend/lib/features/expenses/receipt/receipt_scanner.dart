@@ -10,9 +10,9 @@ class ReceiptScanner {
 
   ReceiptScanner({ImagePicker? picker}) : _picker = picker ?? ImagePicker();
 
-  Future<List<String>> scan(ImageSource source) async {
+  Future<List<String>?> scan(ImageSource source) async {
     final picked = await _picker.pickImage(source: source);
-    if (picked == null) return const [];
+    if (picked == null) return null;
 
     final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
     try {

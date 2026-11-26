@@ -80,7 +80,7 @@ class ReceiptFlow {
       if (source == null || !context.mounted) return null;
 
       onScanningChanged(true);
-      List<String> rows;
+      List<String>? rows;
       try {
         rows = await activeScanner.scan(source);
       } catch (_) {
@@ -92,6 +92,11 @@ class ReceiptFlow {
       }
 
       if (!context.mounted) {
+        onScanningChanged(false);
+        return null;
+      }
+
+      if (rows == null) {
         onScanningChanged(false);
         return null;
       }
