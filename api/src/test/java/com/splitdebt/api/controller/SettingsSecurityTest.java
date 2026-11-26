@@ -5,11 +5,14 @@
 package com.splitdebt.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.splitdebt.api.config.LegalProperties;
+import com.splitdebt.api.dto.consent.RegisterConsentsDto;
 import com.splitdebt.api.entity.User;
 import com.splitdebt.api.entity.enums.GroupMemberStatus;
 import com.splitdebt.api.repository.GroupMemberRepository;
 import com.splitdebt.api.repository.UserRepository;
 import com.splitdebt.api.security.JwtUtils;
+import com.splitdebt.api.service.ConsentService;
 import com.splitdebt.api.service.FcmPushService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +52,12 @@ public class SettingsSecurityTest {
     private UserRepository users;
 
     @Autowired
+    private ConsentService consentService;
+
+    @Autowired
+    private LegalProperties legalProperties;
+
+    @Autowired
     private GroupMemberRepository groupMemberRepository;
 
     @Autowired
@@ -66,11 +75,13 @@ public class SettingsSecurityTest {
 
     private String account(String email) {
         if (!users.existsByEmail(email)) {
-            users.save(User.builder()
+            User u = users.save(User.builder()
                     .email(email)
                     .fullName("Test User")
                     .passwordHash(encoder.encode("Password123!"))
                     .build());
+            consentService.recordRegistration(u, new RegisterConsentsDto(
+                    legalProperties.getTermsVersion(), legalProperties.getPrivacyVersion(), true), "android", "1.0.0");
         }
         return email;
     }

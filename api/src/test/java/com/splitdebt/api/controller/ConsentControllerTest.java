@@ -307,5 +307,75 @@ public class ConsentControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reconsentRequired").value(false));
     }
+
+    @Test
+    void legacyUser_businessApi_is428() throws Exception {
+        String email = "block428_" + System.nanoTime() + "@test.com";
+        userRepository.save(User.builder()
+                .fullName("Legacy 428")
+                .email(email)
+                .passwordHash(passwordEncoder.encode("Password123!"))
+                .build());
+        String token = loginAndGetToken(email, "Password123!");
+
+        mockMvc.perform(get("/api/groups")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().is(428))
+                .andExpect(jsonPath("$.code").value("RECONSENT_REQUIRED"));
+    }
+
+    @Test
+    void legacyUser_exemptRoutes_pass() throws Exception {
+        String email = "exempt_" + System.nanoTime() + "@test.com";
+        userRepository.save(User.builder()
+                .fullName("Legacy Exempt")
+                .email(email)
+                .passwordHash(passwordEncoder.encode("Password123!"))
+                .build());
+        String token = loginAndGetToken(email, "Password123!");
+
+        mockMvc.perform(get("/api/users/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void afterReconsent_businessApi_passes() throws Exception {
+        String email = "unblock_" + System.nanoTime() + "@test.com";
+        userRepository.save(User.builder()
+                .fullName("Legacy Unblock")
+                .email(email)
+                .passwordHash(passwordEncoder.encode("Password123!"))
+                .build());
+        String token = loginAndGetToken(email, "Password123!");
+
+        mockMvc.perform(get("/api/groups")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().is(428));
+
+        ConsentUpdateRequest req = new ConsentUpdateRequest();
+        req.setSource(ConsentSource.RECONSENT);
+        req.setPlatform("android");
+        req.setAppVersion("1.0.0");
+        req.setItems(List.of(
+                new ConsentItemDto(ConsentType.TERMS, true, legalProperties.getTermsVersion()),
+                new ConsentItemDto(ConsentType.PRIVACY, true, legalProperties.getPrivacyVersion())
+        ));
+        mockMvc.perform(post("/api/users/me/consents")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/groups")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void unauthenticated_isStill401() throws Exception {
+        mockMvc.perform(get("/api/groups"))
+                .andExpect(status().isUnauthorized());
+    }
 }
 

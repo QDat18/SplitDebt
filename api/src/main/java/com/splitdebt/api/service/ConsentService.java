@@ -22,11 +22,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
 public class ConsentService {
 
+    private static final long CACHE_TTL_MS = 60_000L;
     private static final String AGE_16_VERSION = "1";
     private static final String MISSING_CONSENT_MSG =
             "Bạn cần đồng ý Điều khoản, Chính sách và xác nhận đủ 16 tuổi để đăng ký.";
@@ -35,9 +37,12 @@ public class ConsentService {
     private static final String WITHDRAW_REQUIRED_MSG =
             "Để rút lại đồng ý bắt buộc, hãy xoá tài khoản.";
 
+    private record CachedFlag(boolean required, String termsVersion, String privacyVersion, long expiresAtMillis) {}
+
     private final UserConsentRepository userConsentRepository;
     private final UserRepository userRepository;
     private final LegalProperties legalProperties;
+    private final ConcurrentHashMap<Long, CachedFlag> reconsentCache = new ConcurrentHashMap<>();
 
     @Transactional
     public void recordRegistration(User user, RegisterConsentsDto c, String platform, String appVersion) {
@@ -61,6 +66,7 @@ public class ConsentService {
                         ConsentSource.REGISTER, platform, appVersion)
         );
         userConsentRepository.saveAll(records);
+        reconsentCache.remove(user.getId());
     }
 
     @Transactional(readOnly = true)
@@ -83,8 +89,20 @@ public class ConsentService {
 
     @Transactional(readOnly = true)
     public boolean reconsentRequired(Long userId) {
-        return !hasCurrentGrantedConsent(userId, ConsentType.TERMS, legalProperties.getTermsVersion())
-                || !hasCurrentGrantedConsent(userId, ConsentType.PRIVACY, legalProperties.getPrivacyVersion());
+        long now = System.currentTimeMillis();
+        String termsVer = legalProperties.getTermsVersion();
+        String privacyVer = legalProperties.getPrivacyVersion();
+        CachedFlag cached = reconsentCache.get(userId);
+        if (cached != null
+                && cached.expiresAtMillis() > now
+                && termsVer.equals(cached.termsVersion())
+                && privacyVer.equals(cached.privacyVersion())) {
+            return cached.required();
+        }
+        boolean required = !hasCurrentGrantedConsent(userId, ConsentType.TERMS, termsVer)
+                || !hasCurrentGrantedConsent(userId, ConsentType.PRIVACY, privacyVer);
+        reconsentCache.put(userId, new CachedFlag(required, termsVer, privacyVer, now + CACHE_TTL_MS));
+        return required;
     }
 
     @Transactional
@@ -117,6 +135,7 @@ public class ConsentService {
                     req.getAppVersion()
             ));
         }
+        reconsentCache.remove(userId);
         return status(userId);
     }
 
