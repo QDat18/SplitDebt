@@ -117,6 +117,9 @@ void main() {
     _MoneyCase('S1: dot-thousands with ,00', '5.000,00', [5000]),
     _MoneyCase('S1: negative with .00', '-8,250.00', [8250]),
     _MoneyCase('S1: still reject 0.670', '0.670', []),
+    // Bước 4 C1: phone with branch/extension suffix without keyword
+    _MoneyCase('C1: phone with extension suffix is not money', '024.71061234-39671', []),
+    _MoneyCase('C1: phone with space groups without keyword is not money', '09 1234 5678', []),
   ];
 
   const classifyCases = <_ClassifyCase>[
@@ -155,6 +158,12 @@ void main() {
     _ClassifyCase('S5: Phuong thuc thanh toan ignored', 'Phuong thuc thanh toan:', hasMoney: false, expected: RowKind.ignore),
     _ClassifyCase('S5: So the ignored', 'So the:  XXX', hasMoney: false, expected: RowKind.ignore),
     _ClassifyCase('S5: Ma HD ignored', 'Ma HD: ABCDEF 10:20', hasMoney: false, expected: RowKind.ignore),
+    // Bước 4: TỔNG TIỀN Ã GIẢM, Thành tiền:, Tổng <n> <money>, VinID/Lô/Tích lũy
+    _ClassifyCase('B4: TONG TIEN A GIAM is ignored not total', 'TỔNG TIỀN Ã GIẢM  -46.000', hasMoney: true, expected: RowKind.ignore),
+    _ClassifyCase('B4: Thanh tien with colon is total', 'Thành tiền: 32.000', hasMoney: true, expected: RowKind.total),
+    _ClassifyCase('B4: Tong + qty + money is total', 'Tổng  3  120.000', hasMoney: true, expected: RowKind.total),
+    _ClassifyCase('B4: VinID payment row ignored', 'VinID  5.000', hasMoney: true, expected: RowKind.ignore),
+    _ClassifyCase('B4: Lo: batch row ignored', 'Lô:0250819  Ngày hết hạn:12/09/2025', hasMoney: true, expected: RowKind.ignore),
   ];
 
   const itemCases = <_ItemCase>[
@@ -381,6 +390,25 @@ void main() {
       firstItemTotal: 37500,
       adjustmentCount: 0,
       totalAmount: 37500,
+    ),
+    // Bước 4 C6: mid-list KM discount does not block subsequent 2-line barcode items
+    _ReceiptCase(
+      'B4 C6: mid-list KM discount keeps merging subsequent 2-line barcode items',
+      [
+        'Sữa rửa mặt 100g',
+        '8934567890123  75.000  1  75.000',
+        'KM  -15.000',
+        'Kem đánh răng 200g',
+        '8934567890456  35.000  1  35.000',
+        'TỔNG TIỀN PHẢI T.TOÁN  95.000',
+        'TỔNG TIỀN Ã GIẢM  -15.000',
+      ],
+      itemCount: 2,
+      firstItemTotal: 75000,
+      secondItemTotal: 35000,
+      firstAdjustmentAmount: -15000,
+      totalAmount: 95000,
+      expectEmptyWarnings: true,
     ),
   ];
 

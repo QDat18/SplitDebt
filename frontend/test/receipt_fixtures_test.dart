@@ -147,16 +147,18 @@ void main() {
     for (final entry in byType.entries) {
       // ignore: avoid_print
       print(entry.value.formatReport('OCR Fixture Report [type:${entry.key}]'));
+    }
+    if (failures.isNotEmpty) {
+      // ignore: avoid_print
+      print('Fixture mismatches:\n  ${failures.join('\n  ')}');
+    }
+    for (final entry in byType.entries) {
       if (entry.value.receipts >= 5) {
         expect(entry.value.totalRate, greaterThanOrEqualTo(0.80),
             reason: '${entry.key} totalMatch < 80%');
         expect(entry.value.itemPriceRate, greaterThanOrEqualTo(0.85),
             reason: '${entry.key} itemPriceMatch < 85%');
       }
-    }
-    if (failures.isNotEmpty) {
-      // ignore: avoid_print
-      print('Fixture mismatches:\n  ${failures.join('\n  ')}');
     }
 
     expect(overall.totalRate, greaterThanOrEqualTo(0.80));

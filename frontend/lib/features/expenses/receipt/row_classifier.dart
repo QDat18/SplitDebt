@@ -52,7 +52,13 @@ RowKind classifyRow(String row, {required bool hasMoney}) {
     return hasMoney ? RowKind.subtotal : RowKind.ignore;
   }
 
-  if (_matchesAny(norm, ReceiptKeywords.total)) {
+  if (RegExp(r'\btong\s+tien\b.*\b(?:a\s+giam|da\s+giam|giam|chiet\s+khau)\b')
+      .hasMatch(norm)) {
+    return RowKind.ignore;
+  }
+
+  if (_matchesAny(norm, ReceiptKeywords.total) ||
+      RegExp(r'^tong(?::|\s+\d)').hasMatch(norm)) {
     return hasMoney ? RowKind.total : RowKind.ignore;
   }
 

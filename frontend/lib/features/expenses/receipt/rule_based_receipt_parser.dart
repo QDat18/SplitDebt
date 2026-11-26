@@ -205,7 +205,6 @@ class RuleBasedReceiptParser implements ReceiptParser {
               .add(_extractAdjustment(AdjustmentType.service, row, tokens));
           break;
         case RowKind.discount:
-          seenSummaryOrAdj = true;
           rawAdjustments
               .add(_extractAdjustment(AdjustmentType.discount, row, tokens));
           break;

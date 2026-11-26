@@ -66,6 +66,11 @@ class ReceiptKeywords {
     'bao gom thue',
     'phuong thuc thanh toan',
     'so the',
+    'lo:',
+    'ngay het han',
+    'vinid',
+    'gia tri thuong',
+    'tich luy',
   ];
 
   static const List<String> ignoreWhenNoMoney = [
@@ -88,6 +93,7 @@ class ReceiptKeywords {
     'can thanh toan',
     'khach can tra',
     'can tra',
+    'thanh tien:',
     'total',
   ];
 
