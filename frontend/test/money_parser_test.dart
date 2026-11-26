@@ -64,4 +64,10 @@ void main() {
       [1250000],
     );
   });
+
+  test('phone numbers are not money', () {
+    expect(parseMoneyTokens('DT 0901 234 567'), isEmpty);
+    expect(parseMoneyTokens('Tel: 0901 234 567'), isEmpty);
+    expect(parseMoneyTokens('Hotline 1900 1234'), isEmpty);
+  });
 }

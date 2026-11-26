@@ -40,4 +40,9 @@ void main() {
     expect(classifyRow('ĐT: 0901 234 567', hasMoney: false), RowKind.ignore);
     expect(classifyRow('Địa chỉ: 12 Lê Lợi', hasMoney: false), RowKind.ignore);
   });
+
+  test('phone rows are ignored', () {
+    expect(classifyRow('ĐT 0901 234 567', hasMoney: false), RowKind.ignore);
+    expect(classifyRow('Tel: 028 3822 1234', hasMoney: false), RowKind.ignore);
+  });
 }

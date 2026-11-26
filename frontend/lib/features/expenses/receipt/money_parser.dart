@@ -62,11 +62,18 @@ String? _fixOcrNumeric(String raw) {
 final RegExp _dateLikeRegex = RegExp(
   r'(?<!\d)\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}(?!\d)',
 );
+final RegExp _phoneLikeRegex = RegExp(
+  r'(?<![0-9A-Za-z.,])(?:\+84[\s.-]?[1-9](?:[\s.-]?\d){7,8}|0[1-9](?:[\s.-]?\d){7,9}|(?:1800|1900)[\s.-]?\d{4,6})(?![0-9A-Za-z.,])',
+);
 
 List<MoneyToken> parseMoneyTokens(String row) {
   final tokens = <MoneyToken>[];
-  final sanitizedRow = row.replaceAllMapped(
+  var sanitizedRow = row.replaceAllMapped(
     _dateLikeRegex,
+    (m) => ' ' * (m.end - m.start),
+  );
+  sanitizedRow = sanitizedRow.replaceAllMapped(
+    _phoneLikeRegex,
     (m) => ' ' * (m.end - m.start),
   );
 
