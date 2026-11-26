@@ -145,6 +145,40 @@ void main() {
     expect(result, PreviewAction.use);
   });
 
+  testWidgets('total-only button returns totalOnly', (tester) async {
+    const parsed = ParsedReceipt(
+      items: [ParsedItem(name: 'Món A', quantity: 1, totalPrice: 100000)],
+      totalAmount: 100000,
+    );
+
+    PreviewAction? result;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () async {
+                result = await showModalBottomSheet<PreviewAction>(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (_) => const ReceiptPreviewSheet(receipt: parsed),
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Chỉ dùng tổng tiền'));
+    await tester.pumpAndSettle();
+    expect(result, PreviewAction.totalOnly);
+  });
+
   testWidgets('total shown equals amount applied to form', (tester) async {
     const parsed = ParsedReceipt(
       items: [

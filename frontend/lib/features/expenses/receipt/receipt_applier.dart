@@ -9,6 +9,7 @@ class AppliedReceipt {
   final String title;
   final DateTime? expenseDate;
   final bool adjustmentSkipped;
+  final bool totalOnly;
 
   const AppliedReceipt({
     required this.items,
@@ -16,10 +17,44 @@ class AppliedReceipt {
     required this.title,
     required this.expenseDate,
     this.adjustmentSkipped = false,
+    this.totalOnly = false,
   });
 }
 
 class ReceiptApplier {
+  static (String, DateTime?) _resolveTitleAndDate(
+    ParsedReceipt parsed,
+    DateTime now,
+  ) {
+    DateTime? safeDate;
+    if (parsed.receiptDate != null) {
+      final d = parsed.receiptDate!;
+      final receiptDay = DateTime(d.year, d.month, d.day);
+      final today = DateTime(now.year, now.month, now.day);
+      if (!receiptDay.isAfter(today)) {
+        safeDate = receiptDay;
+      }
+    }
+
+    final fallbackDate = safeDate ?? now;
+    final dd = fallbackDate.day.toString().padLeft(2, '0');
+    final mm = fallbackDate.month.toString().padLeft(2, '0');
+    final trimmedStore = parsed.storeName?.trim() ?? '';
+    final title = trimmedStore.isNotEmpty ? trimmedStore : 'Hoá đơn $dd/$mm';
+    return (title, safeDate);
+  }
+
+  static AppliedReceipt applyTotalOnly(ParsedReceipt parsed, DateTime now) {
+    final (title, safeDate) = _resolveTitleAndDate(parsed, now);
+    return AppliedReceipt(
+      items: const [],
+      totalAmount: parsed.totalAmount,
+      title: title,
+      expenseDate: safeDate,
+      totalOnly: true,
+    );
+  }
+
   static AppliedReceipt apply(ParsedReceipt parsed, DateTime now) {
     final sumRawItems =
         parsed.items.fold<int>(0, (sum, item) => sum + item.totalPrice);
@@ -72,21 +107,7 @@ class ReceiptApplier {
       );
     }
 
-    DateTime? safeDate;
-    if (parsed.receiptDate != null) {
-      final d = parsed.receiptDate!;
-      final receiptDay = DateTime(d.year, d.month, d.day);
-      final today = DateTime(now.year, now.month, now.day);
-      if (!receiptDay.isAfter(today)) {
-        safeDate = receiptDay;
-      }
-    }
-
-    final fallbackDate = safeDate ?? now;
-    final dd = fallbackDate.day.toString().padLeft(2, '0');
-    final mm = fallbackDate.month.toString().padLeft(2, '0');
-    final trimmedStore = parsed.storeName?.trim() ?? '';
-    final title = trimmedStore.isNotEmpty ? trimmedStore : 'Hoá đơn $dd/$mm';
+    final (title, safeDate) = _resolveTitleAndDate(parsed, now);
 
     return AppliedReceipt(
       items: appliedItems,

@@ -548,7 +548,7 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
           .replaceAll('₫', '')
           .trim();
       _items = applied.items;
-      _splitMode = SplitMode.item;
+      _splitMode = applied.totalOnly ? SplitMode.equal : SplitMode.item;
       _recalculateSplit();
     });
   }

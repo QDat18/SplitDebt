@@ -7,7 +7,7 @@ import '../../../core/theme/app_dimensions.dart';
 import 'receipt_applier.dart';
 import 'receipt_models.dart';
 
-enum PreviewAction { rescan, use }
+enum PreviewAction { rescan, use, totalOnly }
 
 class ReceiptPreviewSheet extends StatelessWidget {
   final ParsedReceipt receipt;
@@ -306,6 +306,15 @@ class ReceiptPreviewSheet extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: AppDimensions.s4),
+              TextButton(
+                onPressed: () =>
+                    Navigator.of(context).pop(PreviewAction.totalOnly),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.n700,
+                ),
+                child: const Text('Chỉ dùng tổng tiền'),
               ),
             ],
           ),

@@ -138,6 +138,9 @@ class ReceiptFlow {
         if (!confirmed || !context.mounted) return null;
       }
 
+      if (action == PreviewAction.totalOnly) {
+        return ReceiptApplier.applyTotalOnly(parsed, DateTime.now());
+      }
       return ReceiptApplier.apply(parsed, DateTime.now());
     }
     return null;
