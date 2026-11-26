@@ -30,7 +30,7 @@ class MoneyToken {
 }
 
 final RegExp _candidateMoneyRegex = RegExp(
-  r'(?<![0-9A-Za-z])([0-9OoIlSB]{1,3}(?:[., ][0-9OoIlSB]{3})+|[0-9OoIlSB]{1,6}[kK]|[0-9OoIlSB]{4,9}|[0-9]{1,3}[.,][0-9]{1,2})(?:\s*(?:đ|d|vnd|vnđ))?(?![0-9A-Za-z])',
+  r'(?<![0-9A-Za-z.,])([0-9OoIlSB]{1,3}(?:[.,][0-9OoIlSB]{3})+|[0-9OoIlSB]{1,3}(?: [0-9OoIlSB]{3})+|[0-9OoIlSB]{1,6}[kK]|[0-9OoIlSB]{4,9}|[0-9]{1,3}[.,][0-9]{1,2})(?:\s*(?:đ|d|vnd|vnđ))?(?![0-9A-Za-z.,])',
   caseSensitive: false,
 );
 

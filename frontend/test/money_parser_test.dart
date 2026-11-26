@@ -35,4 +35,33 @@ void main() {
   test('normalizeForMatch strips Vietnamese marks', () {
     expect(normalizeForMatch('Tổng Thanh Toán'), 'tong thanh toan');
   });
+
+  test('space-separated qty / unit / total stay separate', () {
+    expect(
+      parseMoneyTokens('Bia Tiger 10 15.000 150.000')
+          .map((e) => e.value)
+          .toList(),
+      [15000, 150000],
+    );
+    expect(
+      parseMoneyTokens('Lau thai 1 350.000 350.000')
+          .map((e) => e.value)
+          .toList(),
+      [350000, 350000],
+    );
+    expect(
+      parseMoneyTokens('Cafe 2 125.000 250.000')
+          .map((e) => e.value)
+          .toList(),
+      [125000, 250000],
+    );
+  });
+
+  test('space as thousands separator only when the token has no dot/comma', () {
+    expect(parseMoneyTokens('120 000').map((e) => e.value).toList(), [120000]);
+    expect(
+      parseMoneyTokens('1 250 000').map((e) => e.value).toList(),
+      [1250000],
+    );
+  });
 }

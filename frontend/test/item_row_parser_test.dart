@@ -51,4 +51,13 @@ void main() {
     expect(item.totalPrice, 90000);
     expect(item.unitPrice, isNull);
   });
+
+  test('item rows with 3 numbers parse fully', () {
+    final item = parseItemRow('Bia Tiger 10 15.000 150.000');
+    expect(item, isNotNull);
+    expect(item!.name, 'Bia Tiger');
+    expect(item.quantity, 10);
+    expect(item.unitPrice, 15000);
+    expect(item.totalPrice, 150000);
+  });
 }
