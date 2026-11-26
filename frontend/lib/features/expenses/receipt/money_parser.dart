@@ -140,6 +140,14 @@ List<MoneyToken> parseMoneyTokens(String row) {
     return ' ' * (m.end - m.start);
   });
   sanitizedRow = sanitizedRow.replaceAllMapped(
+    RegExp(r'(?<![0-9A-Za-z])([0-9OoIlSB]{1,3}(?:,[0-9OoIlSB]{3})+)\.00(?![0-9A-Za-z.,])'),
+    (m) => '${m.group(1)!}   ',
+  );
+  sanitizedRow = sanitizedRow.replaceAllMapped(
+    RegExp(r'(?<![0-9A-Za-z])([0-9OoIlSB]{1,3}(?:\.[0-9OoIlSB]{3})+),00(?![0-9A-Za-z.,])'),
+    (m) => '${m.group(1)!}   ',
+  );
+  sanitizedRow = sanitizedRow.replaceAllMapped(
     RegExp(r'(?<![0-9A-Za-z.,])(?:\d{10,14}|(?!\d+000(?![0-9]))\d{8,9})(?![0-9A-Za-z.,])'),
     (m) => ' ' * (m.end - m.start),
   );

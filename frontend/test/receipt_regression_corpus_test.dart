@@ -107,6 +107,12 @@ void main() {
     _MoneyCase('R3: single 7-digit space-thousands', '1 250 000', [1250000]),
     // 5.4b.1 Barcode
     _MoneyCase('5.4b.1: 13-digit barcode is not money', '8934563123456', []),
+    // S1 Decimal .00 / ,00
+    _MoneyCase('S1: VAT10% row with .00 decimals', 'VAT10%  3  6,000.00  18,000.00', [6000, 18000]),
+    _MoneyCase('S1: comma-thousands with .00', '72,350.00', [72350]),
+    _MoneyCase('S1: dot-thousands with ,00', '5.000,00', [5000]),
+    _MoneyCase('S1: negative with .00', '-8,250.00', [8250]),
+    _MoneyCase('S1: still reject 0.670', '0.670', []),
   ];
 
   const classifyCases = <_ClassifyCase>[
