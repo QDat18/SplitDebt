@@ -4,7 +4,7 @@ import 'money_parser.dart';
 import 'receipt_models.dart';
 
 final RegExp _xQtySuffix = RegExp(r'(?:^|\s)[xX](\d{1,2})\s*$');
-final RegExp _qtyXSuffix = RegExp(r'(?:^|\s)(\d{1,2})[xX]\s*$');
+final RegExp _qtyXSuffix = RegExp(r'(?:^|\s)(\d{1,2})\s*[xX×*]\s*$');
 final RegExp _plainQtySuffix = RegExp(r'(?:^|\s)(\d{1,2})\s*$');
 final RegExp _columnQtySuffix = RegExp(r'\s{2,}(\d{1,2})\s*$');
 final RegExp _nonQtyTailWords = RegExp(r'\b(?:combo|set|suat|phan|size)$');

@@ -224,6 +224,15 @@ void main() {
       firstItemQty: 1,
       firstItemTotal: 45568,
     ),
+    // 5.4b.3 SL x unitPrice
+    _ReceiptCase(
+      '5.4b.3: split line SL x unitPrice total',
+      ['SIÊU THỊ A', 'Mì Hảo Hảo', '2 x 4.500  9.000'],
+      itemCount: 1,
+      firstItemName: 'Mì Hảo Hảo',
+      firstItemQty: 2,
+      firstItemTotal: 9000,
+    ),
   ];
 
   group('money parser regression corpus', () {
