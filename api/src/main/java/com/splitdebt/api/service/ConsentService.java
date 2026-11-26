@@ -168,9 +168,22 @@ public class ConsentService {
                 .version(version)
                 .granted(granted)
                 .source(source)
-                .platform(platform)
-                .appVersion(appVersion)
+                .platform(normalizePlatform(platform))
+                .appVersion(normalizeAppVersion(appVersion))
                 .build();
+    }
+
+    private String normalizePlatform(String platform) {
+        if (platform == null) return null;
+        String lower = platform.trim().toLowerCase(java.util.Locale.ROOT);
+        return ("android".equals(lower) || "ios".equals(lower) || "web".equals(lower)) ? lower : null;
+    }
+
+    private String normalizeAppVersion(String appVersion) {
+        if (appVersion == null) return null;
+        String trimmed = appVersion.trim();
+        if (trimmed.isEmpty()) return null;
+        return trimmed.length() > 20 ? trimmed.substring(0, 20) : trimmed;
     }
 
     private boolean isBlank(String s) {

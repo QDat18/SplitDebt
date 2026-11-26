@@ -381,5 +381,24 @@ public class ConsentControllerTest {
         mockMvc.perform(get("/api/groups"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void register_longPlatformAndVersion_isStored() throws Exception {
+        String email = "longmeta_" + System.nanoTime() + "@test.com";
+        RegisterRequest req = validRegisterRequest(email);
+        req.setPlatform("windows-phone-xyz");
+        req.setAppVersion("1.0.0-alpha.beta.gamma.1234567");
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk());
+
+        User user = userRepository.findByEmail(email).orElseThrow();
+        List<UserConsent> records = userConsentRepository.findByUserIdOrderByIdAsc(user.getId());
+        assertEquals(3, records.size());
+        assertNull(records.get(0).getPlatform());
+        assertEquals(20, records.get(0).getAppVersion().length());
+    }
 }
 
