@@ -135,9 +135,9 @@ void main() {
     // R3
     _ItemCase('R3: Bia 2 125 000 250 000', 'Bia 2 125 000 250 000', name: 'Bia', qty: 2, unit: 125000, total: 250000),
     // R9
-    _ItemCase('R9: Bia Tiger  3  45.000', 'Bia Tiger  3  45.000', name: 'Bia Tiger', qty: 3, total: 45000, skip: 'R9'),
-    _ItemCase('R9: Cơm chiên  2  90.000', 'Cơm chiên  2  90.000', name: 'Cơm chiên', qty: 2, total: 90000, skip: 'R9'),
-    _ItemCase('R9: Bia 333  3  15.000  45.000', 'Bia 333  3  15.000  45.000', name: 'Bia 333', qty: 3, unit: 15000, total: 45000, skip: 'R9'),
+    _ItemCase('R9: Bia Tiger  3  45.000', 'Bia Tiger  3  45.000', name: 'Bia Tiger', qty: 3, total: 45000),
+    _ItemCase('R9: Cơm chiên  2  90.000', 'Cơm chiên  2  90.000', name: 'Cơm chiên', qty: 2, total: 90000),
+    _ItemCase('R9: Bia 333  3  15.000  45.000', 'Bia 333  3  15.000  45.000', name: 'Bia 333', qty: 3, unit: 15000, total: 45000),
   ];
 
   const receiptCases = <_ReceiptCase>[

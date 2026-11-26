@@ -6,6 +6,8 @@ import 'receipt_models.dart';
 final RegExp _xQtySuffix = RegExp(r'(?:^|\s)[xX](\d{1,2})\s*$');
 final RegExp _qtyXSuffix = RegExp(r'(?:^|\s)(\d{1,2})[xX]\s*$');
 final RegExp _plainQtySuffix = RegExp(r'(?:^|\s)(\d{1,2})\s*$');
+final RegExp _columnQtySuffix = RegExp(r'\s{2,}(\d{1,2})\s*$');
+final RegExp _nonQtyTailWords = RegExp(r'\b(?:combo|set|suat|phan|size)$');
 final RegExp _betweenIntRegex = RegExp(r'^\s*(\d{1,2})\s*$');
 
 ParsedItem? parseItemRow(String row) {
@@ -74,6 +76,20 @@ ParsedItem? parseItemRow(String row) {
         hasExplicitXQty &&
         (quantity * candidateUnit - totalPrice).abs() <= 1000) {
       unitPrice = candidateUnit;
+    }
+  } else if (!hasExplicitXQty) {
+    final colMatch = _columnQtySuffix.firstMatch(leftText);
+    if (colMatch != null) {
+      final candidateName = leftText.substring(0, colMatch.start).trim();
+      final q = int.tryParse(colMatch.group(1)!);
+      if (candidateName.isNotEmpty &&
+          q != null &&
+          q >= 1 &&
+          q <= 99 &&
+          !_nonQtyTailWords.hasMatch(normalizeForMatch(candidateName))) {
+        quantity = q;
+        leftText = candidateName;
+      }
     }
   }
 
