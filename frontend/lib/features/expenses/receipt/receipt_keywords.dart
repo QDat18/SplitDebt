@@ -116,5 +116,7 @@ class ReceiptKeywords {
     'khuyen mai',
     'discount',
     'voucher',
+    'km',
+    'ck',
   ];
 }

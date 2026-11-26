@@ -59,6 +59,7 @@ class _ReceiptCase {
     this.secondItemName,
     this.secondItemTotal,
     this.totalAmount,
+    this.firstAdjustmentAmount,
     this.expectNullStoreName = false,
     this.skip,
   });
@@ -71,6 +72,7 @@ class _ReceiptCase {
   final String? secondItemName;
   final int? secondItemTotal;
   final int? totalAmount;
+  final int? firstAdjustmentAmount;
   final bool expectNullStoreName;
   final String? skip;
 }
@@ -248,6 +250,14 @@ void main() {
       itemCount: 1,
       totalAmount: 512000,
     ),
+    // 5.4b.6 Item-level promo
+    _ReceiptCase(
+      '5.4b.6: KM -5.000 below item is discount -5000',
+      ['SIÊU THỊ A', 'Sữa tươi  32.000', 'KM -5.000', 'Tổng cộng  27.000'],
+      itemCount: 1,
+      firstAdjustmentAmount: -5000,
+      totalAmount: 27000,
+    ),
   ];
 
   group('money parser regression corpus', () {
@@ -292,6 +302,10 @@ void main() {
         if (c.secondItemName != null) expect(parsed.items[1].name, c.secondItemName);
         if (c.secondItemTotal != null) expect(parsed.items[1].totalPrice, c.secondItemTotal);
         if (c.totalAmount != null) expect(parsed.totalAmount, c.totalAmount);
+        if (c.firstAdjustmentAmount != null) {
+          expect(parsed.adjustments, isNotEmpty);
+          expect(parsed.adjustments.first.amount, c.firstAdjustmentAmount);
+        }
         if (c.expectNullStoreName) expect(parsed.storeName, isNull);
       }, skip: c.skip);
     }
