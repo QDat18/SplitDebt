@@ -105,8 +105,7 @@ class RuleBasedReceiptParser implements ReceiptParser {
     final items = <ParsedItem>[];
     final rawAdjustments = <_RawAdjustment>[];
     int? subtotal;
-    int? explicitTotal;
-    var explicitTotalPriority = 0;
+    final totalCandidates = <int>[];
     var lastConsumedTextIdx = -1;
     var seenSummaryOrAdj = false;
 
@@ -153,11 +152,7 @@ class RuleBasedReceiptParser implements ReceiptParser {
         case RowKind.total:
           seenSummaryOrAdj = true;
           if (tokens.isNotEmpty) {
-            final prio = _totalPriority(row);
-            if (prio >= explicitTotalPriority) {
-              explicitTotalPriority = prio;
-              explicitTotal = tokens.last.value;
-            }
+            totalCandidates.add(tokens.last.value);
           }
           break;
         case RowKind.vat:
@@ -224,8 +219,18 @@ class RuleBasedReceiptParser implements ReceiptParser {
     final warnings = <String>[];
 
     late final int totalAmount;
-    if (explicitTotal != null) {
-      totalAmount = explicitTotal;
+    if (totalCandidates.isNotEmpty) {
+      final expectedTotal = sumItems + sumAdj;
+      var chosen = totalCandidates.last;
+      if (chosen < expectedTotal - 1000) {
+        for (var i = totalCandidates.length - 2; i >= 0; i--) {
+          if ((totalCandidates[i] - expectedTotal).abs() <= 1000) {
+            chosen = totalCandidates[i];
+            break;
+          }
+        }
+      }
+      totalAmount = chosen;
     } else {
       totalAmount = sumItems + sumAdj;
       warnings.add('Không tìm thấy dòng tổng, đã cộng từ các món.');
@@ -286,16 +291,6 @@ class RuleBasedReceiptParser implements ReceiptParser {
       amount: amount,
       percent: percent,
     );
-  }
-
-  int _totalPriority(String row) {
-    final norm = normalizeForMatch(row);
-    if (norm.contains('tong thanh toan') || norm.contains('can thanh toan')) {
-      return 4;
-    }
-    if (norm.contains('tong cong')) return 3;
-    if (norm.contains('total') || norm.contains('tong tien')) return 2;
-    return 1;
   }
 
   bool _isMostlyDigits(String s) {

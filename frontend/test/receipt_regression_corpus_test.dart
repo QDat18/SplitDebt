@@ -203,13 +203,11 @@ void main() {
       'R8: lower final total overrides earlier subtotal-like total',
       ['Món 500.000', 'Tổng cộng 500.000', 'VAT 10% 50.000', 'Tổng tiền thanh toán 550.000'],
       totalAmount: 550000,
-      skip: 'R8',
     ),
     _ReceiptCase(
       'R8: lower Thanh toán after discount overrides Tổng tiền',
       ['Món 300.000', 'Tổng tiền 300.000', 'Giảm giá 30.000', 'Thanh toán 270.000'],
       totalAmount: 270000,
-      skip: 'R8',
     ),
   ];
 
