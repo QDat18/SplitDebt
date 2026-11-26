@@ -133,6 +133,9 @@ void main() {
     _ClassifyCase('5.4b.4: Điểm tích luỹ ignored', 'Điểm tích luỹ 320', hasMoney: false, expected: RowKind.ignore),
     _ClassifyCase('5.4b.4: Quầy 03 ignored', 'Quầy 03', hasMoney: false, expected: RowKind.ignore),
     _ClassifyCase('5.4b.4: Mã KH ignored', 'Mã KH: 001234', hasMoney: true, expected: RowKind.ignore),
+    // 5.4b.5 VAT-included total & tax summary table
+    _ClassifyCase('5.4b.5: total with đã gồm VAT is total', 'Tổng tiền (đã gồm VAT) 512.000', hasMoney: true, expected: RowKind.total),
+    _ClassifyCase('5.4b.5: tax summary table row ignored', 'Thuế suất 8%  Tiền thuế 12.345', hasMoney: true, expected: RowKind.ignore),
   ];
 
   const itemCases = <_ItemCase>[
@@ -237,6 +240,13 @@ void main() {
       firstItemName: 'Mì Hảo Hảo',
       firstItemQty: 2,
       firstItemTotal: 9000,
+    ),
+    // 5.4b.5 VAT-included total & tax summary table
+    _ReceiptCase(
+      '5.4b.5: VAT-included total and tax table ignored',
+      ['SIÊU THỊ A', 'Sữa tươi  512.000', 'Tổng tiền (đã gồm VAT) 512.000', 'Thuế suất 8%  Tiền thuế 37.926'],
+      itemCount: 1,
+      totalAmount: 512000,
     ),
   ];
 
