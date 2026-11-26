@@ -11,6 +11,8 @@ import '../../core/theme/app_typography.dart';
 import '../../core/api/api_client.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../settlements/group_settlement_screen.dart';
+import 'models/expense_item_detail.dart';
+export 'models/expense_item_detail.dart';
 
 /// ----------------------------------------------------------------------------
 /// DỮ LIỆU MẪU BAN ĐẦU CHO MÀN HÌNH TẠO KHOẢN CHI
@@ -46,20 +48,6 @@ class GroupMemberItem {
     this.percentage = 0.0,
     this.weight = 1.0,
     this.isSelected = true,
-  });
-}
-
-class ExpenseItemDetail {
-  String id;
-  String name;
-  double price;
-  List<String> assignedMemberIds;
-
-  ExpenseItemDetail({
-    required this.id,
-    required this.name,
-    required this.price,
-    required this.assignedMemberIds,
   });
 }
 
