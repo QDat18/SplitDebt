@@ -12,9 +12,11 @@ import com.splitdebt.api.repository.GroupMessageRepository;
 import com.splitdebt.api.repository.GroupRepository;
 import com.splitdebt.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,6 +34,7 @@ public class GroupChatService {
     private final GroupAccessService groupAccessService;
     private final com.splitdebt.api.repository.GroupMemberRepository groupMemberRepository;
     private final GroupChatPushService groupChatPushService;
+    private final TransactionTemplate transactionTemplate;
 
     public record SendResult(MessageDto message, boolean created) {}
 
@@ -57,7 +60,6 @@ public class GroupChatService {
         }
     }
 
-    @Transactional
     public SendResult send(Long groupId, Long userId, SendMessageRequest req) {
         groupAccessService.requireActiveMember(groupId, userId);
 
@@ -86,21 +88,30 @@ public class GroupChatService {
             return new SendResult(toDto(existing.get()), false);
         }
 
-        Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new GroupNotFoundException("Không tìm thấy nhóm"));
-        User sender = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy tài khoản"));
+        try {
+            GroupMessage saved = transactionTemplate.execute(status -> {
+                Group group = groupRepository.findById(groupId)
+                        .orElseThrow(() -> new GroupNotFoundException("Không tìm thấy nhóm"));
+                User sender = userRepository.findById(userId)
+                        .orElseThrow(() -> new UserNotFoundException("Không tìm thấy tài khoản"));
 
-        GroupMessage message = GroupMessage.builder()
-                .group(group)
-                .sender(sender)
-                .content(trimmed)
-                .clientMessageId(req.clientMessageId())
-                .build();
+                GroupMessage message = GroupMessage.builder()
+                        .group(group)
+                        .sender(sender)
+                        .content(trimmed)
+                        .clientMessageId(req.clientMessageId())
+                        .build();
 
-        GroupMessage saved = groupMessageRepository.save(message);
-        groupChatPushService.notifyNewMessage(saved);
-        return new SendResult(toDto(saved), true);
+                return groupMessageRepository.saveAndFlush(message);
+            });
+            groupChatPushService.notifyNewMessage(saved);
+            return new SendResult(toDto(saved), true);
+        } catch (DataIntegrityViolationException ex) {
+            GroupMessage raced = groupMessageRepository
+                    .findBySenderIdAndClientMessageId(userId, req.clientMessageId())
+                    .orElseThrow(() -> ex);
+            return new SendResult(toDto(raced), false);
+        }
     }
 
     @Transactional(readOnly = true)
