@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>SplitDebt dùng camera để chụp hoá đơn và ảnh đại diện.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>SplitDebt cần truy cập thư viện để bạn chọn ảnh hoá đơn hoặc ảnh đại diện.</string>
 </dict>
 </plist>
