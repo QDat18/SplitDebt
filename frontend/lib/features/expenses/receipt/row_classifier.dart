@@ -24,7 +24,8 @@ RowKind classifyRow(String row, {required bool hasMoney}) {
   final norm = normalizeForMatch(row);
   if (norm.isEmpty) return RowKind.ignore;
 
-  if (_matchesAny(norm, ReceiptKeywords.ignoreAlways)) {
+  if (_matchesAny(norm, ReceiptKeywords.ignoreAlways) ||
+      RegExp(r'^ban\s*\d+').hasMatch(norm)) {
     return RowKind.ignore;
   }
   if (!hasMoney && _matchesAny(norm, ReceiptKeywords.ignoreWhenNoMoney)) {

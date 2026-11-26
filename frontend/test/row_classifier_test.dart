@@ -49,4 +49,18 @@ void main() {
   test('"Sub Total" with a space is subtotal', () {
     expect(classifyRow('Sub Total 300.000', hasMoney: true), RowKind.subtotal);
   });
+
+  test('short words like the and ban do not swallow store or items', () {
+    expect(
+      classifyRow('The Coffee House', hasMoney: false),
+      isNot(RowKind.ignore),
+    );
+    expect(classifyRow('Banh mi the 20.000', hasMoney: true), RowKind.item);
+    expect(
+      classifyRow('Thanh toán thẻ 500.000', hasMoney: true),
+      RowKind.ignore,
+    );
+    expect(classifyRow('Số bàn: 12', hasMoney: false), RowKind.ignore);
+    expect(classifyRow('Bàn 5', hasMoney: false), RowKind.ignore);
+  });
 }
