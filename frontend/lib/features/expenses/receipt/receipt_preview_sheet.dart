@@ -203,6 +203,19 @@ class ReceiptPreviewSheet extends StatelessWidget {
                                 ),
                               ),
                             ],
+                            if (applied.adjustmentSkipped) ...[
+                              const SizedBox(height: AppDimensions.s8),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Không áp được giảm giá/phụ phí, hãy kiểm tra lại.',
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: AppColors.warning,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),

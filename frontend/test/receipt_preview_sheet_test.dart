@@ -191,4 +191,35 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('shows message when oversized discount is skipped',
+      (tester) async {
+    const parsed = ParsedReceipt(
+      items: [
+        ParsedItem(name: 'Món 1', quantity: 1, totalPrice: 150000),
+      ],
+      adjustments: [
+        ParsedAdjustment(
+          type: AdjustmentType.discount,
+          label: 'Voucher',
+          amount: -200000,
+        ),
+      ],
+      totalAmount: 150000,
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: ReceiptPreviewSheet(receipt: parsed),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Không áp được giảm giá/phụ phí, hãy kiểm tra lại.'),
+      findsOneWidget,
+    );
+  });
 }

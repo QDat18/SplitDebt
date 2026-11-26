@@ -8,12 +8,14 @@ class AppliedReceipt {
   final int totalAmount;
   final String title;
   final DateTime? expenseDate;
+  final bool adjustmentSkipped;
 
   const AppliedReceipt({
     required this.items,
     required this.totalAmount,
     required this.title,
     required this.expenseDate,
+    this.adjustmentSkipped = false,
   });
 }
 
@@ -42,13 +44,21 @@ class ReceiptApplier {
       allocations[maxIdx] += remainder;
     }
 
+    var adjustmentSkipped = false;
+    for (var i = 0; i < parsed.items.length; i++) {
+      if (parsed.items[i].totalPrice + allocations[i] <= 0) {
+        adjustmentSkipped = true;
+        break;
+      }
+    }
+
     final appliedItems = <ExpenseItemDetail>[];
     var sumAppliedPrice = 0;
     for (var i = 0; i < parsed.items.length; i++) {
       final src = parsed.items[i];
-      final rawPrice = src.totalPrice + allocations[i];
-      final safePrice = rawPrice > 0 ? rawPrice : 0;
-      sumAppliedPrice += safePrice;
+      final price =
+          adjustmentSkipped ? src.totalPrice : src.totalPrice + allocations[i];
+      sumAppliedPrice += price;
 
       final displayName =
           src.quantity > 1 ? '${src.name} x${src.quantity}' : src.name;
@@ -56,7 +66,7 @@ class ReceiptApplier {
         ExpenseItemDetail(
           id: 'ocr_$i',
           name: displayName,
-          price: safePrice.toDouble(),
+          price: price.toDouble(),
           assignedMemberIds: [],
         ),
       );
@@ -83,6 +93,7 @@ class ReceiptApplier {
       totalAmount: sumAppliedPrice,
       title: title,
       expenseDate: safeDate,
+      adjustmentSkipped: adjustmentSkipped,
     );
   }
 }

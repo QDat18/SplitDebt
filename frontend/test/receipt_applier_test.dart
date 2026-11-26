@@ -147,4 +147,25 @@ void main() {
     final applied = ReceiptApplier.apply(parsed, now);
     expect(applied.items.single.assignedMemberIds, isEmpty);
   });
+
+  test('oversized discount does not zero items', () {
+    const parsed = ParsedReceipt(
+      items: [
+        ParsedItem(name: 'Món 1', quantity: 1, totalPrice: 150000),
+      ],
+      adjustments: [
+        ParsedAdjustment(
+          type: AdjustmentType.discount,
+          label: 'Voucher',
+          amount: -200000,
+        ),
+      ],
+      totalAmount: 0,
+    );
+
+    final applied = ReceiptApplier.apply(parsed, now);
+    expect(applied.adjustmentSkipped, isTrue);
+    expect(applied.items.single.price, 150000);
+    expect(applied.totalAmount, 150000);
+  });
 }
