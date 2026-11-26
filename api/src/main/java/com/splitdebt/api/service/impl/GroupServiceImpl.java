@@ -217,6 +217,7 @@ public class GroupServiceImpl implements GroupService {
                 .group(group)
                 .user(targetUser)
                 .role(assignedRole)
+                .lastReadMessageId(groupMessageRepository.findLatestMessageId(group.getId()))
                 .build();
 
         GroupMember savedMember = groupMemberRepository.save(newMember);
@@ -313,6 +314,7 @@ public class GroupServiceImpl implements GroupService {
                 .group(group)
                 .user(currentUser)
                 .role(GroupRole.MEMBER)
+                .lastReadMessageId(groupMessageRepository.findLatestMessageId(group.getId()))
                 .build();
         groupMemberRepository.save(newMember);
 

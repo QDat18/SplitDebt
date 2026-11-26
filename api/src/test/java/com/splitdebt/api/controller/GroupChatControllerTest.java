@@ -544,4 +544,45 @@ public class GroupChatControllerTest {
         long memberId = users.findByEmail(member).orElseThrow().getId();
         verify(push, times(1)).sendToUserTopic(eq(memberId), any(), any(), any());
     }
+
+    @Test
+    void newMember_startsWithZeroUnread() throws Exception {
+        String owner = newAccount();
+        String member = newAccount();
+        long groupId = createGroup(owner);
+        String ownerToken = "Bearer " + jwt.generateJwtToken(owner);
+
+        for (int i = 1; i <= 3; i++) {
+            mockMvc.perform(post("/api/groups/" + groupId + "/messages")
+                            .header("Authorization", ownerToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(Map.of(
+                                    "content", "Before join " + i,
+                                    "clientMessageId", UUID.randomUUID().toString()
+                            ))))
+                    .andExpect(status().isCreated());
+        }
+
+        addMember(groupId, owner, member);
+        String memberToken = "Bearer " + jwt.generateJwtToken(member);
+
+        mockMvc.perform(get("/api/groups")
+                        .header("Authorization", memberToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].unreadMessageCount").value(0));
+
+        mockMvc.perform(post("/api/groups/" + groupId + "/messages")
+                        .header("Authorization", ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "content", "After join",
+                                "clientMessageId", UUID.randomUUID().toString()
+                        ))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/groups")
+                        .header("Authorization", memberToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].unreadMessageCount").value(1));
+    }
 }
