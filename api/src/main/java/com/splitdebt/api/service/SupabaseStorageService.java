@@ -26,4 +26,6 @@ public interface SupabaseStorageService {
      * @return Đường dẫn file đã được chuẩn hóa
      */
     String normalizeAvatarPath(Long userId, String originalContentType);
+
+    void deleteObject(String publicUrl);
 }

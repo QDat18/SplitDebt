@@ -199,6 +199,10 @@ public class GroupServiceImpl implements GroupService {
             throw new IllegalArgumentException("Either userId or email must be provided");
         }
 
+        if (targetUser.getDeletedAt() != null) {
+            throw new UserNotFoundException("Không tìm thấy người dùng");
+        }
+
         if (groupMemberRepository.existsByGroupIdAndUserId(groupId, targetUser.getId())) {
             throw new MemberAlreadyExistsException("User is already a member of this group");
         }

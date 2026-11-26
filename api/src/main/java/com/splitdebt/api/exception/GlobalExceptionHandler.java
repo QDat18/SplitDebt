@@ -25,6 +25,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(403).body(ApiResponse.error(403, ex.getMessage()));
     }
 
+    @ExceptionHandler(InvalidPasswordException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidPassword(InvalidPasswordException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(401, ex.getMessage()));
+    }
+
+    @ExceptionHandler(OutstandingBalanceException.class)
+    public ResponseEntity<ApiResponse<Object>> handleOutstandingBalance(OutstandingBalanceException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.<Object>builder()
+                        .status(409)
+                        .message(ex.getMessage())
+                        .data(java.util.Map.of("groups", ex.getGroups()))
+                        .build());
+    }
+
     @ExceptionHandler(MemberAlreadyExistsException.class)
     public ResponseEntity<ApiResponse<Object>> handleDuplicate(MemberAlreadyExistsException ex) {
         return ResponseEntity.badRequest().body(ApiResponse.error(400, ex.getMessage()));

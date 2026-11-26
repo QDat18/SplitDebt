@@ -97,4 +97,35 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
         String shortUuid = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         return String.format("users/%d/avatar_%d_%s.%s", userId, timestamp, shortUuid, ext);
     }
+
+    @Override
+    public void deleteObject(String publicUrl) {
+        if (publicUrl == null || publicUrl.isBlank()) {
+            return;
+        }
+        String supabaseKey = properties.getKey();
+        if (supabaseKey == null || supabaseKey.isBlank()) {
+            log.warn("SUPABASE_KEY chưa được cấu hình, bỏ qua xoá file {}", publicUrl);
+            return;
+        }
+        String marker = "/storage/v1/object/public/" + properties.getBucket() + "/";
+        int idx = publicUrl.indexOf(marker);
+        if (idx < 0) {
+            log.warn("URL không khớp định dạng Supabase bucket {}: {}", properties.getBucket(), publicUrl);
+            return;
+        }
+        String filePath = publicUrl.substring(idx + marker.length());
+        String deleteUri = properties.getUrl() + "/storage/v1/object/" + properties.getBucket() + "/" + filePath;
+        try {
+            restClientBuilder.build()
+                    .delete()
+                    .uri(deleteUri)
+                    .header("Authorization", "Bearer " + supabaseKey)
+                    .header("apiKey", supabaseKey)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (Exception e) {
+            log.warn("Không thể xoá file trên Supabase {}: {}", deleteUri, e.getMessage());
+        }
+    }
 }

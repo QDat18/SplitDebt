@@ -9,10 +9,12 @@ import com.splitdebt.api.dto.UserDto;
 import com.splitdebt.api.dto.consent.ConsentStatusDto;
 import com.splitdebt.api.dto.consent.ConsentUpdateRequest;
 import com.splitdebt.api.dto.privacy.DataExportDto;
+import com.splitdebt.api.dto.privacy.DeletionRequest;
 import com.splitdebt.api.dto.request.UpdateProfileRequest;
 import com.splitdebt.api.dto.response.UserActivityLogDto;
 import com.splitdebt.api.entity.User;
 import com.splitdebt.api.repository.UserRepository;
+import com.splitdebt.api.service.AccountDeletionService;
 import com.splitdebt.api.service.ConsentService;
 import com.splitdebt.api.service.DataExportService;
 import com.splitdebt.api.service.SupabaseStorageService;
@@ -41,6 +43,7 @@ public class UserController {
     private final UserService userService;
     private final ConsentService consentService;
     private final DataExportService dataExportService;
+    private final AccountDeletionService accountDeletionService;
 
     @Operation(summary = "Lấy thông tin người dùng đang đăng nhập", description = "Dựa trên JWT Token để lấy thông tin cá nhân của user.")
     @GetMapping("/me")
@@ -66,6 +69,16 @@ public class UserController {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(ApiResponse.ok(dataExportService.export(user.getId())));
+    }
+
+    @Operation(summary = "Xoá tài khoản", description = "Kiểm tra mật khẩu, công nợ, ẩn danh hoá dữ liệu cá nhân và trả về 204.")
+    @PostMapping("/me/deletion")
+    public ResponseEntity<Void> deleteMyAccount(@RequestBody DeletionRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        accountDeletionService.deleteAccount(user.getId(), request != null ? request.getPassword() : null);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Cập nhật thông tin cá nhân", description = "Cập nhật họ tên, số điện thoại và tự động lưu nhật ký hoạt động.")
