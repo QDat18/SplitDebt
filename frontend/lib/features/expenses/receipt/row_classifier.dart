@@ -84,12 +84,17 @@ RowKind classifyRow(String row, {required bool hasMoney}) {
   if (hasMoney) {
     final tokens = parseMoneyTokens(row);
     if (tokens.isNotEmpty) {
-      final leftPart = row.substring(0, tokens.first.start);
-      final leftNorm = normalizeForMatch(leftPart);
-      final letterCount =
-          RegExp(r'[a-z]').allMatches(leftNorm).length;
-      if (letterCount >= 2) {
-        return RowKind.item;
+      final isPerWeightUnitPrice = tokens.length == 1 &&
+          RegExp(r'^\s*/\s*(?:kg|gr|g|l|lit)\b', caseSensitive: false)
+              .hasMatch(row.substring(tokens.first.end));
+      if (!isPerWeightUnitPrice) {
+        final leftPart = row.substring(0, tokens.first.start);
+        final leftNorm = normalizeForMatch(leftPart);
+        final letterCount =
+            RegExp(r'[a-z]').allMatches(leftNorm).length;
+        if (letterCount >= 2) {
+          return RowKind.item;
+        }
       }
     }
   }

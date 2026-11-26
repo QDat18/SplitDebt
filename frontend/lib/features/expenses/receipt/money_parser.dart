@@ -176,6 +176,9 @@ List<MoneyToken> parseMoneyTokens(String row) {
     if (fixed == null) continue;
 
     final digitsOnly = fixed.replaceAll(RegExp(r'[., ]'), '');
+    if (!fixed.contains(RegExp(r'[., ]')) && digitsOnly.startsWith('0')) {
+      continue;
+    }
     final parsed = int.tryParse(digitsOnly);
     if (parsed == null) continue;
 

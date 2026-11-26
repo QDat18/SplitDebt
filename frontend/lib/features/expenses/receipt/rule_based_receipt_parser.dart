@@ -82,6 +82,7 @@ class RuleBasedReceiptParser implements ReceiptParser {
     final headerLimit = cleanedRows.length < 5 ? cleanedRows.length : 5;
     for (var i = 0; i < headerLimit && i < firstItemIdx; i++) {
       if (kinds[i] != RowKind.text) continue;
+      if (rowTokens[i].isNotEmpty) continue;
       final row = cleanedRows[i];
       if (RegExp(r'^\d{8,14}\s+').hasMatch(row)) continue;
       if (i + 1 < cleanedRows.length &&
@@ -224,17 +225,31 @@ class RuleBasedReceiptParser implements ReceiptParser {
             }
             break;
           }
-          if (!seenSummaryOrAdj &&
-              tokens.isNotEmpty &&
-              isMergeableTextRow(i - 1)) {
-            final prev = cleanedRows[i - 1];
-            final cleanNumRow = row.replaceFirst(_vatItemPrefixRegex, '');
-            final mergedItem = parseItemRow('$prev  $cleanNumRow');
-            if (mergedItem != null) {
-              lastConsumedTextIdx = i - 1;
-              items.add(mergedItem);
-              consumedItemRows.add(i);
-              lastItemRowIdx = i;
+          final isPerWeightUnitPrice = tokens.length == 1 &&
+              RegExp(r'^\s*/\s*(?:kg|gr|g|l|lit)\b', caseSensitive: false)
+                  .hasMatch(row.substring(tokens.first.end));
+          if (!seenSummaryOrAdj && tokens.isNotEmpty && !isPerWeightUnitPrice) {
+            String? mergedPrev;
+            int? mergedIdx;
+            if (isMergeableTextRow(i - 1)) {
+              mergedPrev = cleanedRows[i - 1];
+              mergedIdx = i - 1;
+            } else if (i >= 2 &&
+                _standaloneWeightRegex.hasMatch(cleanedRows[i - 1]) &&
+                isMergeableTextRow(i - 2)) {
+              mergedPrev =
+                  '${cleanedRows[i - 2]} (${cleanedRows[i - 1].trim()})';
+              mergedIdx = i - 2;
+            }
+            if (mergedPrev != null && mergedIdx != null) {
+              final cleanNumRow = row.replaceFirst(_vatItemPrefixRegex, '');
+              final mergedItem = parseItemRow('$mergedPrev  $cleanNumRow');
+              if (mergedItem != null) {
+                lastConsumedTextIdx = mergedIdx;
+                items.add(mergedItem);
+                consumedItemRows.add(i);
+                lastItemRowIdx = i;
+              }
             }
           }
           break;

@@ -120,6 +120,8 @@ void main() {
     // Bước 4 C1: phone with branch/extension suffix without keyword
     _MoneyCase('C1: phone with extension suffix is not money', '024.71061234-39671', []),
     _MoneyCase('C1: phone with space groups without keyword is not money', '09 1234 5678', []),
+    // Bước 4 Round 2: leading-zero unformatted integer (batch/lot code) is not money
+    _MoneyCase('B4 R2: leading-zero lot code is not money', 'Lô:0250819', []),
   ];
 
   const classifyCases = <_ClassifyCase>[
@@ -163,7 +165,11 @@ void main() {
     _ClassifyCase('B4: Thanh tien with colon is total', 'Thành tiền: 32.000', hasMoney: true, expected: RowKind.total),
     _ClassifyCase('B4: Tong + qty + money is total', 'Tổng  3  120.000', hasMoney: true, expected: RowKind.total),
     _ClassifyCase('B4: VinID payment row ignored', 'VinID  5.000', hasMoney: true, expected: RowKind.ignore),
-    _ClassifyCase('B4: Lo: batch row ignored', 'Lô:0250819  Ngày hết hạn:12/09/2025', hasMoney: true, expected: RowKind.ignore),
+    _ClassifyCase('B4: Lo: batch row ignored', 'Lô:0250819  Ngày hết hạn:12/09/2025', hasMoney: false, expected: RowKind.ignore),
+    _ClassifyCase('B4 R2: item with inline Lo: is still item', 'Thuoc bo  Lô:P90567  4.00 Vien  18,400', hasMoney: true, expected: RowKind.item),
+    _ClassifyCase('B4 R2: Lich su tiet kiem ignored', 'Lịch sử tiết kiệm tại cửa hàng', hasMoney: false, expected: RowKind.ignore),
+    _ClassifyCase('B4 R2: Gia dang ky ignored', 'Giá đăng ký:  10,500', hasMoney: true, expected: RowKind.ignore),
+    _ClassifyCase('B4 R2: unit price per KG row is text not item', 'Cải xanh 50.000/KG X', hasMoney: true, expected: RowKind.text),
   ];
 
   const itemCases = <_ItemCase>[
@@ -408,6 +414,21 @@ void main() {
       secondItemTotal: 35000,
       firstAdjustmentAmount: -15000,
       totalAmount: 95000,
+      expectEmptyWarnings: true,
+    ),
+    // Bước 4 Round 2: weighted item with /KG unit price + standalone weight + barcode price row
+    _ReceiptCase(
+      'B4 R2: weighted item with /KG unit price and standalone weight row',
+      [
+        'Siêu thị Mini',
+        'Cải xanh 50.000/KG X',
+        '0,500 KG',
+        '2603122005001  25.000  1  25.000',
+        'TỔNG TIỀN PHẢI T.TOÁN  25.000',
+      ],
+      itemCount: 1,
+      firstItemTotal: 25000,
+      totalAmount: 25000,
       expectEmptyWarnings: true,
     ),
   ];
