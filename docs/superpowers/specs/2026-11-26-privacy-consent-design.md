@@ -153,7 +153,7 @@ Quyền thông báo, camera và ảnh **không** nằm trong bảng này. Đó l
 Không bao gồm dữ liệu cá nhân của người khác ngoài tên hiển thị cần để hiểu bản ghi. Không trả `passwordHash` và không trả FCM token.
 
 **`POST /api/users/me/deletion`**, body `{ "password": "..." }`:
-1. Sai mật khẩu → **401**, thông báo "Mật khẩu không đúng".
+1. Sai mật khẩu → **400**, thông báo "Mật khẩu không đúng", kèm `code: "WRONG_PASSWORD"`. Không dùng 401, vì app coi 401 là phiên đăng nhập hết hạn và tự xoá token.
 2. Còn số dư khác 0 trong bất kỳ nhóm nào (`|balance| ≥ 0.01`, tính bằng `DebtCalculationService`) → **409**, kèm `{"groups":[{"id":..,"name":..,"balance":..}]}` và thông báo "Bạn cần thanh toán hết công nợ trước khi xoá tài khoản."
 3. Nếu qua được 2 bước trên, chạy toàn bộ phần sau trong **một transaction**:
    - **Nhóm user là OWNER:** nếu còn thành viên ACTIVE khác thì chuyển OWNER cho ADMIN tham gia sớm nhất, không có ADMIN thì cho thành viên tham gia sớm nhất. Nếu chỉ còn mình user thì xoá nhóm bằng luồng `deleteGroup` hiện có.
@@ -247,7 +247,7 @@ Dữ liệu của bạn
   3. Hộp xác nhận adaptive, nút "Xoá vĩnh viễn" màu đỏ, nút phá huỷ.
   4. Gọi API:
      - 409 thì hiện danh sách nhóm còn nợ, mỗi nhóm bấm vào được để mở `GroupDetailScreen`;
-     - 401 thì báo sai mật khẩu;
+     - 400 có `code == WRONG_PASSWORD` thì báo sai mật khẩu;
      - 204 thì xoá token, huỷ đăng ký topic FCM, về màn đăng nhập kèm SnackBar "Tài khoản đã được xoá.".
 
 ## 7. Văn bản pháp lý (Task 9)
@@ -274,7 +274,7 @@ Dữ liệu của bạn
   - user cũ không có bản ghi → API nghiệp vụ trả 428, các route được miễn vẫn 200; đồng ý lại → hết 428;
   - rút `TERMS` → 400; đồng ý lại 2 lần thêm 2 nhóm bản ghi mới và không sửa bản cũ;
   - data-export chỉ chứa dữ liệu của mình, không có `passwordHash`;
-  - xoá tài khoản: sai mật khẩu 401; còn nợ 409 kèm danh sách nhóm; thành công 204, sau đó đăng nhập thất bại, email và tên đã ẩn danh, quyền OWNER đã chuyển, khoản chi của nhóm vẫn còn và số dư của các thành viên khác không đổi, tin nhắn đã thay nội dung, bản ghi đồng ý vẫn còn.
+  - xoá tài khoản: sai mật khẩu 400 (`WRONG_PASSWORD`); còn nợ 409 kèm danh sách nhóm; thành công 204, sau đó đăng nhập thất bại, email và tên đã ẩn danh, quyền OWNER đã chuyển, khoản chi của nhóm vẫn còn và số dư của các thành viên khác không đổi, tin nhắn đã thay nội dung, bản ghi đồng ý vẫn còn.
 - **App (unit):**
   - `RegisterConsentState`: nút khoá cho tới khi tích đủ 3 ô;
   - `shouldPromptNotifications(count, last, now)`: lần đầu hỏi, sau "Để sau" thì 7 ngày mới hỏi lại, tối đa 2 lần;

@@ -5,7 +5,7 @@
 
 ## 1. Mục đích
 
-Người dùng chụp hoặc chọn ảnh hoá đơn quán ăn thật. App tự điền tên quán, ngày, danh sách món và giá vào màn "Tạo khoản chi" ở chế độ **Chia theo món**. Người dùng xem lại, sửa, gán món cho từng người rồi tự bấm lưu.
+Người dùng chụp hoặc chọn ảnh hoá đơn thật: **hoá đơn quán ăn hoặc quán cà phê, và hoá đơn siêu thị hoặc cửa hàng tiện lợi** (bổ sung 2026-11-26). App tự điền tên quán, ngày, danh sách món và giá vào màn "Tạo khoản chi" ở chế độ **Chia theo món**. Người dùng xem lại, sửa, gán món cho từng người rồi tự bấm lưu.
 
 Thành công khi: demo trên điện thoại cắm USB, quét hoá đơn in nhiệt của quán thật. Danh sách món hiện ra gần đúng, tổng khớp hoá đơn (hoặc có cảnh báo rõ ràng khi lệch), và lưu được ngay sau khi gán người.
 
@@ -122,6 +122,32 @@ Các bước chạy theo thứ tự. Mỗi bước là một hàm thuần, test 
 
 Danh sách từ khoá đặt trong một file hằng (`receipt_keywords.dart`) để bổ sung dần khi gặp hoá đơn mới.
 
+### 5.4b Quy tắc riêng cho hoá đơn siêu thị và cửa hàng tiện lợi (bổ sung 2026-11-26)
+
+Hoá đơn siêu thị khác hoá đơn quán ăn ở các điểm sau. Các quy tắc dưới đây được thêm vào các bước của 5.4 và không thay quy tắc cũ.
+
+1. **Mã vạch:** một dãy liền 8–14 chữ số (EAN/UPC hoặc mã hàng) **không phải tiền**.
+   - Hàng chỉ có mã vạch thì bỏ qua.
+   - Mã vạch ở đầu hàng món thì cắt khỏi tên món.
+   - Mã vạch đứng riêng trên hàng ngay trên tên món thì không được gộp vào tên.
+2. **Hàng cân** (số lượng thập phân kèm đơn vị), ví dụ `0,512 kg x 89.000 = 45.568` hoặc `0.512 KG  89.000  45.568`:
+   - `totalPrice` = số tiền cuối, `unitPrice` = số tiền kế cuối;
+   - `quantity` = 1, và thêm phần khối lượng vào tên: `"<tên> (0,512 kg)"`;
+   - đơn vị nhận dạng: `kg`, `g`, `gr`, `l`, `lit`, `ml`;
+   - quy tắc "từ chối số thập phân" ở bước 2 vẫn giữ: khối lượng không bao giờ là token tiền.
+3. **Dạng "SL x đơn giá"**, ví dụ `2 x 15.000  30.000` hoặc `2 x 15.000 = 30.000`, thường nằm ở hàng dưới tên món: dùng quy tắc ghép "hàng chữ + hàng toàn số", với `quantity` lấy từ số đứng trước `x`.
+4. **Bỏ qua thêm:** `tong so luong`, `tong sl`, `so mat hang`, `so luong mat hang`, `diem tich luy`, `diem thuong`, `diem`, `ma kh`, `ma khach hang`, `the thanh vien`, `hang thanh vien`, `quay`, `pos`, `ca`, `thu ngan`, `so hd`, `so phieu`, `ngay in`. Riêng `diem`, `ca` và `quay` chỉ so theo **từ đứng riêng** ở đầu hàng.
+5. **"(Đã gồm VAT)" / "Giá đã bao gồm thuế":** dòng tổng có cụm này là tổng cuối, không cộng VAT thêm. Bảng tóm tắt thuế cuối hoá đơn kiểu `Thuế suất 8%  Tiền thuế 12.345` thì **bỏ qua**, vì đó chỉ là thông tin.
+6. **Khuyến mãi theo từng món** (`KM`, `CK`, `Giảm giá`, `-5.000` ngay dưới một món): coi là adjustment loại `discount` và phân bổ theo tỉ lệ như mọi adjustment khác. Không gán riêng cho món đó, để giữ đơn giản.
+7. **Số lượng món lớn** (30–80 món) là bình thường. Bộ phân tích không được giới hạn số món, ngoài giới hạn 150 hàng của `buildReceiptRows`.
+
+### 5.4c Chọn "Chỉ dùng tổng tiền" (bổ sung 2026-11-26, quyết định của Claude)
+
+Hoá đơn siêu thị nhiều món thì chia theo từng món rất mệt. Màn xem trước có thêm nút phụ **"Chỉ dùng tổng tiền"** bên cạnh "Dùng kết quả". Bấm vào thì:
+- `_totalAmount` = tổng in trên hoá đơn (`receipt.totalAmount`);
+- tiêu đề và ngày lấy như ở 5.5;
+- chuyển sang chế độ **chia đều** (`SplitMode.equal`), không điền món.
+
 ### 5.5 Điền vào form: `ReceiptApplier.apply(ParsedReceipt, DateTime now) → AppliedReceipt`
 
 `AppliedReceipt {List<ExpenseItemDetail> items; int totalAmount; String title; DateTime? expenseDate;}`
@@ -150,6 +176,7 @@ Danh sách từ khoá đặt trong một file hằng (`receipt_keywords.dart`) �
 │ VAT/phí/giảm giá sẽ được chia    │
 │ theo tỉ lệ giá từng món.         │
 │  [ Quét lại ]   [ Dùng kết quả ] │
+│        Chỉ dùng tổng tiền        │  ← nút chữ, xem 5.4c
 └──────────────────────────────────┘
 ```
 
@@ -178,7 +205,8 @@ Chữ lấy từ `Theme.of(context).textTheme`, màu lấy từ `AppColors`. Dò
   - **tổng khớp:** `totalAmount` đúng;
   - **số tiền món đúng:** tỉ lệ món có `totalPrice` khớp, ghép theo thứ tự;
   - **số món đúng.**
-- **Ngưỡng tối thiểu để test pass:**
+- Mỗi file `expected.json` có thêm trường `"type": "restaurant" | "supermarket"`. Bảng chỉ số in **theo từng loại** và tổng chung.
+- **Ngưỡng tối thiểu để test pass** (áp **riêng cho từng loại** có ít nhất 5 hoá đơn, và cho tổng chung):
   - tổng khớp ở ≥ 80% số hoá đơn;
   - số tiền món đúng ≥ 85% (tính gộp mọi món);
   - mọi hoá đơn có lệch tổng đều có warning (không có trường hợp sai mà im lặng).
@@ -206,3 +234,5 @@ Chữ lấy từ `Theme.of(context).textTheme`, màu lấy từ `AppColors`. Dò
 3. Ngưỡng chính xác tối thiểu: **80% tổng khớp, 85% số tiền món đúng** trên bộ fixture.
 4. Món có số lượng lớn hơn 1 giữ thành một dòng `"Tên xN"`.
 5. Không lưu ảnh hoá đơn, không đưa ảnh gốc vào repo.
+6. Hỗ trợ hoá đơn siêu thị theo 5.4b. Khuyến mãi theo món được phân bổ theo tỉ lệ cho cả hoá đơn, không gán riêng cho món.
+7. Thêm nút "Chỉ dùng tổng tiền" (5.4c) cho hoá đơn nhiều món.

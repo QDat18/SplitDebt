@@ -124,7 +124,7 @@ Bổ sung vào Task 2: `legacyUser_exemptRoutes_pass` kiểm tra `data-export` t
 
 - [ ] **Step 1: Viết test.**
 ```java
-@Test void wrongPassword_is401()
+@Test void wrongPassword_is400()  // 400, code WRONG_PASSWORD
 @Test void outstandingBalance_is409WithGroups()   // A nợ B 100000 → 409, $.data.groups[0].name đúng (hoặc trường tương ứng theo handler)
 @Test void success_anonymizesAndBlocksLogin()      // hết nợ → 204; /api/auth/login bằng email cũ → 401; user.fullName == "Người dùng đã xoá"; email kết thúc "@deleted.invalid"; phone/avatarUrl null; deletedAt != null
 @Test void ownerTransfer_toEarliestAdminOrMember() // A OWNER, B ADMIN (tham gia sau C MEMBER) → OWNER mới là B; không có ADMIN → C
@@ -200,12 +200,12 @@ test('never more than twice')                 // count 2 → false
 - [ ] **Step 1: Viết test.**
 ```dart
 test('deleteAccount maps 409 to OutstandingBalanceError with group list')
-test('deleteAccount maps 401 to WrongPasswordError')
+test('deleteAccount maps 400 WRONG_PASSWORD to WrongPasswordError')
 test('deleteAccount 204 completes normally')
 ```
 - [ ] **Step 2–3: FAIL, viết code.** Bố cục **đúng như sơ đồ ở spec 6.5**. Footer phần Văn bản lấy ngày đồng ý từ `consent.acceptedAt`. Xoá thành công thì xoá token, huỷ đăng ký topic FCM (dùng hàm logout và cleanup push có sẵn), về `LoginScreen` kèm SnackBar.
 - [ ] **Step 4:** `flutter analyze`, `flutter test` PASS. Chạy app và đi qua phần kiểm thử thủ công ở spec mục 8.
-- [ ] **Step 5: Commit.** `git commit -m "feat(privacy): privacy center, data view, account deletion, just-in-time AI consent"` (nhớ `git add`).
+- [ ] **Step 5: Commit.** `git commit -m "feat(privacy): privacy center, data view, account deletion"` (nhớ `git add`).
 
 ---
 
