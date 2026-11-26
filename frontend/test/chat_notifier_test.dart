@@ -11,11 +11,16 @@ class FakeChatRepository implements ChatRepository {
   List<ChatMessage> mockAfter = [];
   bool shouldFailSend = false;
   bool shouldFailAfter = false;
+  bool shouldFailLatest = false;
+  int latestCallCount = 0;
+  int afterCallCount = 0;
 
   final List<String> sentIds = [];
 
   @override
   Future<MessagePage> latest(int groupId) async {
+    latestCallCount++;
+    if (shouldFailLatest) throw Exception('Initial load error');
     return MessagePage(messages: mockLatest, hasMore: mockLatestHasMore);
   }
 
@@ -26,6 +31,7 @@ class FakeChatRepository implements ChatRepository {
 
   @override
   Future<List<ChatMessage>> after(int groupId, int id) async {
+    afterCallCount++;
     if (shouldFailAfter) throw Exception('Network error');
     return mockAfter;
   }
@@ -174,6 +180,48 @@ void main() {
       expect(notifier.state.messages[0].id, equals(5));
       expect(notifier.state.messages[1].id, equals(10));
       expect(notifier.state.hasMore, isFalse);
+    });
+
+    test('refreshNewer calls loadInitial when newestServerId is null and state has error', () async {
+      repo.shouldFailLatest = true;
+      await notifier.loadInitial();
+      expect(notifier.state.error, isNotNull);
+      expect(notifier.state.newestServerId, isNull);
+      expect(repo.latestCallCount, equals(1));
+
+      repo.shouldFailLatest = false;
+      repo.mockLatest = [
+        ChatMessage(
+          id: 7,
+          groupId: 10,
+          senderId: 2,
+          senderName: 'B',
+          content: 'Recovered',
+          createdAt: DateTime.now(),
+          clientMessageId: 'c7',
+          status: ChatStatus.sent,
+        ),
+      ];
+
+      await notifier.refreshNewer();
+
+      expect(repo.latestCallCount, equals(2));
+      expect(repo.afterCallCount, equals(0));
+      expect(notifier.state.error, isNull);
+      expect(notifier.state.messages.length, equals(1));
+      expect(notifier.state.messages.first.id, equals(7));
+    });
+
+    test('refreshNewer calls after(0) when newestServerId is null and state has no error', () async {
+      repo.mockLatest = [];
+      await notifier.loadInitial();
+      expect(notifier.state.error, isNull);
+      expect(notifier.state.newestServerId, isNull);
+
+      await notifier.refreshNewer();
+
+      expect(repo.latestCallCount, equals(1));
+      expect(repo.afterCallCount, equals(1));
     });
   });
 }

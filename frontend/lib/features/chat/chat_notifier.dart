@@ -124,6 +124,10 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
   Future<void> refreshNewer() async {
     if (state.loadingInitial || _isRefreshingNewer) return;
+    if (state.newestServerId == null && state.error != null) {
+      await loadInitial();
+      return;
+    }
     final lastId = state.newestServerId ?? 0;
 
     _isRefreshingNewer = true;
