@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/permission_messages.dart';
 import 'receipt_applier.dart';
 import 'receipt_models.dart';
 import 'receipt_preview_sheet.dart';
@@ -83,10 +84,14 @@ class ReceiptFlow {
       List<String>? rows;
       try {
         rows = await activeScanner.scan(source);
-      } catch (_) {
+      } catch (e) {
         onScanningChanged(false);
         if (context.mounted) {
-          _showError(context, 'Không quét được hoá đơn. Vui lòng thử lại.');
+          _showError(
+            context,
+            permissionDeniedMessage(e) ??
+                'Không quét được hoá đơn. Vui lòng thử lại.',
+          );
         }
         return null;
       }

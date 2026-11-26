@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
+import '../../core/utils/permission_messages.dart';
 import '../../data/repositories/user_repository.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
@@ -148,7 +149,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Lỗi tải ảnh: ${e.toString().replaceAll('Exception: ', '')}'),
+          content: Text(
+            permissionDeniedMessage(e) ??
+                'Lỗi tải ảnh: ${e.toString().replaceAll('Exception: ', '')}',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
