@@ -1,44 +1,20 @@
+// Trách nhiệm file: Cung cấp các hằng số cấu hình ứng dụng được đọc từ biến môi trường.
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConstants {
-  const AppConstants._();
+  static String get fcmWebVapidKey =>
+      dotenv.env['FCM_WEB_VAPID_KEY']?.trim() ?? '';
 
-  /// Override at build/run time when needed, for example:
-  /// flutter run --dart-define=API_URL=http://192.168.1.10:8080/api
-  ///
-  /// Without an override:
-  /// - Flutter Web / desktop connects to localhost.
-  /// - Android Emulator connects to the host through 10.0.2.2.
-  static const String _configuredApiUrl = String.fromEnvironment(
-    'API_URL',
-    defaultValue: '',
-  );
-
-  /// Google OAuth Web Client ID. Pass the same Web OAuth client ID to the
-  /// Backend as GOOGLE_CLIENT_ID. On Android it is used as serverClientId so
-  /// Google returns an ID token that the Backend can verify.
-  static const String _googleWebClientId = String.fromEnvironment(
-    'GOOGLE_WEB_CLIENT_ID',
-    defaultValue: '',
-  );
-
-  static String get googleWebClientId => _googleWebClientId.trim();
-  static bool get googleSignInConfigured => googleWebClientId.isNotEmpty;
-
-  static String get apiUrl {
-    final configured = _configuredApiUrl.trim();
-    final value = configured.isNotEmpty ? configured : _defaultApiUrl;
-    return value.replaceAll(RegExp(r'/$'), '');
-  }
-
-  static String get _defaultApiUrl {
-    if (kIsWeb) return 'http://localhost:8080/api';
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8080/api';
+  static String get apiBaseUrl {
+    const override = String.fromEnvironment('API_BASE_URL');
+    final url = override.isNotEmpty
+        ? override
+        : dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8081/api';
+    if (kIsWeb && url.contains('10.0.2.2')) {
+      return url.replaceAll('10.0.2.2', 'localhost');
     }
-    return 'http://localhost:8080/api';
+    return url;
   }
-
-  static bool get configured =>
-      apiUrl.startsWith('http://') || apiUrl.startsWith('https://');
 }

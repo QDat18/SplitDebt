@@ -1,25 +1,35 @@
 name: split_debt
-description: Group expenses, clear balances and simple settlements.
-publish_to: none
+description: "SplitDebt Flutter application"
+publish_to: 'none'
+
 version: 1.0.0+1
+
 environment:
-  sdk: ^3.7.2
+  sdk: ">=3.3.0 <4.0.0"
+
 dependencies:
   flutter:
     sdk: flutter
+
   cupertino_icons: ^1.0.8
-  http: ^1.6.0
-  intl: ^0.19.0
+  flutter_dotenv: ^6.0.1
+  dio: ^5.11.1
+  flutter_secure_storage: ^9.2.2
   shared_preferences: ^2.5.3
-  google_sign_in: ^6.2.2
+  flutter_riverpod: ^2.5.1
+  firebase_core: ^2.30.0
+  firebase_messaging: ^14.9.0
+  fl_chart: ^0.68.0
+  google_fonts: ^6.2.1
+  intl: ^0.19.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  integration_test:
-    sdk: flutter
   flutter_lints: ^5.0.0
+
 flutter:
   uses-material-design: true
+
   assets:
-    - assets/brand/
-    - assets/reference/
+    - .env

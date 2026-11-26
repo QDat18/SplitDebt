@@ -11,6 +11,8 @@
 .svn/
 .swiftpm/
 .env
+android/app/google-services.json
+firebase.json
 migrate_working_dir/
 
 # IntelliJ related

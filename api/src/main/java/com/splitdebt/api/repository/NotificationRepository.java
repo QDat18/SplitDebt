@@ -1,0 +1,18 @@
+/**
+ * Trách nhiệm file: Khai báo truy vấn và thao tác lưu trữ cho Notification Repository bằng Spring Data JPA.
+ */
+
+package com.splitdebt.api.repository;
+
+import com.splitdebt.api.entity.Notification;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface NotificationRepository
+        extends JpaRepository<Notification, Long> {
+
+    List<Notification> findByUserIdOrderByCreatedAtDesc(
+            Long userId
+    );
+}

@@ -1,3 +1,7 @@
+/**
+ * Trách nhiệm file: Khởi động ứng dụng Spring Boot và cấu hình quá trình quét các thành phần backend.
+ */
+
 package com.splitdebt.api;
 
 import org.springframework.boot.SpringApplication;
