@@ -19,6 +19,8 @@ public interface GroupMessageRepository extends JpaRepository<GroupMessage, Long
 
     Optional<GroupMessage> findBySenderIdAndClientMessageId(Long senderId, String clientMessageId);
 
+    List<GroupMessage> findBySenderIdOrderByIdAsc(Long senderId);
+
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(m) FROM GroupMessage m WHERE m.group.id = :groupId AND m.id > :afterId AND m.sender.id <> :viewerId")
     long countUnread(@org.springframework.data.repository.query.Param("groupId") Long groupId,
                      @org.springframework.data.repository.query.Param("afterId") Long afterId,

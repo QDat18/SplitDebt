@@ -337,6 +337,10 @@ public class ConsentControllerTest {
         mockMvc.perform(get("/api/users/me")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/users/me/data-export")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
     }
 
     @Test

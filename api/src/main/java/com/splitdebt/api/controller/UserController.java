@@ -4,14 +4,17 @@
 
 package com.splitdebt.api.controller;
 
+import com.splitdebt.api.dto.ApiResponse;
 import com.splitdebt.api.dto.UserDto;
 import com.splitdebt.api.dto.consent.ConsentStatusDto;
 import com.splitdebt.api.dto.consent.ConsentUpdateRequest;
+import com.splitdebt.api.dto.privacy.DataExportDto;
 import com.splitdebt.api.dto.request.UpdateProfileRequest;
 import com.splitdebt.api.dto.response.UserActivityLogDto;
 import com.splitdebt.api.entity.User;
 import com.splitdebt.api.repository.UserRepository;
 import com.splitdebt.api.service.ConsentService;
+import com.splitdebt.api.service.DataExportService;
 import com.splitdebt.api.service.SupabaseStorageService;
 import com.splitdebt.api.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,6 +40,7 @@ public class UserController {
     private final SupabaseStorageService supabaseStorageService;
     private final UserService userService;
     private final ConsentService consentService;
+    private final DataExportService dataExportService;
 
     @Operation(summary = "Lấy thông tin người dùng đang đăng nhập", description = "Dựa trên JWT Token để lấy thông tin cá nhân của user.")
     @GetMapping("/me")
@@ -53,6 +57,15 @@ public class UserController {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(consentService.update(user.getId(), request));
+    }
+
+    @Operation(summary = "Xuất dữ liệu cá nhân", description = "Trả về toàn bộ dữ liệu cá nhân của người dùng đang đăng nhập.")
+    @GetMapping("/me/data-export")
+    public ResponseEntity<ApiResponse<DataExportDto>> exportMyData() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(ApiResponse.ok(dataExportService.export(user.getId())));
     }
 
     @Operation(summary = "Cập nhật thông tin cá nhân", description = "Cập nhật họ tên, số điện thoại và tự động lưu nhật ký hoạt động.")
