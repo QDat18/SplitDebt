@@ -144,4 +144,51 @@ void main() {
     await tester.pumpAndSettle();
     expect(result, PreviewAction.use);
   });
+
+  testWidgets('total shown equals amount applied to form', (tester) async {
+    const parsed = ParsedReceipt(
+      items: [
+        ParsedItem(name: 'Món 1', quantity: 1, totalPrice: 100000),
+        ParsedItem(name: 'Món 2', quantity: 1, totalPrice: 150000),
+      ],
+      adjustments: [
+        ParsedAdjustment(type: AdjustmentType.vat, label: 'VAT', amount: 20000),
+      ],
+      totalAmount: 300000,
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: ReceiptPreviewSheet(receipt: parsed),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('270.000đ'), findsOneWidget);
+  });
+
+  testWidgets('printed total shown when different', (tester) async {
+    const parsed = ParsedReceipt(
+      items: [
+        ParsedItem(name: 'Món 1', quantity: 1, totalPrice: 100000),
+      ],
+      totalAmount: 150000,
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: ReceiptPreviewSheet(receipt: parsed),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Tổng in trên hoá đơn: 150.000đ. Có thể đã sót món, hãy kiểm tra.'),
+      findsOneWidget,
+    );
+  });
 }

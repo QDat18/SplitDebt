@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
+import 'receipt_applier.dart';
 import 'receipt_models.dart';
 
 enum PreviewAction { rescan, use }
@@ -39,6 +40,8 @@ class ReceiptPreviewSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final applied = ReceiptApplier.apply(receipt, DateTime.now());
+    final formTotal = applied.totalAmount;
     final storeSuffix =
         (receipt.storeName != null && receipt.storeName!.trim().isNotEmpty)
             ? ' · ${receipt.storeName!.trim()}'
@@ -179,7 +182,7 @@ class ReceiptPreviewSheet extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  _formatVnd(receipt.totalAmount),
+                                  _formatVnd(formTotal),
                                   style: textTheme.titleSmall?.copyWith(
                                     fontWeight: FontWeight.w700,
                                     color: AppColors.p600,
@@ -187,6 +190,19 @@ class ReceiptPreviewSheet extends StatelessWidget {
                                 ),
                               ],
                             ),
+                            if (formTotal != receipt.totalAmount) ...[
+                              const SizedBox(height: AppDimensions.s8),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Tổng in trên hoá đơn: ${_formatVnd(receipt.totalAmount)}. Có thể đã sót món, hãy kiểm tra.',
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: AppColors.warning,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
