@@ -128,6 +128,11 @@ void main() {
     _ClassifyCase('R5: table A1 ignored', 'Bàn A1', hasMoney: false, expected: RowKind.ignore),
     // 5.4b.1 Barcode
     _ClassifyCase('5.4b.1: barcode-only row ignored', '8934563123456', hasMoney: false, expected: RowKind.ignore),
+    // 5.4b.4 Supermarket ignore keywords
+    _ClassifyCase('5.4b.4: Tổng số lượng ignored', 'Tổng số lượng: 12', hasMoney: false, expected: RowKind.ignore),
+    _ClassifyCase('5.4b.4: Điểm tích luỹ ignored', 'Điểm tích luỹ 320', hasMoney: false, expected: RowKind.ignore),
+    _ClassifyCase('5.4b.4: Quầy 03 ignored', 'Quầy 03', hasMoney: false, expected: RowKind.ignore),
+    _ClassifyCase('5.4b.4: Mã KH ignored', 'Mã KH: 001234', hasMoney: true, expected: RowKind.ignore),
   ];
 
   const itemCases = <_ItemCase>[

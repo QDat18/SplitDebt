@@ -34,6 +34,7 @@ RowKind classifyRow(String row, {required bool hasMoney}) {
 
   if (_matchesAny(norm, ReceiptKeywords.ignoreAlways) ||
       RegExp(r'^ban\s*[a-z]?\d+').hasMatch(norm) ||
+      RegExp(r'^(?:diem|ca|quay)\b').hasMatch(norm) ||
       RegExp(r'^\d{8,14}$').hasMatch(norm) ||
       (hasMoney && RegExp(r'^the\b').hasMatch(norm)) ||
       _countMatches(norm, ReceiptKeywords.ignoreWhenNoMoney) >= 2) {

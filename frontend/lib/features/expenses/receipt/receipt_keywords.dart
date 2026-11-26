@@ -45,6 +45,19 @@ class ReceiptKeywords {
     'ma hd',
     'hoa don',
     'so luong',
+    'tong so luong',
+    'tong sl',
+    'so mat hang',
+    'so luong mat hang',
+    'diem tich luy',
+    'diem thuong',
+    'ma kh',
+    'ma khach hang',
+    'the thanh vien',
+    'hang thanh vien',
+    'pos',
+    'so phieu',
+    'ngay in',
   ];
 
   static const List<String> ignoreWhenNoMoney = [
