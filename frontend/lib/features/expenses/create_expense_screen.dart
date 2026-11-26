@@ -1,5 +1,6 @@
 // Trách nhiệm file: Xây dựng màn hình create expense screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,8 @@ import '../../core/api/api_client.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../settlements/group_settlement_screen.dart';
 import 'models/expense_item_detail.dart';
+import 'receipt/receipt_flow.dart';
+import 'receipt/receipt_ocr_lab_screen.dart';
 export 'models/expense_item_detail.dart';
 
 /// ----------------------------------------------------------------------------
@@ -521,11 +524,40 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
     });
   }
 
-  // Giả lập AI OCR Scan Hóa đơn
   Future<void> _scanReceiptOCR() async {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text(
-            'Quét hóa đơn chưa được kết nối. Bạn có thể nhập khoản chi và từng món bên dưới.')));
+    if (_isOcrScanning) return;
+    final applied = await ReceiptFlow.run(
+      context,
+      hasExistingItems: _items.isNotEmpty,
+      onScanningChanged: (scanning) {
+        if (mounted) {
+          setState(() => _isOcrScanning = scanning);
+        }
+      },
+    );
+    if (applied == null || !mounted) return;
+
+    setState(() {
+      _hasReceipt = true;
+      _titleController.text = applied.title;
+      if (applied.expenseDate != null) {
+        _expenseDate = applied.expenseDate!;
+      }
+      _amountController.text = currencyFormatter
+          .format(applied.totalAmount)
+          .replaceAll('₫', '')
+          .trim();
+      _items = applied.items;
+      _splitMode = SplitMode.item;
+      _recalculateSplit();
+    });
+  }
+
+  void _openOcrLab() {
+    if (!kDebugMode) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ReceiptOcrLabScreen()),
+    );
   }
 
   @override
@@ -720,15 +752,26 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                 ),
               ),
               if (_isOcrScanning)
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.5, color: AppColors.p500),
+                const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2.2, color: AppColors.p500),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Đang đọc hoá đơn…',
+                      style: TextStyle(fontSize: 12, color: AppColors.p600),
+                    ),
+                  ],
                 )
               else
                 OutlinedButton.icon(
                   onPressed: _scanReceiptOCR,
+                  onLongPress: kDebugMode ? _openOcrLab : null,
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.p500),
                     shape: RoundedRectangleBorder(

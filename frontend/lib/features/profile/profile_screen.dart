@@ -1,5 +1,6 @@
 // Trách nhiệm file: Xây dựng màn hình profile screen theo chuẩn HIG với grouped list.
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +12,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/widgets/grouped_list.dart';
 import '../auth/login_screen.dart';
+import '../expenses/receipt/receipt_ocr_lab_screen.dart';
 import 'about_screen.dart';
 import 'currency_settings_screen.dart';
 import 'help_screen.dart';
@@ -263,6 +265,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           ),
                         ),
                       ),
+                      if (kDebugMode)
+                        GroupedTile(
+                          icon: Icons.document_scanner_outlined,
+                          title: 'OCR Lab (Debug)',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ReceiptOcrLabScreen(),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: AppDimensions.s32),

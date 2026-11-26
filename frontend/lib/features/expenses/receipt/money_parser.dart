@@ -59,10 +59,18 @@ String? _fixOcrNumeric(String raw) {
   return hasDigit ? sb.toString() : null;
 }
 
+final RegExp _dateLikeRegex = RegExp(
+  r'(?<!\d)\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}(?!\d)',
+);
+
 List<MoneyToken> parseMoneyTokens(String row) {
   final tokens = <MoneyToken>[];
+  final sanitizedRow = row.replaceAllMapped(
+    _dateLikeRegex,
+    (m) => ' ' * (m.end - m.start),
+  );
 
-  for (final match in _candidateMoneyRegex.allMatches(row)) {
+  for (final match in _candidateMoneyRegex.allMatches(sanitizedRow)) {
     final core = match.group(1);
     if (core == null || core.isEmpty) continue;
 
