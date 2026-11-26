@@ -25,7 +25,8 @@ RowKind classifyRow(String row, {required bool hasMoney}) {
   if (norm.isEmpty) return RowKind.ignore;
 
   if (_matchesAny(norm, ReceiptKeywords.ignoreAlways) ||
-      RegExp(r'^ban\s*\d+').hasMatch(norm)) {
+      RegExp(r'^ban\s*\d+').hasMatch(norm) ||
+      (hasMoney && RegExp(r'^the\b').hasMatch(norm))) {
     return RowKind.ignore;
   }
   if (!hasMoney && _matchesAny(norm, ReceiptKeywords.ignoreWhenNoMoney)) {

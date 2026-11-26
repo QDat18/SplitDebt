@@ -118,9 +118,9 @@ void main() {
     _ClassifyCase('O7: Số bàn ignored', 'Số bàn: 12', hasMoney: false, expected: RowKind.ignore),
     _ClassifyCase('O7: Bàn 5 ignored', 'Bàn 5', hasMoney: false, expected: RowKind.ignore),
     // R4
-    _ClassifyCase('R4: Thẻ: ignored', 'Thẻ: 300.000', hasMoney: true, expected: RowKind.ignore, skip: 'R4'),
-    _ClassifyCase('R4: VISA ignored', 'VISA 300.000', hasMoney: true, expected: RowKind.ignore, skip: 'R4'),
-    _ClassifyCase('R4: ATM ignored', 'ATM 300.000', hasMoney: true, expected: RowKind.ignore, skip: 'R4'),
+    _ClassifyCase('R4: Thẻ: ignored', 'Thẻ: 300.000', hasMoney: true, expected: RowKind.ignore),
+    _ClassifyCase('R4: VISA ignored', 'VISA 300.000', hasMoney: true, expected: RowKind.ignore),
+    _ClassifyCase('R4: ATM ignored', 'ATM 300.000', hasMoney: true, expected: RowKind.ignore),
   ];
 
   const itemCases = <_ItemCase>[
@@ -163,7 +163,6 @@ void main() {
       ['Mon A 300.000', 'Tổng cộng 300.000', 'Thẻ: 300.000'],
       itemCount: 1,
       totalAmount: 300000,
-      skip: 'R4',
     ),
     // R5
     _ReceiptCase(
