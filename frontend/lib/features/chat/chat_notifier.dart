@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -173,13 +174,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     } catch (e) {
       debugPrint('Chat send error: $e');
       if (mounted) {
-        final updated = state.messages.map((m) {
-          if (m.clientMessageId == clientMsgId) {
-            return m.copyWith(status: ChatStatus.failed);
-          }
-          return m;
-        }).toList();
-        state = state.copyWith(messages: updated);
+        _markSendFailure(clientMsgId, e);
       }
     }
   }
@@ -213,15 +208,40 @@ class ChatNotifier extends StateNotifier<ChatState> {
     } catch (e) {
       debugPrint('Chat send error: $e');
       if (mounted) {
-        final failedAgain = state.messages.map((m) {
-          if (m.clientMessageId == clientMessageId) {
-            return m.copyWith(status: ChatStatus.failed);
-          }
-          return m;
-        }).toList();
-        state = state.copyWith(messages: failedAgain);
+        _markSendFailure(clientMessageId, e);
       }
     }
+  }
+
+  void _markSendFailure(String clientMessageId, Object error) {
+    ChatStatus status = ChatStatus.failed;
+    String? errorMessage;
+    if (error is DioException && error.response?.statusCode == 400) {
+      status = ChatStatus.rejected;
+      final data = error.response?.data;
+      if (data is Map &&
+          data['message'] is String &&
+          (data['message'] as String).isNotEmpty) {
+        errorMessage = data['message'] as String;
+      } else {
+        errorMessage = 'Tin nhắn không hợp lệ';
+      }
+    }
+    final updated = state.messages.map((m) {
+      if (m.clientMessageId == clientMessageId) {
+        return m.copyWith(status: status, errorMessage: errorMessage);
+      }
+      return m;
+    }).toList();
+    state = state.copyWith(messages: updated);
+  }
+
+  void removeLocalMessage(String clientMessageId) {
+    state = state.copyWith(
+      messages: state.messages
+          .where((m) => m.clientMessageId != clientMessageId)
+          .toList(),
+    );
   }
 
   Future<void> markRead(int lastId) async {

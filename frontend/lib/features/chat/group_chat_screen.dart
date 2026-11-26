@@ -292,7 +292,7 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
     final timeStr =
         '${message.createdAt.hour.toString().padLeft(2, '0')}:${message.createdAt.minute.toString().padLeft(2, '0')}';
 
-    return Padding(
+    final bubbleColumn = Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Column(
         crossAxisAlignment:
@@ -413,9 +413,44 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                 ),
               ),
             ),
+          if (isMine && message.status == ChatStatus.rejected)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, right: 4),
+              child: Text(
+                message.errorMessage ??
+                    context.tr('Tin nhắn không hợp lệ', 'Invalid message'),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.error,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
         ],
       ),
     );
+
+    if (isMine && message.status == ChatStatus.rejected) {
+      return Dismissible(
+        key: ValueKey('msg-${message.clientMessageId}'),
+        direction: DismissDirection.endToStart,
+        onDismissed: (_) {
+          ref
+              .read(chatNotifierProvider(_groupId).notifier)
+              .removeLocalMessage(message.clientMessageId);
+        },
+        child: GestureDetector(
+          onLongPress: () {
+            ref
+                .read(chatNotifierProvider(_groupId).notifier)
+                .removeLocalMessage(message.clientMessageId);
+          },
+          child: bubbleColumn,
+        ),
+      );
+    }
+
+    return bubbleColumn;
   }
 
   Widget _buildInputBar() {
@@ -447,6 +482,24 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                 controller: _textController,
                 minLines: 1,
                 maxLines: 5,
+                maxLength: 2000,
+                buildCounter: (
+                  context, {
+                  required currentLength,
+                  required isFocused,
+                  required maxLength,
+                }) {
+                  if (maxLength == null) return null;
+                  final remaining = maxLength - currentLength;
+                  if (remaining >= 200) return null;
+                  return Text(
+                    '$currentLength/$maxLength',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: remaining <= 20 ? AppColors.error : AppColors.n500,
+                    ),
+                  );
+                },
                 textCapitalization: TextCapitalization.sentences,
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(

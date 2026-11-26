@@ -1,4 +1,4 @@
-enum ChatStatus { sent, pending, failed }
+enum ChatStatus { sent, pending, failed, rejected }
 
 class ChatMessage {
   final int? id;
@@ -9,6 +9,7 @@ class ChatMessage {
   final DateTime createdAt;
   final String clientMessageId;
   final ChatStatus status;
+  final String? errorMessage;
 
   const ChatMessage({
     this.id,
@@ -19,6 +20,7 @@ class ChatMessage {
     required this.createdAt,
     required this.clientMessageId,
     this.status = ChatStatus.sent,
+    this.errorMessage,
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json,
@@ -46,6 +48,7 @@ class ChatMessage {
     DateTime? createdAt,
     String? clientMessageId,
     ChatStatus? status,
+    String? errorMessage,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -56,6 +59,7 @@ class ChatMessage {
       createdAt: createdAt ?? this.createdAt,
       clientMessageId: clientMessageId ?? this.clientMessageId,
       status: status ?? this.status,
+      errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 

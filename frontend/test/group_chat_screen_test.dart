@@ -212,4 +212,72 @@ void main() {
     expect(mockRepo.lastSentClientMessageId, 'c-failed');
     expect(mockRepo.lastSentContent, 'Tin bị lỗi');
   });
+
+  testWidgets('input enforces maxLength 2000 and shows counter only when < 200 remaining', (tester) async {
+    final mockRepo = MockChatRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          chatRepositoryProvider.overrideWithValue(mockRepo),
+          chatCurrentUserIdProvider.overrideWith((ref) => Future.value(1)),
+        ],
+        child: MaterialApp(
+          home: GroupChatScreen(group: group),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final textField = tester.widget<TextField>(find.byType(TextField));
+    expect(textField.maxLength, equals(2000));
+
+    // At 100 chars (1900 remaining >= 200), counter should be hidden
+    await tester.enterText(find.byType(TextField), 'a' * 100);
+    await tester.pump();
+    expect(find.text('100/2000'), findsNothing);
+
+    // At 1850 chars (150 remaining < 200), counter should be shown
+    await tester.enterText(find.byType(TextField), 'a' * 1850);
+    await tester.pump();
+    expect(find.text('1850/2000'), findsOneWidget);
+  });
+
+  testWidgets('rejected message shows server error without retry and long press removes it', (tester) async {
+    final mockRepo = MockChatRepository();
+    mockRepo.initialMessages = [
+      ChatMessage(
+        id: null,
+        groupId: 10,
+        senderId: 1,
+        senderName: 'Tôi',
+        content: 'Tin bị từ chối',
+        clientMessageId: 'c-rejected',
+        createdAt: DateTime.now(),
+        status: ChatStatus.rejected,
+        errorMessage: 'Tin nhắn không hợp lệ',
+      ),
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          chatRepositoryProvider.overrideWithValue(mockRepo),
+          chatCurrentUserIdProvider.overrideWith((ref) => Future.value(1)),
+        ],
+        child: MaterialApp(
+          home: GroupChatScreen(group: group),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tin nhắn không hợp lệ'), findsOneWidget);
+    expect(find.text('Chưa gửi được · Chạm để thử lại'), findsNothing);
+
+    await tester.longPress(find.text('Tin bị từ chối'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tin bị từ chối'), findsNothing);
+  });
 }

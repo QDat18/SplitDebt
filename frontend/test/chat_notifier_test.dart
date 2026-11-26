@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:split_debt/features/chat/chat_models.dart';
 import 'package:split_debt/features/chat/chat_notifier.dart';
@@ -10,6 +11,7 @@ class FakeChatRepository implements ChatRepository {
   bool mockBeforeHasMore = false;
   List<ChatMessage> mockAfter = [];
   bool shouldFailSend = false;
+  DioException? sendDioException;
   bool shouldFailAfter = false;
   bool shouldFailLatest = false;
   int latestCallCount = 0;
@@ -39,6 +41,7 @@ class FakeChatRepository implements ChatRepository {
   @override
   Future<ChatMessage> send(int groupId, String content, String clientMessageId) async {
     sentIds.add(clientMessageId);
+    if (sendDioException != null) throw sendDioException!;
     if (shouldFailSend) throw Exception('Send failed');
     return ChatMessage(
       id: 999,
@@ -222,6 +225,33 @@ void main() {
 
       expect(repo.latestCallCount, equals(1));
       expect(repo.afterCallCount, equals(1));
+    });
+
+    test('send HTTP 400 marks message rejected with server message and cannot be retried', () async {
+      repo.sendDioException = DioException(
+        requestOptions: RequestOptions(path: '/groups/10/messages'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/groups/10/messages'),
+          statusCode: 400,
+          data: {'message': 'Nội dung vượt quá 2000 ký tự'},
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      await notifier.send('Bad message');
+
+      expect(notifier.state.messages.length, equals(1));
+      final msg = notifier.state.messages.first;
+      expect(msg.status, equals(ChatStatus.rejected));
+      expect(msg.errorMessage, equals('Nội dung vượt quá 2000 ký tự'));
+
+      // Retrying a rejected message should do nothing
+      await notifier.retry(msg.clientMessageId);
+      expect(repo.sentIds.length, equals(1));
+
+      // removeLocalMessage removes it locally
+      notifier.removeLocalMessage(msg.clientMessageId);
+      expect(notifier.state.messages, isEmpty);
     });
   });
 }
