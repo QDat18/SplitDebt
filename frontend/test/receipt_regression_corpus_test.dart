@@ -103,6 +103,8 @@ void main() {
     _MoneyCase('R3: two space-thousands prices', 'Bia 120 000 240 000', [120000, 240000]),
     _MoneyCase('R3: qty plus two space-thousands prices', 'Bia 2 125 000 250 000', [125000, 250000]),
     _MoneyCase('R3: single 7-digit space-thousands', '1 250 000', [1250000]),
+    // 5.4b.1 Barcode
+    _MoneyCase('5.4b.1: 13-digit barcode is not money', '8934563123456', []),
   ];
 
   const classifyCases = <_ClassifyCase>[
@@ -124,6 +126,8 @@ void main() {
     // R5
     _ClassifyCase('R5: column header ignored', 'Món SL Giá T.Tiền', hasMoney: false, expected: RowKind.ignore),
     _ClassifyCase('R5: table A1 ignored', 'Bàn A1', hasMoney: false, expected: RowKind.ignore),
+    // 5.4b.1 Barcode
+    _ClassifyCase('5.4b.1: barcode-only row ignored', '8934563123456', hasMoney: false, expected: RowKind.ignore),
   ];
 
   const itemCases = <_ItemCase>[
@@ -138,6 +142,8 @@ void main() {
     _ItemCase('R9: Bia Tiger  3  45.000', 'Bia Tiger  3  45.000', name: 'Bia Tiger', qty: 3, total: 45000),
     _ItemCase('R9: Cơm chiên  2  90.000', 'Cơm chiên  2  90.000', name: 'Cơm chiên', qty: 2, total: 90000),
     _ItemCase('R9: Bia 333  3  15.000  45.000', 'Bia 333  3  15.000  45.000', name: 'Bia 333', qty: 3, unit: 15000, total: 45000),
+    // 5.4b.1 Barcode
+    _ItemCase('5.4b.1: leading barcode stripped from item name', '8934563123456 Sữa tươi Vinamilk 1L  32.000', name: 'Sữa tươi Vinamilk 1L', qty: 1, total: 32000),
   ];
 
   const receiptCases = <_ReceiptCase>[

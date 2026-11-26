@@ -93,7 +93,11 @@ ParsedItem? parseItemRow(String row) {
     }
   }
 
-  final name = leftText.trim().replaceAll(RegExp(r'[-:]+$'), '').trim();
+  final name = leftText
+      .trim()
+      .replaceFirst(RegExp(r'^\d{8,14}\s+'), '')
+      .replaceAll(RegExp(r'[-:]+$'), '')
+      .trim();
   if (name.isEmpty) return null;
 
   return ParsedItem(
