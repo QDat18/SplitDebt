@@ -60,6 +60,7 @@ class _ReceiptCase {
     this.secondItemTotal,
     this.totalAmount,
     this.firstAdjustmentAmount,
+    this.adjustmentCount,
     this.expectNullStoreName = false,
     this.skip,
   });
@@ -73,6 +74,7 @@ class _ReceiptCase {
   final int? secondItemTotal;
   final int? totalAmount;
   final int? firstAdjustmentAmount;
+  final int? adjustmentCount;
   final bool expectNullStoreName;
   final String? skip;
 }
@@ -264,6 +266,25 @@ void main() {
       firstAdjustmentAmount: -5000,
       totalAmount: 27000,
     ),
+    // S2 VATxx% item number rows
+    _ReceiptCase(
+      'S2: VATxx% item number rows merge with barcode+name rows above',
+      [
+        '00000001234567 Banh quy bo hop',
+        'VAT10%  2  15,000.00  30,000.00',
+        '00000007654321 Sua chua it duong',
+        'VAT05%  1  8,500.00  8,500.00',
+        'Tong so tien thanh toan:  38,500.00',
+      ],
+      itemCount: 2,
+      firstItemName: 'Banh quy bo hop',
+      firstItemQty: 2,
+      firstItemTotal: 30000,
+      secondItemName: 'Sua chua it duong',
+      secondItemTotal: 8500,
+      adjustmentCount: 0,
+      totalAmount: 38500,
+    ),
   ];
 
   group('money parser regression corpus', () {
@@ -311,6 +332,9 @@ void main() {
         if (c.firstAdjustmentAmount != null) {
           expect(parsed.adjustments, isNotEmpty);
           expect(parsed.adjustments.first.amount, c.firstAdjustmentAmount);
+        }
+        if (c.adjustmentCount != null) {
+          expect(parsed.adjustments, hasLength(c.adjustmentCount));
         }
         if (c.expectNullStoreName) expect(parsed.storeName, isNull);
       }, skip: c.skip);

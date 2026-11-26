@@ -14,6 +14,11 @@ final RegExp _dateRegex = RegExp(
 );
 final RegExp _phoneRegex = RegExp(r'(?:\+84|0\d{2,3})[\s.-]?\d{3}[\s.-]?\d{3,4}');
 final RegExp _percentRegex = RegExp(r'(\d+(?:[.,]\d+)?)\s*%');
+final RegExp _vatItemPrefixRegex = RegExp(
+  r'^vat\s?\d{1,2}%\s*',
+  caseSensitive: false,
+);
+final RegExp _barcodeRegex = RegExp(r'\b\d{8,14}\b');
 
 class _RawAdjustment {
   final AdjustmentType type;
@@ -42,10 +47,18 @@ class RuleBasedReceiptParser implements ReceiptParser {
 
     final kinds = <RowKind>[];
     final rowTokens = <List<MoneyToken>>[];
-    for (final row in cleanedRows) {
+    for (var i = 0; i < cleanedRows.length; i++) {
+      final row = cleanedRows[i];
       final tokens = parseMoneyTokens(row);
       rowTokens.add(tokens);
-      kinds.add(classifyRow(row, hasMoney: tokens.isNotEmpty));
+      var kind = classifyRow(row, hasMoney: tokens.isNotEmpty);
+      if (tokens.isNotEmpty && _vatItemPrefixRegex.hasMatch(row)) {
+        final prevHasBarcode = i > 0 && _barcodeRegex.hasMatch(cleanedRows[i - 1]);
+        if (tokens.length >= 2 || prevHasBarcode) {
+          kind = RowKind.text;
+        }
+      }
+      kinds.add(kind);
     }
 
     // Bước 6: Tìm tên quán trong 5 hàng đầu (trước hàng món đầu tiên, không chọn hàng ngay trước hàng số liệu món)
@@ -62,6 +75,8 @@ class RuleBasedReceiptParser implements ReceiptParser {
     final headerLimit = cleanedRows.length < 5 ? cleanedRows.length : 5;
     for (var i = 0; i < headerLimit && i < firstItemIdx; i++) {
       if (kinds[i] != RowKind.text) continue;
+      final row = cleanedRows[i];
+      if (RegExp(r'^\d{8,14}\s+').hasMatch(row)) continue;
       if (i + 1 < cleanedRows.length &&
           kinds[i + 1] == RowKind.text &&
           rowTokens[i + 1].isNotEmpty &&
@@ -69,7 +84,6 @@ class RuleBasedReceiptParser implements ReceiptParser {
               RegExp(r'[.,kK]').hasMatch(cleanedRows[i + 1]))) {
         continue;
       }
-      final row = cleanedRows[i];
       if (_dateRegex.hasMatch(row) || _phoneRegex.hasMatch(row)) continue;
       final norm = normalizeForMatch(row);
       final letters = RegExp(r'[a-z]').allMatches(norm).length;
@@ -115,9 +129,16 @@ class RuleBasedReceiptParser implements ReceiptParser {
       }
       if (kinds[idx] != RowKind.text) return false;
       final prev = cleanedRows[idx];
-      if (prev.length < 2 || prev.length > 40) return false;
-      if (_dateRegex.hasMatch(prev) || _phoneRegex.hasMatch(prev)) return false;
-      if (_isMostlyDigits(prev)) return false;
+      final withoutBarcode =
+          prev.replaceFirst(RegExp(r'^\d{8,14}\s+'), '').trim();
+      if (withoutBarcode.length < 2 || withoutBarcode.length > 40) {
+        return false;
+      }
+      if (_dateRegex.hasMatch(withoutBarcode) ||
+          _phoneRegex.hasMatch(withoutBarcode)) {
+        return false;
+      }
+      if (_isMostlyDigits(withoutBarcode)) return false;
       return true;
     }
 
@@ -174,7 +195,8 @@ class RuleBasedReceiptParser implements ReceiptParser {
               tokens.isNotEmpty &&
               isMergeableTextRow(i - 1)) {
             final prev = cleanedRows[i - 1];
-            final mergedItem = parseItemRow('$prev  $row');
+            final cleanNumRow = row.replaceFirst(_vatItemPrefixRegex, '');
+            final mergedItem = parseItemRow('$prev  $cleanNumRow');
             if (mergedItem != null) {
               lastConsumedTextIdx = i - 1;
               items.add(mergedItem);
