@@ -6,6 +6,7 @@
 - **Privacy Consent Task 1–4, Task 6 & Review vòng 1 (P1–P3, Task 5 đã huỷ):** Hoàn tất (`purgeGroup` khi xoá tài khoản chủ duy nhất, 400 `WRONG_PASSWORD`, chuẩn hoá `platform`/`appVersion`; `.\mvnw.cmd test`: 101 passed).
 
 - **Privacy Consent Task 1–9 & Review vòng 1–2 (P1–P3, A1–A2, Task 5 đã huỷ) hoàn tất:** `.\mvnw.cmd test` 101 passed; `flutter analyze` 0 error; `flutter test -j 1` 248 passed, 1 skipped (`holdout`); `RECEIPT_AI|DeepSeek` 0 kết quả.
+- **Group Chat Review (C1–C5) hoàn tất:** khởi tạo `lastReadMessageId` cho thành viên mới, fallback `loadInitial()` khi `refreshNewer` lỗi rỗng, giới hạn 2000 ký tự + `rejected` trên HTTP 400, trạng thái `removed` trên HTTP 403, đọc lại ngoài transaction khi `DataIntegrityViolationException`; `.\mvnw.cmd test` 103 passed, `flutter analyze` 0 error (54 info/warning có sẵn), `flutter test -j 1` 256 passed, 1 skipped (`holdout`).
 
 ## In progress
 - Chưa thực hiện được kiểm thử thủ công trên `Pixel_8a` (máy ảo không lên `adb` trong phiên chạy nền).
