@@ -38,9 +38,6 @@ RowKind classifyRow(String row, {required bool hasMoney}) {
       _countMatches(norm, ReceiptKeywords.ignoreWhenNoMoney) >= 2) {
     return RowKind.ignore;
   }
-  if (!hasMoney && _matchesAny(norm, ReceiptKeywords.ignoreWhenNoMoney)) {
-    return RowKind.ignore;
-  }
 
   if (_matchesAny(norm, ReceiptKeywords.subtotal)) {
     return hasMoney ? RowKind.subtotal : RowKind.ignore;
@@ -63,6 +60,10 @@ RowKind classifyRow(String row, {required bool hasMoney}) {
 
   if (_matchesAny(norm, ReceiptKeywords.discount)) {
     return RowKind.discount;
+  }
+
+  if (!hasMoney && _matchesAny(norm, ReceiptKeywords.ignoreWhenNoMoney)) {
+    return RowKind.ignore;
   }
 
   if (hasMoney) {

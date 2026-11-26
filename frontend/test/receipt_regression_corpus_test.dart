@@ -188,7 +188,6 @@ void main() {
       ['Phở 100.000', 'Tiền hàng', '100.000', 'Tổng cộng 100.000'],
       itemCount: 1,
       totalAmount: 100000,
-      skip: 'R6',
     ),
     // R7
     _ReceiptCase(

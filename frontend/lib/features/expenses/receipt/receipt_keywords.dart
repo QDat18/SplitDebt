@@ -44,6 +44,7 @@ class ReceiptKeywords {
     'so hd',
     'ma hd',
     'hoa don',
+    'so luong',
   ];
 
   static const List<String> ignoreWhenNoMoney = [
@@ -64,11 +65,14 @@ class ReceiptKeywords {
     'tong cong',
     'tong tien',
     'can thanh toan',
+    'khach can tra',
+    'can tra',
     'total',
   ];
 
   static const List<String> subtotal = [
     'tong tien hang',
+    'tien hang',
     'tam tinh',
     'cong tien hang',
     'sub total',

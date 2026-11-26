@@ -93,6 +93,7 @@ class RuleBasedReceiptParser implements ReceiptParser {
     int? explicitTotal;
     var explicitTotalPriority = 0;
     var lastConsumedTextIdx = -1;
+    var seenSummaryOrAdj = false;
 
     bool isMergeableTextRow(int idx) {
       if (idx < 0 || idx == storeNameIdx || idx == lastConsumedTextIdx) {
@@ -129,11 +130,13 @@ class RuleBasedReceiptParser implements ReceiptParser {
           }
           break;
         case RowKind.subtotal:
+          seenSummaryOrAdj = true;
           if (tokens.isNotEmpty) {
             subtotal = tokens.last.value;
           }
           break;
         case RowKind.total:
+          seenSummaryOrAdj = true;
           if (tokens.isNotEmpty) {
             final prio = _totalPriority(row);
             if (prio >= explicitTotalPriority) {
@@ -143,18 +146,23 @@ class RuleBasedReceiptParser implements ReceiptParser {
           }
           break;
         case RowKind.vat:
+          seenSummaryOrAdj = true;
           rawAdjustments.add(_extractAdjustment(AdjustmentType.vat, row, tokens));
           break;
         case RowKind.service:
+          seenSummaryOrAdj = true;
           rawAdjustments
               .add(_extractAdjustment(AdjustmentType.service, row, tokens));
           break;
         case RowKind.discount:
+          seenSummaryOrAdj = true;
           rawAdjustments
               .add(_extractAdjustment(AdjustmentType.discount, row, tokens));
           break;
         case RowKind.text:
-          if (tokens.isNotEmpty && isMergeableTextRow(i - 1)) {
+          if (!seenSummaryOrAdj &&
+              tokens.isNotEmpty &&
+              isMergeableTextRow(i - 1)) {
             final prev = cleanedRows[i - 1];
             final mergedItem = parseItemRow('$prev  $row');
             if (mergedItem != null) {
