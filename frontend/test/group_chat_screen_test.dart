@@ -102,7 +102,8 @@ void main() {
 
   testWidgets('renders messages and day divider correctly', (tester) async {
     final mockRepo = MockChatRepository();
-    final today = DateTime.now();
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
     mockRepo.initialMessages = [
       ChatMessage(
         id: 1,
@@ -111,7 +112,7 @@ void main() {
         senderName: 'Bạn A',
         content: 'Chào cả nhóm!',
         clientMessageId: 'c1',
-        createdAt: today.subtract(const Duration(minutes: 10)),
+        createdAt: startOfToday.add(const Duration(minutes: 1)),
         status: ChatStatus.sent,
       ),
       ChatMessage(
@@ -121,7 +122,7 @@ void main() {
         senderName: 'Tôi',
         content: 'Chào bạn nhé!',
         clientMessageId: 'c2',
-        createdAt: today.subtract(const Duration(minutes: 5)),
+        createdAt: startOfToday.add(const Duration(minutes: 2)),
         status: ChatStatus.sent,
       ),
     ];
