@@ -1,16 +1,25 @@
 // Trách nhiệm file: Gom các TextLine từ OCR thành từng hàng văn bản theo toạ độ Y và sắp từ trái sang phải.
 
+class OcrPoint {
+  final double x;
+  final double y;
+
+  const OcrPoint(this.x, this.y);
+}
+
 class OcrLine {
   final String text;
   final double top;
   final double bottom;
   final double left;
+  final List<OcrPoint>? corners;
 
   const OcrLine({
     required this.text,
     required this.top,
     required this.bottom,
     required this.left,
+    this.corners,
   });
 
   double get centerY => (top + bottom) / 2.0;

@@ -46,5 +46,24 @@ void main() {
     expect(rows.length, 150);
     expect(rows.first.length, 200);
   });
+
+  test('OcrLine stores optional pure-Dart corners', () {
+    const line = OcrLine(
+      text: 'Phở bò',
+      top: 10,
+      bottom: 30,
+      left: 5,
+      corners: [
+        OcrPoint(5, 10),
+        OcrPoint(100, 10),
+        OcrPoint(100, 30),
+        OcrPoint(5, 30),
+      ],
+    );
+
+    expect(line.corners, hasLength(4));
+    expect(line.corners!.first.x, 5);
+    expect(line.corners!.first.y, 10);
+  });
 }
 

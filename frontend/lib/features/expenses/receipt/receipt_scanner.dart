@@ -23,12 +23,16 @@ class ReceiptScanner {
       for (final block in recognized.blocks) {
         for (final line in block.lines) {
           final box = line.boundingBox;
+          final corners = line.cornerPoints
+              .map((p) => OcrPoint(p.x.toDouble(), p.y.toDouble()))
+              .toList();
           ocrLines.add(
             OcrLine(
               text: line.text,
               top: box.top,
               bottom: box.bottom,
               left: box.left,
+              corners: corners.length >= 2 ? corners : null,
             ),
           );
         }
