@@ -59,7 +59,9 @@ class RuleBasedReceiptParser implements ReceiptParser {
       var kind = classifyRow(row, hasMoney: tokens.isNotEmpty);
       if (tokens.isNotEmpty && _vatItemPrefixRegex.hasMatch(row)) {
         final prevHasBarcode = i > 0 && _barcodeRegex.hasMatch(cleanedRows[i - 1]);
-        if (tokens.length >= 2 || prevHasBarcode) {
+        final prevIsPlainText =
+            i > 0 && kinds[i - 1] == RowKind.text && rowTokens[i - 1].isEmpty;
+        if (prevHasBarcode || (tokens.length >= 2 && prevIsPlainText)) {
           kind = RowKind.text;
         }
       }

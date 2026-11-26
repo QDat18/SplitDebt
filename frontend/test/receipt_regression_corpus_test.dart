@@ -344,6 +344,44 @@ void main() {
       totalAmount: 42000,
       expectEmptyWarnings: true,
     ),
+    // K1 VAT taxable + tax amount vs VATxx% item row
+    _ReceiptCase(
+      'K1: VAT with taxable+tax after total stays VAT adjustment',
+      [
+        'Pho bo  100.000',
+        'Tong cong  100.000',
+        'VAT 10%  100.000  10.000',
+        'Tong thanh toan  110.000',
+      ],
+      firstAdjustmentAmount: 10000,
+      totalAmount: 110000,
+      expectEmptyWarnings: true,
+    ),
+    _ReceiptCase(
+      'K1: VAT with taxable+tax after item stays VAT adjustment',
+      [
+        'Pho bo  100.000',
+        'VAT 10%  100.000  10.000',
+        'Tong thanh toan  110.000',
+      ],
+      firstAdjustmentAmount: 10000,
+      totalAmount: 110000,
+      expectEmptyWarnings: true,
+    ),
+    _ReceiptCase(
+      'K1: barcode item followed by VAT 10% qty/unit/total merges as item',
+      [
+        '000123456 Banh mi sandwich',
+        'VAT 10%  12.500  3  37.500',
+        'Tong cong  37.500',
+      ],
+      itemCount: 1,
+      firstItemName: 'Banh mi sandwich',
+      firstItemQty: 3,
+      firstItemTotal: 37500,
+      adjustmentCount: 0,
+      totalAmount: 37500,
+    ),
   ];
 
   group('money parser regression corpus', () {
