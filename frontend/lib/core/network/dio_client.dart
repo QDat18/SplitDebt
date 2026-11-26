@@ -6,6 +6,13 @@ import '../constants/app_constants.dart';
 import '../storage/token_storage.dart';
 
 class DioClient {
+  static void Function()? onReconsentRequired;
+  static bool _reconsentDispatched = false;
+
+  static void resetReconsentGuard() {
+    _reconsentDispatched = false;
+  }
+
   late final Dio _dio;
 
   DioClient() {
@@ -35,6 +42,14 @@ class DioClient {
           if (e.response?.statusCode == 401 &&
               !e.requestOptions.path.contains('/auth/')) {
             await tokenStorage.deleteToken();
+          }
+          if (e.response?.statusCode == 428 &&
+              e.response?.data is Map &&
+              (e.response!.data as Map)['code'] == 'RECONSENT_REQUIRED') {
+            if (!_reconsentDispatched) {
+              _reconsentDispatched = true;
+              onReconsentRequired?.call();
+            }
           }
           if (e.response != null && e.response?.data is Map<String, dynamic>) {
             final data = e.response!.data as Map<String, dynamic>;

@@ -12,8 +12,10 @@ import 'core/app/mobile_app_frame.dart';
 import 'core/localization/app_strings.dart';
 import 'core/localization/locale_provider.dart';
 import 'core/navigation/route_observer.dart';
+import 'core/network/dio_client.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/splash_screen.dart';
+import 'features/legal/reconsent_screen.dart';
 import 'firebase_options.dart';
 
 @pragma('vm:entry-point')
@@ -132,11 +134,18 @@ class SplitDebtApp extends ConsumerWidget {
     WidgetRef ref,
   ) {
     final locale = ref.watch(localeProvider);
+    DioClient.onReconsentRequired ??= () {
+      navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const ReconsentScreen()),
+        (route) => false,
+      );
+    };
     return AppLocaleScope(
       locale: locale,
       child: MaterialApp(
         title: 'SplitDebt',
         debugShowCheckedModeBanner: false,
+        navigatorKey: navigatorKey,
         scaffoldMessengerKey: scaffoldMessengerKey,
         navigatorObservers: [appRouteObserver],
         theme: AppTheme.lightTheme,

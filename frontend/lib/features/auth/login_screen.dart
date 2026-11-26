@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/repositories/auth_repository.dart';
 import 'providers/auth_provider.dart';
 import '../groups/providers/group_provider.dart';
+import '../legal/reconsent_screen.dart';
 import 'register_screen.dart';
 import '../../main_layout_screen.dart';
 
@@ -159,6 +161,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         if (mounted) {
                           if (success) {
                             ref.invalidate(userGroupsProvider);
+                            final consent = await AuthRepository().fetchConsentStatus();
+                            if (!mounted) return;
+                            if (consent?.reconsentRequired == true) {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                  builder: (_) => const ReconsentScreen(),
+                                ),
+                                (route) => false,
+                              );
+                              return;
+                            }
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                   content: Text('Đăng nhập thành công!')),

@@ -1,10 +1,16 @@
 // Trách nhiệm file: Xây dựng màn hình register screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_theme.dart';
+import '../legal/legal_document_screen.dart';
+import '../legal/legal_texts.dart';
 import 'providers/auth_provider.dart';
+import 'register_consent_state.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -19,9 +25,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
+  RegisterConsentState _consentState = const RegisterConsentState();
+  late final TapGestureRecognizer _termsTapRecognizer = TapGestureRecognizer()
+    ..onTap = () => _openLegalDoc(LegalDocType.terms);
+  late final TapGestureRecognizer _privacyTapRecognizer = TapGestureRecognizer()
+    ..onTap = () => _openLegalDoc(LegalDocType.privacy);
+
+  void _openLegalDoc(LegalDocType doc) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => LegalDocumentScreen(document: doc)),
+    );
+  }
 
   @override
   void dispose() {
+    _termsTapRecognizer.dispose();
+    _privacyTapRecognizer.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -74,6 +93,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           name,
           email,
           password,
+          termsVersion: kTermsVersion,
+          privacyVersion: kPrivacyVersion,
+          ageConfirmed: _consentState.age,
         );
 
     if (!mounted) return;
@@ -150,6 +172,81 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         color: AppTheme.textSecondaryColor),
                     onPressed: () =>
                         setState(() => _obscurePassword = !_obscurePassword)))),
+        const SizedBox(height: AppDimensions.s20),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          value: _consentState.terms,
+          onChanged: (v) => setState(
+            () => _consentState = _consentState.copyWith(terms: v ?? false),
+          ),
+          title: Text.rich(
+            TextSpan(
+              style: Theme.of(context).textTheme.bodyMedium,
+              children: [
+                const TextSpan(text: 'Tôi đã đọc và đồng ý '),
+                TextSpan(
+                  text: 'Điều khoản sử dụng',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    decoration: TextDecoration.underline,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  recognizer: _termsTapRecognizer,
+                ),
+              ],
+            ),
+          ),
+        ),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          value: _consentState.privacy,
+          onChanged: (v) => setState(
+            () => _consentState = _consentState.copyWith(privacy: v ?? false),
+          ),
+          title: Text.rich(
+            TextSpan(
+              style: Theme.of(context).textTheme.bodyMedium,
+              children: [
+                const TextSpan(text: 'Tôi đã đọc và đồng ý '),
+                TextSpan(
+                  text: 'Chính sách quyền riêng tư',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    decoration: TextDecoration.underline,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  recognizer: _privacyTapRecognizer,
+                ),
+                const TextSpan(
+                  text:
+                      ' và cho phép xử lý dữ liệu cá nhân theo chính sách này',
+                ),
+              ],
+            ),
+          ),
+        ),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          value: _consentState.age,
+          onChanged: (v) => setState(
+            () => _consentState = _consentState.copyWith(age: v ?? false),
+          ),
+          title: Text(
+            'Tôi xác nhận mình từ đủ 16 tuổi trở lên',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+        const SizedBox(height: AppDimensions.s8),
+        Text(
+          'Dữ liệu được dùng để quản lý nhóm, khoản chi và công nợ của bạn.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontSize: 13,
+                color: AppColors.n600,
+              ),
+        ),
       ])),
       bottomNavigationBar: SafeArea(
           child: Padding(
@@ -159,7 +256,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     FilledButton(
-                        onPressed: loading ? null : _register,
+                        onPressed:
+                            (loading || !_consentState.canSubmit) ? null : _register,
                         child: Text(loading ? 'Đang tạo...' : 'Tạo tài khoản')),
                     const SizedBox(height: 12),
                     Wrap(alignment: WrapAlignment.center, crossAxisAlignment: WrapCrossAlignment.center, children: [

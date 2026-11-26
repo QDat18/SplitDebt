@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../main_layout_screen.dart';
+import '../legal/reconsent_screen.dart';
 import 'login_screen.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../notifications/push_notification_service.dart';
@@ -44,6 +45,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     if (isAuthenticated) {
       unawaited(_restorePush());
+      final consent = await AuthRepository().fetchConsentStatus();
+      if (!mounted) return;
+      if (consent?.reconsentRequired == true) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const ReconsentScreen()),
+          (route) => false,
+        );
+        return;
+      }
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => const MainLayoutScreen(),

@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConstants {
+  static const String appVersion = '1.0.0';
+
   static String get fcmWebVapidKey =>
       dotenv.env['FCM_WEB_VAPID_KEY']?.trim() ?? '';
 

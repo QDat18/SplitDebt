@@ -1,9 +1,13 @@
 // Trách nhiệm file: Đóng gói truy cập dữ liệu auth repository, tách API và lưu trữ khỏi giao diện.
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../core/network/api_response.dart';
 import '../../core/network/dio_client.dart';
+import '../../features/legal/consent_models.dart';
+import '../../features/legal/legal_texts.dart';
 
 class AuthRepository {
   final Dio _dio;
@@ -69,14 +73,22 @@ class AuthRepository {
     }
   }
 
+  String _currentPlatform() {
+    if (kIsWeb) return 'web';
+    return defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
+  }
+
   // ===========================================================================
   // REGISTER
   // ===========================================================================
   Future<String> register(
     String fullName,
     String email,
-    String password,
-  ) async {
+    String password, {
+    String termsVersion = kTermsVersion,
+    String privacyVersion = kPrivacyVersion,
+    bool ageConfirmed = true,
+  }) async {
     try {
       final response = await _dio.post(
         '/auth/register',
@@ -84,6 +96,13 @@ class AuthRepository {
           'fullName': fullName,
           'email': email,
           'password': password,
+          'consents': {
+            'termsVersion': termsVersion,
+            'privacyVersion': privacyVersion,
+            'ageConfirmed': ageConfirmed,
+          },
+          'platform': _currentPlatform(),
+          'appVersion': AppConstants.appVersion,
         },
       );
 
@@ -115,6 +134,64 @@ class AuthRepository {
       throw Exception(
         e.message ?? 'Không thể kết nối đến máy chủ',
       );
+    }
+  }
+
+  Future<ConsentStatus?> fetchConsentStatus() async {
+    try {
+      final response = await _dio.get('/users/me');
+      final dynamic data = response.data;
+      if (data is Map<String, dynamic>) {
+        final dynamic consent = data['consent'] ??
+            (data['data'] is Map ? (data['data'] as Map)['consent'] : null);
+        if (consent is Map<String, dynamic>) {
+          return ConsentStatus.fromJson(consent);
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ConsentStatus> submitReconsent({
+    required String termsVersion,
+    required String privacyVersion,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/users/me/consents',
+        data: {
+          'items': [
+            {
+              'type': 'TERMS',
+              'granted': true,
+              'version': termsVersion,
+            },
+            {
+              'type': 'PRIVACY',
+              'granted': true,
+              'version': privacyVersion,
+            },
+          ],
+          'source': 'RECONSENT',
+          'platform': _currentPlatform(),
+          'appVersion': AppConstants.appVersion,
+        },
+      );
+      final dynamic data = response.data;
+      if (data is Map<String, dynamic>) {
+        return ConsentStatus.fromJson(data);
+      }
+      throw Exception('Phản hồi không hợp lệ');
+    } on DioException catch (e) {
+      if (e.response?.data is Map) {
+        final dynamic data = e.response?.data;
+        throw Exception(
+          data['message']?.toString() ?? 'Không thể cập nhật đồng ý',
+        );
+      }
+      throw Exception(e.message ?? 'Không thể kết nối đến máy chủ');
     }
   }
 
