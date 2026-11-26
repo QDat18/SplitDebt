@@ -304,6 +304,8 @@ class RuleBasedReceiptParser implements ReceiptParser {
         }
       }
       totalAmount = chosen;
+    } else if (subtotal != null && adjustments.isEmpty) {
+      totalAmount = subtotal;
     } else {
       totalAmount = sumItems + sumAdj;
       warnings.add('Không tìm thấy dòng tổng, đã cộng từ các món.');

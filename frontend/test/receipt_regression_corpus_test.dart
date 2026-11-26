@@ -62,6 +62,7 @@ class _ReceiptCase {
     this.firstAdjustmentAmount,
     this.adjustmentCount,
     this.expectNullStoreName = false,
+    this.expectEmptyWarnings = false,
     this.skip,
   });
   final String description;
@@ -76,6 +77,7 @@ class _ReceiptCase {
   final int? firstAdjustmentAmount;
   final int? adjustmentCount;
   final bool expectNullStoreName;
+  final bool expectEmptyWarnings;
   final String? skip;
 }
 
@@ -329,6 +331,19 @@ void main() {
       ],
       totalAmount: 88000,
     ),
+    // S6 Subtotal-only receipt without final total
+    _ReceiptCase(
+      'S6: subtotal-only receipt without adjustments uses subtotal without warning',
+      [
+        'HOA DON',
+        'Nuoc rua chen 750ml',
+        '1  42,000  42,000',
+        'Cộng tiền hàng  42,000',
+        'Cám ơn quý khách',
+      ],
+      totalAmount: 42000,
+      expectEmptyWarnings: true,
+    ),
   ];
 
   group('money parser regression corpus', () {
@@ -381,6 +396,7 @@ void main() {
           expect(parsed.adjustments, hasLength(c.adjustmentCount));
         }
         if (c.expectNullStoreName) expect(parsed.storeName, isNull);
+        if (c.expectEmptyWarnings) expect(parsed.warnings, isEmpty);
       }, skip: c.skip);
     }
 
