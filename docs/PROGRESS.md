@@ -1,22 +1,15 @@
 # Tiến độ SplitDebt (Receipt OCR)
 
 ## Done
-- **Task 1–5 + Review vòng 1 & 2 + Bước 0 + Bước 1b + Bước 4a (S0–S6) + K1–K2:** Hoàn tất.
-- **Xoay/nghiêng ảnh (X1–X2):** Đã thêm `OcrPoint`/`corners` vào `OcrLine`, truyền `cornerPoints` từ ML Kit, và cài `deskewLines` (xoay theo trung vị góc, PASS 90°/180°/270°/12°).
-- `flutter analyze`: 0 errors. `flutter test`: 218 passed, 1 skipped (`receipt_fixtures_test.dart`).
-- **Smoke test VietReceipt (200 file):**
-
-| Chỉ số | Trước X1–X3 | Sau (X3 dừng) | Ghi chú |
-|---|---|---|---|
-| `BROKEN_ROWS` | 48 / 200 | 48 / 200 | X3 dừng vì polygon VietReceipt không bắt đầu từ trên-trái |
-| `foundTotal` | 122 / 152 (80.3%) | 122 / 152 (80.3%) | Đạt >= 80% trên `eligible=152` |
-| `unreadable` | 10 / 152 (6.6%) | 10 / 152 (6.6%) | Chấp nhận, chờ đo trên fixture có nhãn |
+- **Task 1–5 + Review vòng 1 & 2 + Bước 0 + Bước 1b + S0–S6 + K1–K2 + X1–X2:** Hoàn tất (`flutter analyze`: 0 errors, `flutter test`: 218 passed, 1 skipped). X3 dừng do polygon VietReceipt không theo góc trên-trái hướng chữ.
+- **Smoke 200 file (`eligible=152`, `BROKEN_ROWS=48`):** Trước/sau X1–X3 giữ nguyên `BROKEN_ROWS` `48/200`, `foundTotal` `122/152 (80.3%)`, `unreadable` `10/152 (6.6%)`.
+- **Tập phụ 30 file `UIT` `001502–001545` (`eligible=19`, `BROKEN_ROWS=11`):** Trước/sau X1–X3 giữ nguyên `BROKEN_ROWS` `11/30`, `foundTotal` `11/19 (57.9%)`, `NOTOTAL` `6/19`, `unreadable` `2/19 (10.5%)`.
 
 ## In progress
-- Đã nhận nhãn đúng cho `uit_mlreceipts/images/001872` (Bách Hóa Xanh), đang chờ các dòng OCR từ Phòng thử OCR để lập fixture.
+- Dải `001500–001599` dùng làm tập kiểm tra phụ (không sửa quy tắc theo dải này); fixture có nhãn chỉ lấy từ `001600` trở lên.
 
 ## Next
-- Nhận thêm các dòng OCR + nhãn đúng của ảnh giữ riêng (`UIT-MLReceipts` split `test` và ảnh tự chụp) để chạy Bước 3–5.
+- Nhận thêm các dòng OCR của `uit_mlreceipts/images/001872` (và các ảnh `>= 001600` / ảnh tự chụp) để chạy Bước 3–5.
 
 ## Blockers
-- X3 dừng ở converter VietReceipt do thứ tự điểm `polygon` không đúng góc trên-trái theo hướng chữ (X1–X2 vẫn giữ cho ML Kit trên app thật); chưa chạy `pod install` trên macOS.
+- X3 dừng ở converter VietReceipt (X1–X2 vẫn giữ cho ML Kit); chưa chạy `pod install` trên macOS.
