@@ -8,6 +8,10 @@ final RegExp _qtyXSuffix = RegExp(r'(?:^|\s)(\d{1,2})[xX]\s*$');
 final RegExp _plainQtySuffix = RegExp(r'(?:^|\s)(\d{1,2})\s*$');
 final RegExp _columnQtySuffix = RegExp(r'\s{2,}(\d{1,2})\s*$');
 final RegExp _nonQtyTailWords = RegExp(r'\b(?:combo|set|suat|phan|size)$');
+final RegExp _weightSuffix = RegExp(
+  r'(?:^|\s)(\d+[.,]\d+)\s*(kg|gr|g|lit|l|ml)\s*(?:[xX×*]\s*)?$',
+  caseSensitive: false,
+);
 final RegExp _betweenIntRegex = RegExp(r'^\s*(\d{1,2})\s*$');
 
 ParsedItem? parseItemRow(String row) {
@@ -20,9 +24,16 @@ ParsedItem? parseItemRow(String row) {
 
   var quantity = 1;
   var hasExplicitXQty = false;
+  String? weightLabel;
 
-  final xMatch = _xQtySuffix.firstMatch(leftText);
-  final qtyXMatch = _qtyXSuffix.firstMatch(leftText);
+  final weightMatch = _weightSuffix.firstMatch(leftText);
+  if (weightMatch != null) {
+    weightLabel = '${weightMatch.group(1)!} ${weightMatch.group(2)!.toLowerCase()}';
+    leftText = leftText.substring(0, weightMatch.start);
+  }
+
+  final xMatch = weightLabel == null ? _xQtySuffix.firstMatch(leftText) : null;
+  final qtyXMatch = weightLabel == null ? _qtyXSuffix.firstMatch(leftText) : null;
   if (xMatch != null) {
     final q = int.tryParse(xMatch.group(1)!);
     if (q != null && q >= 1 && q <= 99) {
@@ -40,7 +51,11 @@ ParsedItem? parseItemRow(String row) {
   }
 
   int? unitPrice;
-  if (tokens.length >= 2) {
+  if (weightLabel != null) {
+    if (tokens.length >= 2) {
+      unitPrice = tokens[tokens.length - 2].value;
+    }
+  } else if (tokens.length >= 2) {
     final unitToken = tokens[tokens.length - 2];
     final candidateUnit = unitToken.value;
     final betweenText = row.substring(unitToken.end, tokens.last.start);
@@ -93,11 +108,14 @@ ParsedItem? parseItemRow(String row) {
     }
   }
 
-  final name = leftText
+  final baseName = leftText
       .trim()
       .replaceFirst(RegExp(r'^\d{8,14}\s+'), '')
       .replaceAll(RegExp(r'[-:]+$'), '')
       .trim();
+  final name = weightLabel != null
+      ? (baseName.isEmpty ? '($weightLabel)' : '$baseName ($weightLabel)')
+      : baseName;
   if (name.isEmpty) return null;
 
   return ParsedItem(

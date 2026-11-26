@@ -215,6 +215,15 @@ void main() {
       ['Món 300.000', 'Tổng tiền 300.000', 'Giảm giá 30.000', 'Thanh toán 270.000'],
       totalAmount: 270000,
     ),
+    // 5.4b.2 Weighted items
+    _ReceiptCase(
+      '5.4b.2: weighted item on split line appends weight to name',
+      ['SIÊU THỊ A', 'Thịt heo ba rọi', '0,512 kg x 89.000 = 45.568'],
+      itemCount: 1,
+      firstItemName: 'Thịt heo ba rọi (0,512 kg)',
+      firstItemQty: 1,
+      firstItemTotal: 45568,
+    ),
   ];
 
   group('money parser regression corpus', () {
