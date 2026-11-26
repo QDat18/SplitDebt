@@ -3,6 +3,25 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:split_debt/features/expenses/receipt/rule_based_receipt_parser.dart';
 
+class _BucketStats {
+  int receipts = 0;
+  int totalMatched = 0;
+  int expectedItems = 0;
+  int matchedItems = 0;
+  int exactItemCount = 0;
+
+  double get totalRate => receipts == 0 ? 1.0 : totalMatched / receipts;
+  double get itemPriceRate =>
+      expectedItems == 0 ? 1.0 : matchedItems / expectedItems;
+
+  String formatReport(String label) {
+    return '$label ($receipts receipts): '
+        'totalMatch=$totalMatched/$receipts (${(totalRate * 100).toStringAsFixed(1)}%), '
+        'itemPriceMatch=$matchedItems/$expectedItems (${(itemPriceRate * 100).toStringAsFixed(1)}%), '
+        'exactItemCount=$exactItemCount/$receipts';
+  }
+}
+
 void main() {
   test('receipt fixtures accuracy gate', () {
     final dir = Directory('test/fixtures/receipts');
@@ -21,10 +40,8 @@ void main() {
     }
 
     final parser = RuleBasedReceiptParser();
-    var totalMatchedCount = 0;
-    var expectedItemsTotal = 0;
-    var matchedItemsTotal = 0;
-    var exactItemCountReceipts = 0;
+    final overall = _BucketStats();
+    final byType = <String, _BucketStats>{};
 
     for (final rowFile in rowFiles) {
       final base = rowFile.path.replaceAll('.rows.txt', '');
@@ -36,27 +53,39 @@ void main() {
       final expected =
           jsonDecode(expectedFile.readAsStringSync()) as Map<String, dynamic>;
 
+      final receiptType = expected['type'] as String? ?? 'restaurant';
+      expect(
+        receiptType == 'restaurant' || receiptType == 'supermarket',
+        isTrue,
+        reason: 'Invalid type "$receiptType" in ${expectedFile.path}',
+      );
+      final bucket = byType.putIfAbsent(receiptType, _BucketStats.new);
+
       final parsed = parser.parse(rows);
       final expectedTotal = (expected['totalAmount'] as num).toInt();
       final expectedItems = (expected['items'] as List<dynamic>)
           .cast<Map<String, dynamic>>();
 
       final isTotalMatch = parsed.totalAmount == expectedTotal;
-      if (isTotalMatch) totalMatchedCount++;
+      final isExactItemCount = parsed.items.length == expectedItems.length;
 
-      if (parsed.items.length == expectedItems.length) {
-        exactItemCountReceipts++;
-      }
-
-      expectedItemsTotal += expectedItems.length;
+      var matchedInReceipt = 0;
       final minLen = parsed.items.length < expectedItems.length
           ? parsed.items.length
           : expectedItems.length;
       for (var i = 0; i < minLen; i++) {
         final expPrice = (expectedItems[i]['totalPrice'] as num).toInt();
         if (parsed.items[i].totalPrice == expPrice) {
-          matchedItemsTotal++;
+          matchedInReceipt++;
         }
+      }
+
+      for (final stats in [overall, bucket]) {
+        stats.receipts++;
+        if (isTotalMatch) stats.totalMatched++;
+        if (isExactItemCount) stats.exactItemCount++;
+        stats.expectedItems += expectedItems.length;
+        stats.matchedItems += matchedInReceipt;
       }
 
       final sumParsed =
@@ -71,19 +100,20 @@ void main() {
       }
     }
 
-    final totalRate = totalMatchedCount / rowFiles.length;
-    final itemPriceRate =
-        expectedItemsTotal == 0 ? 1.0 : matchedItemsTotal / expectedItemsTotal;
-
     // ignore: avoid_print
-    print(
-      'OCR Fixture Report (${rowFiles.length} receipts): '
-      'totalMatch=$totalMatchedCount/${rowFiles.length} (${(totalRate * 100).toStringAsFixed(1)}%), '
-      'itemPriceMatch=$matchedItemsTotal/$expectedItemsTotal (${(itemPriceRate * 100).toStringAsFixed(1)}%), '
-      'exactItemCount=$exactItemCountReceipts/${rowFiles.length}',
-    );
+    print(overall.formatReport('OCR Fixture Report [overall]'));
+    for (final entry in byType.entries) {
+      // ignore: avoid_print
+      print(entry.value.formatReport('OCR Fixture Report [${entry.key}]'));
+      if (entry.value.receipts >= 5) {
+        expect(entry.value.totalRate, greaterThanOrEqualTo(0.80),
+            reason: '${entry.key} totalMatch < 80%');
+        expect(entry.value.itemPriceRate, greaterThanOrEqualTo(0.85),
+            reason: '${entry.key} itemPriceMatch < 85%');
+      }
+    }
 
-    expect(totalRate, greaterThanOrEqualTo(0.80));
-    expect(itemPriceRate, greaterThanOrEqualTo(0.85));
+    expect(overall.totalRate, greaterThanOrEqualTo(0.80));
+    expect(overall.itemPriceRate, greaterThanOrEqualTo(0.85));
   });
 }
