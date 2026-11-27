@@ -9,8 +9,8 @@ spring:
     driver-class-name: org.postgresql.Driver
 
     hikari:
-      maximum-pool-size: 15
-      minimum-idle: 3
+      maximum-pool-size: ${DB_POOL_MAX:15}
+      minimum-idle: ${DB_POOL_MIN_IDLE:3}
       connection-timeout: 30000
       validation-timeout: 5000
       idle-timeout: 300000
@@ -24,7 +24,8 @@ spring:
     show-sql: false
 
 server:
-  port: 8081
+  port: ${PORT:8081}
+  forward-headers-strategy: framework
 
 logging:
   level:
@@ -61,10 +62,10 @@ app:
 springdoc:
   api-docs:
     path: /v3/api-docs
-    enabled: true
+    enabled: ${SWAGGER_ENABLED:true}
   swagger-ui:
     path: /swagger-ui.html
-    enabled: true
+    enabled: ${SWAGGER_ENABLED:true}
     tags-sorter: alpha
     operations-sorter: method
     display-request-duration: true
