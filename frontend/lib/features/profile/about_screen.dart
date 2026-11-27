@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
+import '../../core/widgets/app_mark.dart';
 import '../../core/widgets/grouped_list.dart';
 
 class AboutScreen extends StatelessWidget {
@@ -25,24 +26,10 @@ class AboutScreen extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(vertical: AppDimensions.s24),
         children: [
-          Center(
-            child: Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: AppColors.p500,
-                borderRadius: AppDimensions.radius16,
-              ),
-              alignment: Alignment.center,
-              child: const Text(
-                '✂️',
-                style: TextStyle(fontSize: 36),
-              ),
-            ),
-          ),
+          const Center(child: AppMark(size: 72, elevated: false)),
           const SizedBox(height: AppDimensions.s16),
           Text(
-            'XÉN NỢ (SplitDebt)',
+            'Xén Nợ (SplitDebt)',
             textAlign: TextAlign.center,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,

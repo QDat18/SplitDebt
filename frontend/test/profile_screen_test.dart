@@ -95,7 +95,7 @@ void main() {
     await tester.ensureVisible(aboutFinder);
     await tester.tap(aboutFinder);
     await tester.pumpAndSettle();
-    expect(find.text('XÉN NỢ (SplitDebt)'), findsOneWidget);
+    expect(find.text('Xén Nợ (SplitDebt)'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
 

@@ -336,8 +336,9 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                                     child: CircleAvatar(
                                         radius: 32,
                                         backgroundColor: AppColors.successTint,
-                                        child: Text('✂️',
-                                            style: TextStyle(fontSize: 28)))),
+                                        child: Icon(Icons.alt_route_rounded,
+                                            size: 30,
+                                            color: AppColors.success))),
                                 const SizedBox(height: 18),
                                 const Text('Đã tối ưu giao dịch!',
                                     textAlign: TextAlign.center,
@@ -440,7 +441,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                     padding: const EdgeInsets.all(20),
                     child: FilledButton(
                         onPressed: () => setState(() => _tab = 1 - _tab),
-                        child: Text(_tab == 0 ? '✂  Xén nợ' : 'Về khoản nợ')))),
+                        child: Text(_tab == 0 ? 'Xén nợ' : 'Về khoản nợ')))),
       );
   Widget _totalBox(String title, double amount, Color color) => Container(
       padding: const EdgeInsets.all(16),
