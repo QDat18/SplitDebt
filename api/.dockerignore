@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+target/
+target_test-classes/
+*firebase*.json
+*service-account*.json
+.git
+.idea
+*.iml
