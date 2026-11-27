@@ -49,3 +49,6 @@ app.*.map.json
 
 # External receipt datasets (must never be committed)
 test/fixtures/external/
+
+# ML Kit model tải bằng ios/setup_ios.sh
+/ios/Runner/mlkit/

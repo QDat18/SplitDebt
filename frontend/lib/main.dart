@@ -41,18 +41,26 @@ Future<void> main() async {
   // ================================================================
   // Firebase Core
   // ================================================================
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  debugPrint(
-    'Firebase initialized: '
-    '${DefaultFirebaseOptions.currentPlatform.projectId}',
-  );
+  // Thiếu cấu hình Firebase cho nền tảng đang chạy (ví dụ chưa điền
+  // FIREBASE_IOS_* khi build iOS lần đầu) thì app vẫn chạy, chỉ không có
+  // thông báo đẩy. Dữ liệu vẫn tự làm mới bằng polling.
+  var firebaseReady = false;
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    firebaseReady = true;
+    debugPrint(
+      'Firebase initialized: '
+      '${DefaultFirebaseOptions.currentPlatform.projectId}',
+    );
+  } catch (e) {
+    debugPrint('Firebase chưa được cấu hình, chạy không có push: $e');
+  }
 
   // Web dùng firebase-messaging-sw.js.
   // Chỉ Android/mobile mới đăng ký background handler Dart.
-  if (!kIsWeb) {
+  if (!kIsWeb && firebaseReady) {
     FirebaseMessaging.onBackgroundMessage(
       firebaseMessagingBackgroundHandler,
     );
