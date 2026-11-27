@@ -11,7 +11,7 @@ Tài liệu này hướng dẫn từng bước đưa backend Spring Boot lên Re
 Chạy lệnh PowerShell sau để tạo `JWT_SECRET` ngẫu nhiên:
 
 ```powershell
-[Convert]::ToBase64String((1..48 | % { Get-Random -Max 256 }) -as [byte[]])
+$b = New-Object byte[] 48; [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b)
 ```
 
 ---
@@ -90,3 +90,4 @@ Sau khi backend hoạt động ở URL `https://<tên>.onrender.com/api`, đứn
 ```
 
 Sau đó cài APK lên điện thoại và kiểm tra theo danh sách trong `docs/android-release.md`.
+

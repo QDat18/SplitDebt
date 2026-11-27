@@ -52,7 +52,7 @@ try {
         consents   = @{
             termsVersion   = "2026-11-26"
             privacyVersion = "2026-11-26"
-            accepted       = $true
+            ageConfirmed   = $true
         }
         platform   = "android"
         appVersion = "1.0.0"
@@ -115,3 +115,5 @@ try {
 if ($Failed) {
     exit 1
 }
+exit 0
+
