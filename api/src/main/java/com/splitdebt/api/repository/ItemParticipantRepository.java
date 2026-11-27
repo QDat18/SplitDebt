@@ -15,6 +15,9 @@ public interface ItemParticipantRepository extends JpaRepository<ItemParticipant
 
     List<ItemParticipant> findByItemId(Long itemId);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"item", "user"})
+    List<ItemParticipant> findByItemIdIn(List<Long> itemIds);
+
     List<ItemParticipant> findByUserId(Long userId);
 
     void deleteByItemId(Long itemId);

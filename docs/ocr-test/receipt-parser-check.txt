@@ -1,0 +1,10 @@
+PASS standard rows
+PASS quantity unit price date
+PASS ambiguous total
+PASS missing total
+PASS tax separate total
+PASS discount decimals
+PASS invalid arithmetic
+PASS date invalid
+PASS explicit multiplier
+9 passed

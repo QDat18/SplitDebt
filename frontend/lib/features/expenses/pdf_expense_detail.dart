@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/pdf_components.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/state/app_sync.dart';
 
 class ExpenseReadScreen extends StatefulWidget {
   final Map<String, dynamic> expense;
@@ -39,11 +40,12 @@ class _ExpenseReadScreenState extends State<ExpenseReadScreen> {
                     child: const Text('Hủy')),
                 FilledButton(
                     onPressed: () {
-                      if (title.text.trim().isNotEmpty)
+                      if (title.text.trim().isNotEmpty) {
                         Navigator.pop(ctx, {
                           'title': title.text.trim(),
                           'description': note.text.trim()
                         });
+                      }
                     },
                     child: const Text('Lưu'))
               ],
@@ -86,14 +88,17 @@ class _ExpenseReadScreenState extends State<ExpenseReadScreen> {
                 })
             .toList(),
       });
-      if (mounted)
+      notifyDataChanged();
+      if (mounted) {
         setState(
             () => expense = Map<String, dynamic>.from(response.data['data']));
+      }
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text(
                 'Không thể sửa khoản chi. Kiểm tra quyền và trạng thái quyết toán.')));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -118,12 +123,14 @@ class _ExpenseReadScreenState extends State<ExpenseReadScreen> {
     setState(() => _busy = true);
     try {
       await dioClient.delete('/v1/expenses/${expense['id']}');
+      notifyDataChanged();
       if (mounted) Navigator.pop(context);
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text(
                 'Không thể xóa khoản chi. Kiểm tra quyền và trạng thái quyết toán.')));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

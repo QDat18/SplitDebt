@@ -250,7 +250,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
         color: AppColors.n0,
         borderRadius: AppDimensions.radius24,
         boxShadow: AppDimensions.shadowMd,
-        border: Border.all(color: AppColors.p100.withOpacity(0.6)),
+        border: Border.all(color: AppColors.p100.withValues(alpha: 0.6)),
       ),
       child: Column(
         children: [
@@ -262,7 +262,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: _expense.categoryColor.withOpacity(0.15),
+                  color: _expense.categoryColor.withValues(alpha: 0.15),
                   borderRadius: AppDimensions.radius12,
                 ),
                 child: Row(
@@ -531,7 +531,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
+                      color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: AppDimensions.radius8,
                     ),
                     child: Text('Chạm để xem ảnh gốc',
@@ -554,7 +554,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
       decoration: BoxDecoration(
         color: AppColors.warningTint,
         borderRadius: AppDimensions.radius16,
-        border: Border.all(color: AppColors.warning.withOpacity(0.4)),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [

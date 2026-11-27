@@ -1,11 +1,15 @@
-// Trách nhiệm file: Xây dựng màn hình profile screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+// Trách nhiệm file: Màn hình Cá nhân chuẩn iOS Settings / Apple ID, cập nhật hồ sơ trực tiếp lên backend DB (PATCH /users/me).
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/dio_client.dart';
 import '../../core/providers/auth_provider.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/state/app_sync.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/motion_kit.dart';
+import '../../core/widgets/premium_shell.dart';
 import '../auth/login_screen.dart';
 import '../notifications/notification_screen.dart';
 import 'settings_screen.dart';
@@ -22,178 +26,424 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   @override
   bool get wantKeepAlive => true;
 
-  static Map<String, dynamic>? _cachedProfile;
+  Map<String, dynamic>? _cachedProfile;
   bool _loading = true;
-
   String _name = 'Người dùng';
   String _email = '';
+  String _phone = '';
 
   @override
   void initState() {
     super.initState();
-    if (_cachedProfile != null) {
-      _name = _cachedProfile!['fullName']?.toString() ?? 'Người dùng';
-      _email = _cachedProfile!['email']?.toString() ?? '';
-      _loading = false;
-    }
+    if (_cachedProfile != null) _applyProfile(_cachedProfile!);
     _loadProfile();
+    appDataSyncSignal.addListener(_loadProfile);
+  }
+
+  @override
+  void dispose() {
+    appDataSyncSignal.removeListener(_loadProfile);
+    super.dispose();
+  }
+
+  void _applyProfile(Map<String, dynamic> data) {
+    _name = data['fullName']?.toString() ?? 'Người dùng';
+    _email = data['email']?.toString() ?? '';
+    _phone = data['phone']?.toString() ?? '';
+    _loading = false;
   }
 
   Future<void> _loadProfile() async {
     try {
-      final response = await dioClient.get(
-        '/users/me',
-      );
-
+      final response = await dioClient.get('/users/me');
       final raw = response.data;
       final data = raw is Map && raw['data'] is Map ? raw['data'] : raw;
-
-      if (data is Map<String, dynamic> && mounted) {
-        _cachedProfile = data;
-        setState(() {
-          _name = data['fullName']?.toString() ?? 'Người dùng';
-
-          _email = data['email']?.toString() ?? '';
-        });
+      if (data is Map && mounted) {
+        final map = Map<String, dynamic>.from(data);
+        _cachedProfile = map;
+        setState(() => _applyProfile(map));
       }
     } catch (_) {
-      // Không chặn giao diện nếu endpoint profile lỗi.
     } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _editProfile() async {
+    final nameController = TextEditingController(text: _name);
+    final phoneController = TextEditingController(text: _phone);
+    final formKey = GlobalKey<FormState>();
+
+    final save = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cập nhật hồ sơ'),
+        content: SizedBox(
+          width: 420,
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Họ và tên',
+                    prefixIcon: Icon(CupertinoIcons.person),
+                  ),
+                  validator: (value) {
+                    final name = value?.trim() ?? '';
+                    if (name.length < 2) {
+                      return 'Họ tên phải có ít nhất 2 ký tự.';
+                    }
+                    if (name.length > 100) return 'Họ tên tối đa 100 ký tự.';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Số điện thoại',
+                    prefixIcon: Icon(CupertinoIcons.phone),
+                  ),
+                  validator: (value) {
+                    final phone = value?.trim() ?? '';
+                    if (phone.isEmpty) return null;
+                    return RegExp(r'^[0-9+(). -]{8,20}$').hasMatch(phone)
+                        ? null
+                        : 'Số điện thoại không hợp lệ.';
+                  },
+                ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Email là tài khoản đăng nhập nên không thay đổi tại đây.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() == true) {
+                Navigator.pop(dialogContext, true);
+              }
+            },
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
+
+    if (save != true || !mounted) {
+      nameController.dispose();
+      phoneController.dispose();
+      return;
+    }
+
+    try {
+      final response = await dioClient.patch('/users/me', data: {
+        'fullName': nameController.text.trim(),
+        'phone': phoneController.text.trim(),
+      });
+      final raw = response.data;
+      final data = raw is Map && raw['data'] is Map ? raw['data'] : raw;
+      if (data is Map && mounted) {
+        final map = Map<String, dynamic>.from(data);
+        _cachedProfile = map;
+        setState(() => _applyProfile(map));
+        notifyDataChanged();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã lưu hồ sơ vào hệ thống.')),
+        );
       }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không cập nhật được hồ sơ: $error')),
+        );
+      }
+    } finally {
+      nameController.dispose();
+      phoneController.dispose();
     }
   }
 
   Future<void> _logout() async {
-    _cachedProfile = null;
-    await ref.read(authProvider.notifier).logout();
-
-    if (!mounted) return;
-
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => const LoginScreen(),
+    final confirm = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('Đăng xuất'),
+        content: const Text('Bạn có chắc muốn đăng xuất khỏi SplitDebt?'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Đăng xuất'),
+          ),
+        ],
       ),
-      (route) => false,
+    );
+    if (confirm != true || !mounted) return;
+
+    _cachedProfile = null;
+    ref.read(themeModeProvider.notifier).state = ThemeMode.system;
+    ref.read(localeProvider.notifier).state = const Locale('vi');
+    await ref.read(authProvider.notifier).logout();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      fintechRoute(const LoginScreen()),
+      (_) => false,
     );
   }
 
   void _info(String title, String body) {
     showModalBottomSheet(
-        context: context,
-        showDragHandle: true,
-        builder: (_) => Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  Text(body),
-                  const SizedBox(height: 24)
-                ])));
+      context: context,
+      showDragHandle: true,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              body,
+              style: const TextStyle(
+                color: AppColors.n600,
+                height: 1.5,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
   }
 
-  Widget _row(IconData icon, String title, VoidCallback tap) => ListTile(
+  Widget _iosRow(
+    IconData icon,
+    Color iconBg,
+    String title,
+    VoidCallback tap,
+  ) =>
+      ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
         leading: Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-                color: const Color(0xFFF0EDFF),
-                borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, color: AppTheme.primaryColor, size: 20)),
-        title: Text(title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-        trailing: const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: iconBg,
+            borderRadius: BorderRadius.circular(7),
+          ),
+          child: Icon(icon, color: Colors.white, size: 17),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+        ),
+        trailing: const Icon(
+          CupertinoIcons.chevron_forward,
+          size: 16,
+          color: AppColors.n400,
+        ),
         onTap: tap,
       );
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-        body: SafeArea(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : ListView(padding: const EdgeInsets.all(20), children: [
-                    const SizedBox(height: 24),
-                    Center(
-                        child: CircleAvatar(
-                            radius: 34,
-                            backgroundColor: AppTheme.primaryColor,
-                            child: Text(
-                                _name.isEmpty ? '?' : _name.characters.first,
-                                style: const TextStyle(
+      backgroundColor: Colors.transparent,
+      body: PremiumBackground(
+        child: SafeArea(
+          bottom: false,
+          child: _loading
+              ? const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      ShimmerBox(
+                          width: double.infinity, height: 88, radius: 14),
+                      SizedBox(height: 16),
+                      ShimmerBox(
+                          width: double.infinity, height: 210, radius: 14),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  color: AppColors.p500,
+                  onRefresh: _loadProfile,
+                  child: ListView(
+                    physics: const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                    children: [
+                      PremiumHeader(
+                          eyebrow: '',
+                          title: tr(context, 'Cá nhân', 'Profile')),
+                      const SizedBox(height: 16),
+                      // Apple ID style Profile Row
+                      ScaleTap(
+                        onTap: _editProfile,
+                        child: PremiumSurface(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 28,
+                                backgroundColor: const Color(0xFF1C1C1E),
+                                child: Text(
+                                  _name.isEmpty
+                                      ? '?'
+                                      : _name.characters.first.toUpperCase(),
+                                  style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold)))),
-                    const SizedBox(height: 14),
-                    Text(_name,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 4),
-                    Text(_email,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            color: Color(0xFF778092), fontSize: 13)),
-                    const SizedBox(height: 26),
-                    Card(
-                        child: Column(children: [
-                      _row(Icons.person_outline, 'Thông tin cá nhân',
-                          () => _info('Thông tin cá nhân', '$_name\n$_email')),
-                      const Divider(height: 1),
-                      _row(
-                          Icons.notifications_none,
-                          'Thông báo',
-                          () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const NotificationScreen()))),
-                      const Divider(height: 1),
-                      _row(
-                          Icons.payments_outlined,
-                          'Tiền tệ',
-                          () => _info('Tiền tệ',
-                              'Các khoản chi và thanh toán của ứng dụng được ghi nhận bằng Việt Nam Đồng (VND).')),
-                      const Divider(height: 1),
-                      _row(Icons.language, 'Ngôn ngữ',
-                          () => _info('Ngôn ngữ', 'Tiếng Việt')),
-                      const Divider(height: 1),
-                      _row(
-                          Icons.shield_outlined,
-                          'Bảo mật',
-                          () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const SettingsScreen()))),
-                      const Divider(height: 1),
-                      _row(
-                          Icons.help_outline,
-                          'Trợ giúp',
-                          () => _info('Trợ giúp',
-                              'Tạo nhóm, thêm thành viên bằng email đã đăng ký rồi ghi khoản chi. Người trả báo đã thanh toán, người nhận xác nhận để cập nhật công nợ.')),
-                      const Divider(height: 1),
-                      _row(
-                          Icons.info_outline,
-                          'Giới thiệu',
-                          () => _info('XÉN NỢ',
-                              'Chia tiền nhóm, hết lăn tăn. Quản lý khoản chi, tối ưu công nợ và xác nhận thanh toán hai chiều.')),
-                    ])),
-                    const SizedBox(height: 8),
-                    Card(
-                        child: ListTile(
-                            onTap: _logout,
-                            leading: const Icon(Icons.logout,
-                                color: Color(0xFFFF5261)),
-                            title: const Text('Đăng xuất',
-                                style: TextStyle(
-                                    color: Color(0xFFFF5261),
-                                    fontWeight: FontWeight.w700)))),
-                  ])));
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _phone.isNotEmpty
+                                          ? '$_email • $_phone'
+                                          : _email,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: AppColors.n500,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                CupertinoIcons.chevron_forward,
+                                size: 17,
+                                color: AppColors.n400,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      PremiumSurface(
+                        padding: EdgeInsets.zero,
+                        child: Column(
+                          children: [
+                            _iosRow(
+                              CupertinoIcons.bell_fill,
+                              AppColors.error,
+                              'Thông báo',
+                              () => Navigator.push(
+                                context,
+                                fintechRoute(const NotificationScreen()),
+                              ),
+                            ),
+                            const Divider(height: 1, indent: 56),
+                            _iosRow(
+                              CupertinoIcons.gear_alt_fill,
+                              AppColors.n500,
+                              tr(context, 'Cài đặt', 'Settings'),
+                              () => Navigator.push(
+                                context,
+                                fintechRoute(const SettingsScreen()),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      PremiumSurface(
+                        padding: EdgeInsets.zero,
+                        child: Column(
+                          children: [
+                            _iosRow(
+                              CupertinoIcons.question_circle_fill,
+                              AppColors.p500,
+                              'Hướng dẫn sử dụng',
+                              () => _info(
+                                'Hướng dẫn sử dụng',
+                                'Tạo hoặc tham gia nhóm bằng mã mời, thêm khoản chi, chọn chế độ chia (đều, số tiền, %, trọng số hoặc theo món), sau đó dùng Xén nợ để tối ưu số lần chuyển khoản. Công nợ chỉ trừ khi người nhận xác nhận đã nhận tiền.',
+                              ),
+                            ),
+                            const Divider(height: 1, indent: 56),
+                            _iosRow(
+                              CupertinoIcons.info_circle_fill,
+                              AppColors.success,
+                              'Giới thiệu SplitDebt',
+                              () => _info(
+                                'SplitDebt',
+                                'Ứng dụng quản lý chi tiêu nhóm, tối ưu hóa công nợ và xác nhận thanh toán hai bước.',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      ScaleTap(
+                        onTap: _logout,
+                        child: const PremiumSurface(
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          child: Center(
+                            child: Text(
+                              'Đăng xuất',
+                              style: TextStyle(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+      ),
+    );
   }
 }

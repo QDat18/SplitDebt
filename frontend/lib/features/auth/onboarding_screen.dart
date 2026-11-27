@@ -1,103 +1,171 @@
-// Trách nhiệm file: Xây dựng màn hình onboarding screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
-
+// Trách nhiệm file: Hiển thị các trang giới thiệu và điều hướng đăng nhập.
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
+
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   int _page = 0;
+  bool _finishing = false;
   final _pages = const [
     (
       '💸',
       'Ghi chi tiêu nhóm dễ dàng',
-      'Thêm khoản chi trong vài giây, chia đều hoặc tùy chỉnh cho từng thành viên'
+      'Thêm khoản chi trong vài giây, chia đều hoặc tùy chỉnh cho từng thành viên',
     ),
     (
       '✂️',
       'Xén nợ thông minh',
-      'Tự động gộp các khoản nợ chéo thành ít giao dịch nhất có thể'
+      'Tự động gộp các khoản nợ chéo thành ít giao dịch nhất có thể',
     ),
     (
       '📈',
       'Theo dõi minh bạch',
-      'Biết rõ ai nợ ai, bao nhiêu và thanh toán chỉ với một chạm'
+      'Biết rõ ai nợ ai, bao nhiêu và thanh toán chỉ với một chạm',
     ),
   ];
+
+  void _next(int displayedPage) {
+    if (_finishing || _page != displayedPage) return;
+    if (_page >= _pages.length - 1) {
+      _finish();
+      return;
+    }
+    setState(() => _page++);
+  }
+
   Future<void> _finish() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_complete', true);
-    if (mounted)
-      Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+    if (_finishing || !mounted) return;
+    setState(() => _finishing = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = await prefs.setBool('onboarding_complete', true);
+      if (!saved) {
+        throw StateError('Không thể lưu trạng thái giới thiệu');
+      }
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _finishing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không thể tiếp tục. Vui lòng thử lại.')),
+      );
+    }
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-          body: SafeArea(
-              child: Column(children: [
-        Expanded(
-            child: Padding(
-                padding: const EdgeInsets.all(24),
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final displayedPage = _page;
+    final page = _pages[displayedPage];
+    final isLast = displayedPage == _pages.length - 1;
+
+    return Scaffold(
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxHeight < 620;
+            final illustrationSize = compact ? 140.0 : 210.0;
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                          width: 210,
-                          height: 210,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                              color: const Color(0xFFF0EDFF),
-                              borderRadius: BorderRadius.circular(32)),
-                          child: Text(_pages[_page].$1,
-                              style: const TextStyle(fontSize: 86))),
-                      const SizedBox(height: 36),
-                      Text(_pages[_page].$2,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: 23, fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 14),
-                      Text(_pages[_page].$3,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              color: Color(0xFF778092), fontSize: 14)),
-                      const SizedBox(height: 28),
-                      Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(
-                              3,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: illustrationSize,
+                            height: illustrationSize,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: colors.primaryContainer,
+                              borderRadius: BorderRadius.circular(32),
+                            ),
+                            child: Text(
+                              page.$1,
+                              style: TextStyle(fontSize: compact ? 60 : 86),
+                            ),
+                          ),
+                          SizedBox(height: compact ? 20 : 36),
+                          Text(
+                            page.$2,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 23,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            page.$3,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: colors.onSurfaceVariant,
+                              fontSize: 14,
+                            ),
+                          ),
+                          SizedBox(height: compact ? 16 : 28),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(
+                              _pages.length,
                               (i) => AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  margin:
-                                      const EdgeInsets.symmetric(horizontal: 4),
-                                  width: _page == i ? 22 : 7,
-                                  height: 7,
-                                  decoration: BoxDecoration(
-                                      color: _page == i
-                                          ? const Color(0xFF6C5CE7)
-                                          : const Color(0xFFE0E0EA),
-                                      borderRadius:
-                                          BorderRadius.circular(8))))),
-                    ]))),
-        Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  FilledButton(
-                      onPressed:
-                          _page == 2 ? _finish : () => setState(() => _page++),
-                      child: Text(_page == 2 ? 'Bắt đầu' : 'Tiếp tục')),
-                  const SizedBox(height: 8),
-                  TextButton(
-                      onPressed: _finish,
-                      child: Text(_page == 2 ? 'Đăng nhập' : 'Bỏ qua',
-                          style: const TextStyle(color: Color(0xFF778092))))
-                ])),
-      ])));
+                                duration: const Duration(milliseconds: 200),
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 4),
+                                width: displayedPage == i ? 22 : 7,
+                                height: 7,
+                                decoration: BoxDecoration(
+                                  color: displayedPage == i
+                                      ? colors.primary
+                                      : colors.outlineVariant,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          FilledButton(
+                            onPressed:
+                                _finishing ? null : () => _next(displayedPage),
+                            child: Text(isLast ? 'Bắt đầu' : 'Tiếp tục'),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: _finishing ? null : _finish,
+                            child: Text(isLast ? 'Đăng nhập' : 'Bỏ qua'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
 }

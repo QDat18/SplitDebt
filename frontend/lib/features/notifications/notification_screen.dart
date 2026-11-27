@@ -58,11 +58,12 @@ class _NotificationScreenState extends State<NotificationScreen>
         _loading = false;
       });
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = 'Không tải được thông báo. Hãy thử lại.';
           _loading = false;
         });
+      }
     }
   }
 
@@ -73,13 +74,15 @@ class _NotificationScreenState extends State<NotificationScreen>
       push.bindMessenger(scaffoldMessengerKey);
       await push.initialize();
       await push.subscribeToUser(await AuthRepository().getCurrentUserId());
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Đã bật thông báo trên thiết bị này.')));
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Chưa bật được thông báo: $error')));
+      }
     } finally {
       if (mounted) setState(() => _enabling = false);
     }
@@ -91,9 +94,10 @@ class _NotificationScreenState extends State<NotificationScreen>
           queryParameters: {'userId': _userId});
       if (mounted) setState(() => item['isRead'] = true);
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Chưa đánh dấu đã đọc được. Hãy thử lại.')));
+      }
     }
   }
 

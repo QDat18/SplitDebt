@@ -1,0 +1,17 @@
+test_bad_image (test_adapter.AdapterTests.test_bad_image) ... ok
+test_bad_mode (test_adapter.AdapterTests.test_bad_mode) ... ok
+test_busy (test_adapter.AdapterTests.test_busy) ... ok
+test_geometry (test_adapter.AdapterTests.test_geometry) ... ok
+test_health (test_adapter.AdapterTests.test_health) ... ok
+test_inconsistent (test_adapter.AdapterTests.test_inconsistent) ... ok
+test_large_image (test_adapter.AdapterTests.test_large_image) ... ok
+test_merged (test_adapter.AdapterTests.test_merged) ... ok
+test_mock_inference (test_adapter.AdapterTests.test_mock_inference) ... ok
+test_nan (test_adapter.AdapterTests.test_nan) ... ok
+test_ocr_only (test_adapter.AdapterTests.test_ocr_only) ... ok
+test_ragged (test_adapter.AdapterTests.test_ragged) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.072s
+
+OK

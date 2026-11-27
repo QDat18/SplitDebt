@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/state/app_sync.dart';
 import '../../core/theme/pdf_components.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../settlements/data/settlement_api_service.dart';
@@ -20,9 +21,9 @@ class _OverviewScreenState extends State<OverviewScreen>
   @override
   bool get wantKeepAlive => true;
 
-  static List<Map<String, dynamic>>? _cachedGroups;
-  static final Map<int, List<Map<String, dynamic>>> _cachedEventsByGroup = {};
-  static final Map<String, FinancialStats> _cachedStats = {};
+  List<Map<String, dynamic>>? _cachedGroups;
+  final Map<int, List<Map<String, dynamic>>> _cachedEventsByGroup = {};
+  final Map<String, FinancialStats> _cachedStats = {};
 
   List<Map<String, dynamic>> _groups = [], _events = [];
   FinancialStats? _stats;
@@ -30,6 +31,9 @@ class _OverviewScreenState extends State<OverviewScreen>
   int _period = 1, _filter = 0;
   bool _loading = true;
   String? _error;
+  int _generation = 0;
+  bool _initializing = false;
+  bool _refreshPending = false;
 
   @override
   void initState() {
@@ -43,57 +47,96 @@ class _OverviewScreenState extends State<OverviewScreen>
       }
     }
     _initialize();
+    appDataSyncSignal.addListener(_onRealtimeSync);
+  }
+
+  @override
+  void dispose() {
+    appDataSyncSignal.removeListener(_onRealtimeSync);
+    super.dispose();
+  }
+
+  void _onRealtimeSync() {
+    if (mounted) _initialize();
   }
 
   Future<void> _initialize() async {
+    if (_initializing) {
+      _refreshPending = true;
+      return;
+    }
+    _initializing = true;
     try {
-      _user = await AuthRepository().getCurrentUserId();
-      final r = await dioClient.get('/groups');
-      final fetchedGroups = (r.data['data'] as List)
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList();
-      _cachedGroups = fetchedGroups;
-      _groups = fetchedGroups;
-      _group ??= _groups.isEmpty ? null : (_groups.first['id'] as num).toInt();
-      await _load();
-    } catch (_) {
-      if (mounted && _groups.isEmpty) {
+      do {
+        _refreshPending = false;
+        final result = await Future.wait(
+            [AuthRepository().getCurrentUserId(), dioClient.get('/groups')]);
+        if (!mounted) return;
+        _user = result[0] as int;
+        final r = result[1] as dynamic;
+        final groups = (r.data['data'] as List)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
         setState(() {
-          _error = 'Không tải được dữ liệu.';
+          _cachedGroups = groups;
+          _groups = groups;
+          if (!_groups.any((g) => g['id'] == _group))
+            _group =
+                _groups.isEmpty ? null : (_groups.first['id'] as num).toInt();
+        });
+        await _load();
+      } while (_refreshPending && mounted);
+    } catch (_) {
+      if (mounted)
+        setState(() {
+          _error = 'Không tải được dữ liệu. Hãy thử lại.';
           _loading = false;
         });
-      }
+    } finally {
+      _initializing = false;
     }
   }
 
   Future<void> _load() async {
-    if (_group == null) {
-      if (mounted) setState(() => _loading = false);
+    final group = _group;
+    final period = _period;
+    final generation = ++_generation;
+    if (!mounted) return;
+    if (group == null) {
+      setState(() {
+        _loading = false;
+        _error = null;
+        _events = [];
+        _stats = null;
+      });
       return;
     }
-
+    final cacheKey = '$group-$period';
     final hasCache = widget.history
-        ? _cachedEventsByGroup.containsKey(_group)
-        : _cachedStats.containsKey('$_group-$_period');
-
-    if (!hasCache) {
-      setState(() {
-        _loading = true;
-        _error = null;
-      });
-    }
-
+        ? _cachedEventsByGroup.containsKey(group)
+        : _cachedStats.containsKey(cacheKey);
+    setState(() {
+      _error = null;
+      _loading = !hasCache;
+      if (widget.history) {
+        _events = _cachedEventsByGroup[group] ?? [];
+      } else {
+        _stats = _cachedStats[cacheKey];
+      }
+    });
     try {
       if (!widget.history) {
         final stats = await SettlementApiService()
-            .getStats(_group!, ['WEEK', 'MONTH', 'ALL'][_period]);
-        _cachedStats['$_group-$_period'] = stats;
+            .getStats(group, ['WEEK', 'MONTH', 'ALL'][period]);
+        if (!mounted || generation != _generation) return;
+        _cachedStats[cacheKey] = stats;
         _stats = stats;
       } else {
         final results = await Future.wait([
-          dioClient.get('/v1/expenses/group/$_group'),
-          dioClient.get('/groups/$_group/settlements')
+          dioClient.get('/v1/expenses/group/$group'),
+          dioClient.get('/groups/$group/settlements')
         ]);
+        if (!mounted || generation != _generation) return;
         final newEvents = <Map<String, dynamic>>[];
         for (final e in results[0].data['data'] as List) {
           final parts = (e['participants'] as List? ?? [])
@@ -122,17 +165,17 @@ class _OverviewScreenState extends State<OverviewScreen>
         newEvents.sort((a, b) => (b['date'] ?? '')
             .toString()
             .compareTo((a['date'] ?? '').toString()));
-        _cachedEventsByGroup[_group!] = newEvents;
+        _cachedEventsByGroup[group] = newEvents;
         _events = newEvents;
       }
-      if (mounted) setState(() => _loading = false);
+      if (mounted && generation == _generation)
+        setState(() => _loading = false);
     } catch (_) {
-      if (mounted && !hasCache) {
+      if (mounted && generation == _generation)
         setState(() {
           _error = 'Không tải được dữ liệu. Hãy thử lại.';
           _loading = false;
         });
-      }
     }
   }
 
@@ -141,14 +184,16 @@ class _OverviewScreenState extends State<OverviewScreen>
     super.build(context);
     return Scaffold(
       appBar: AppBar(
-          title: Text(widget.history ? 'Lịch sử' : 'Thống kê'),
+          title: Text(widget.history
+              ? tr(context, 'Lịch sử', 'History')
+              : tr(context, 'Thống kê', 'Statistics')),
           actions: const [NotificationBell()]),
       body: RefreshIndicator(
           onRefresh: _initialize,
           child: ListView(padding: const EdgeInsets.all(20), children: [
             if (_groups.isNotEmpty)
               DropdownButtonFormField<int>(
-                  value: _group,
+                  initialValue: _group,
                   items: _groups
                       .map((g) => DropdownMenuItem(
                           value: (g['id'] as num).toInt(),

@@ -1,0 +1,36 @@
+PASS table candidate preserved independently
+PASS reordered columns
+PASS invalid arithmetic rejected
+PASS multiple tables not combined
+PASS mismatch total warns
+PASS missing header rejected
+PASS missing qty rejected
+PASS ragged rows rejected
+PASS table footer skipped
+PASS uncertain fallback
+10 passed
+PASS 01 shuffled OCR tokens, two rows, total/date
+PASS 02 reordered columns
+PASS 03 wrapped name
+PASS 04 mismatching values preserved and flagged
+PASS 05 missing quantity not fabricated
+PASS 06 footer and tax not treated as items
+PASS 07 headerless fallback flagged
+PASS 08 low-confidence token flagged
+PASS 09 legacy text payload
+PASS 10 invalid geometry fallback
+PASS 11 conflicting totals not guessed
+PASS 12 missing line amount flagged, not fabricated
+PASS 13 mildly tilted geometry
+PASS 14 total quantity is not payable amount
+Synthetic geometry cases passed: 14/14
+PASS standard rows
+PASS quantity unit price date
+PASS ambiguous total
+PASS missing total
+PASS tax separate total
+PASS discount decimals
+PASS invalid arithmetic
+PASS date invalid
+PASS explicit multiplier
+9 passed

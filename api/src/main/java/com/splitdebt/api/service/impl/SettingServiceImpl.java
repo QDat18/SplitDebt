@@ -31,7 +31,7 @@ public class SettingServiceImpl implements SettingService {
     private final UserRepository userRepository;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public GroupSettingResponse getGroupSetting(Long groupId) {
         GroupSetting setting = groupSettingRepository.findByGroupId(groupId)
                 .orElseGet(() -> createDefaultGroupSetting(groupId));
@@ -87,7 +87,7 @@ public class SettingServiceImpl implements SettingService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public UserSettingResponse getUserSetting(Long userId) {
         UserSetting setting = userSettingRepository.findByUserId(userId)
                 .orElseGet(() -> createDefaultUserSetting(userId));
@@ -101,11 +101,15 @@ public class SettingServiceImpl implements SettingService {
                 .orElseGet(() -> createDefaultUserSetting(userId));
 
         if (request.getTheme() != null) {
-            setting.setTheme(request.getTheme());
+            String theme = request.getTheme().trim().toUpperCase(java.util.Locale.ROOT);
+            if (!java.util.Set.of("LIGHT", "DARK", "SYSTEM").contains(theme)) throw new IllegalArgumentException("Chế độ giao diện không hợp lệ");
+            setting.setTheme(theme);
         }
 
         if (request.getLanguage() != null) {
-            setting.setLanguage(request.getLanguage());
+            String language = request.getLanguage().trim().toUpperCase(java.util.Locale.ROOT);
+            if (!java.util.Set.of("VI", "EN").contains(language)) throw new IllegalArgumentException("Ngôn ngữ không hợp lệ");
+            setting.setLanguage(language);
         }
 
         if (request.getCurrency() != null) {

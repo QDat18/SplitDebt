@@ -29,6 +29,9 @@ public interface ExpenseParticipantRepository
     })
     List<ExpenseParticipant> findByExpenseId(Long expenseId);
 
+    @EntityGraph(attributePaths = {"expense", "user"})
+    List<ExpenseParticipant> findByExpenseIdIn(List<Long> expenseIds);
+
     // DEV2: xóa participants khi xóa/cập nhật expense
     void deleteByExpenseId(Long expenseId);
 }

@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class SettingsController {
 
     private final SettingService settingService;
+    private final com.splitdebt.api.service.SettingsAccessService settingsAccessService;
     private final UserRepository userRepository;
 
     @GetMapping("/user/me")
@@ -60,6 +61,7 @@ public class SettingsController {
 
     @GetMapping("/group/{groupId}")
     public ResponseEntity<GroupSettingsDto> getGroupSettings(@PathVariable Long groupId) {
+        settingsAccessService.requireGroup(groupId, false);
         GroupSettingResponse setting = settingService.getGroupSetting(groupId);
 
         GroupSettingsDto dto = new GroupSettingsDto();
@@ -70,6 +72,7 @@ public class SettingsController {
 
     @PutMapping("/group/{groupId}")
     public ResponseEntity<GroupSettingsDto> updateGroupSettings(@PathVariable Long groupId, @RequestBody GroupSettingsDto dto) {
+        settingsAccessService.requireGroup(groupId, true);
         GroupSettingRequest request = GroupSettingRequest.builder()
                 .requireApproval(dto.getRequireApproval())
                 .currencyCode(dto.getDefaultCurrency())

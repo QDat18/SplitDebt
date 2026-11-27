@@ -24,6 +24,8 @@ public class NotificationService {
     private final NotificationRepository
             notificationRepository;
 
+    private final com.splitdebt.api.repository.UserSettingRepository userSettingRepository;
+
     private final FcmPushService
             fcmPushService;
 
@@ -46,6 +48,9 @@ public class NotificationService {
                                 .isRead(false)
                                 .build()
                 );
+
+        if (type != null && type.startsWith("SETTLEMENT_") && userSettingRepository.findByUserId(user.getId())
+                .map(s -> Boolean.FALSE.equals(s.getNotifyOnSettlement())).orElse(false)) return saved;
 
         Map<String, String> payload = new HashMap<>(data == null ? Map.of() : data);
         payload.put("type", type);

@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/state/app_sync.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'data/settlement_api_service.dart';
@@ -47,6 +48,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
       if (message.data['groupId']?.toString() == _groupId?.toString()) _load();
     });
     _initialize();
+    appDataSyncSignal.addListener(_load);
   }
 
   @override
@@ -57,6 +59,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    appDataSyncSignal.removeListener(_load);
     _messages?.cancel();
     super.dispose();
   }
@@ -91,11 +94,12 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
         setState(() => _loading = false);
       }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = '$error';
           _loading = false;
         });
+      }
     }
   }
 
@@ -122,11 +126,12 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
         _loading = false;
       });
     } catch (error) {
-      if (mounted && version == _version)
+      if (mounted && version == _version) {
         setState(() {
           _error = '$error';
           _loading = false;
         });
+      }
     }
   }
 
@@ -152,15 +157,17 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
         await _openPayment(record);
       } else {
         await _load();
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text(
                   'Đã tạo yêu cầu. Người trả cần mở tài khoản của họ và báo đã thanh toán.')));
+        }
       }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('$error')));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -193,7 +200,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                             children: [
                               if (widget.groupId == null) ...[
                                 DropdownButtonFormField<int>(
-                                    value: _groupId,
+                                    initialValue: _groupId,
                                     items: _groups
                                         .map((g) => DropdownMenuItem(
                                             value: (g['id'] as num).toInt(),

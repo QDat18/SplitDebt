@@ -4,3 +4,5 @@ import 'package:flutter/material.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
+
+final ValueNotifier<int> sessionExpiredSignal = ValueNotifier<int>(0);

@@ -30,6 +30,7 @@ public interface GroupMemberRepository
 
     List<GroupMember> findByGroupId(Long groupId);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"group", "group.owner"})
     List<GroupMember> findByUserIdAndStatus(Long userId, GroupMemberStatus status);
 
     Optional<GroupMember> findByGroupIdAndUserId(

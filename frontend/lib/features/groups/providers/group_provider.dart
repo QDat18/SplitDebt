@@ -10,20 +10,37 @@ class GroupListNotifier extends StateNotifier<AsyncValue<List<GroupModel>>> {
     fetchGroups();
   }
 
-  Future<void> fetchGroups({bool silent = false}) async {
-    if (!state.hasValue && !silent) {
-      state = const AsyncValue.loading();
+  Future<void>? _inFlight;
+  bool _repeat = false;
+  Future<void> fetchGroups({bool silent = false, bool afterWrite = false}) {
+    if (_inFlight != null) {
+      if (afterWrite) _repeat = true;
+      return _inFlight!;
     }
+    final future = _fetchLoop(silent);
+    _inFlight = future;
+    return future;
+  }
+
+  Future<void> _fetchLoop(bool silent) async {
     try {
-      final List<dynamic> data = await ApiClient.get('/groups');
-      final groups = data
-          .map((json) => GroupModel.fromJson(json as Map<String, dynamic>))
-          .toList();
-      state = AsyncValue.data(groups);
-    } catch (e, st) {
-      if (!state.hasValue) {
-        state = AsyncValue.error(e, st);
-      }
+      do {
+        _repeat = false;
+        if (!mounted) return;
+        if (!state.hasValue && !silent) state = const AsyncValue.loading();
+        try {
+          final data = await ApiClient.get('/groups') as List;
+          if (!mounted) return;
+          state = AsyncValue.data(data
+              .map((json) =>
+                  GroupModel.fromJson(Map<String, dynamic>.from(json as Map)))
+              .toList());
+        } catch (e, st) {
+          if (mounted && !state.hasValue) state = AsyncValue.error(e, st);
+        }
+      } while (_repeat);
+    } finally {
+      _inFlight = null;
     }
   }
 
@@ -34,7 +51,7 @@ class GroupListNotifier extends StateNotifier<AsyncValue<List<GroupModel>>> {
         'description': description ?? '',
       });
       final newGroup = GroupModel.fromJson(res as Map<String, dynamic>);
-      await fetchGroups();
+      await fetchGroups(afterWrite: true);
       return newGroup;
     } catch (e) {
       rethrow;
@@ -52,7 +69,7 @@ class GroupListNotifier extends StateNotifier<AsyncValue<List<GroupModel>>> {
         'description': description ?? '',
       });
       final updatedGroup = GroupModel.fromJson(res as Map<String, dynamic>);
-      await fetchGroups();
+      await fetchGroups(afterWrite: true);
       return updatedGroup;
     } catch (e) {
       rethrow;
@@ -62,7 +79,7 @@ class GroupListNotifier extends StateNotifier<AsyncValue<List<GroupModel>>> {
   Future<void> deleteGroup(String groupId) async {
     try {
       await ApiClient.delete('/groups/$groupId');
-      await fetchGroups();
+      await fetchGroups(afterWrite: true);
     } catch (e) {
       rethrow;
     }
@@ -71,7 +88,7 @@ class GroupListNotifier extends StateNotifier<AsyncValue<List<GroupModel>>> {
   Future<void> leaveGroup(String groupId) async {
     try {
       await ApiClient.delete('/groups/$groupId/members/me');
-      await fetchGroups();
+      await fetchGroups(afterWrite: true);
     } catch (e) {
       rethrow;
     }
@@ -87,7 +104,7 @@ class GroupListNotifier extends StateNotifier<AsyncValue<List<GroupModel>>> {
         'email': email,
         'role': role,
       });
-      await fetchGroups();
+      await fetchGroups(afterWrite: true);
       return GroupMemberModel.fromJson(res as Map<String, dynamic>);
     } catch (e) {
       rethrow;
@@ -97,15 +114,15 @@ class GroupListNotifier extends StateNotifier<AsyncValue<List<GroupModel>>> {
   Future<void> removeMember(String groupId, String memberUserId) async {
     try {
       await ApiClient.delete('/groups/$groupId/members/$memberUserId');
-      await fetchGroups();
+      await fetchGroups(afterWrite: true);
     } catch (e) {
       rethrow;
     }
   }
 }
 
-final userGroupsProvider =
-    StateNotifierProvider<GroupListNotifier, AsyncValue<List<GroupModel>>>((
+final userGroupsProvider = StateNotifierProvider.autoDispose<GroupListNotifier,
+    AsyncValue<List<GroupModel>>>((
   ref,
 ) {
   return GroupListNotifier();

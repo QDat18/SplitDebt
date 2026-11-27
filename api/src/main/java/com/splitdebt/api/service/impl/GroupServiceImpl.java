@@ -129,7 +129,7 @@ public class GroupServiceImpl implements GroupService {
     public List<GroupResponseDto> getUserGroups(Long currentUserId) {
         requireUser(currentUserId);
 
-        List<GroupMember> userMemberships = groupMemberRepository.findByUserId(currentUserId);
+        List<GroupMember> userMemberships = groupMemberRepository.findByUserIdAndStatus(currentUserId, com.splitdebt.api.entity.enums.GroupMemberStatus.ACTIVE);
         if (userMemberships.isEmpty()) {
             return java.util.Collections.emptyList();
         }

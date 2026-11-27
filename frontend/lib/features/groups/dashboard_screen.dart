@@ -1,29 +1,31 @@
-// Trách nhiệm file: Xây dựng màn hình dashboard screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+// Trách nhiệm file: Màn hình Trang chủ chuẩn iOS Apple Wallet (thẻ Số dư ròng matte charcoal, nhóm hoạt động Inset Grouped, đồng bộ realtime).
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/api/api_client.dart';
+import '../../core/state/app_sync.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_dimensions.dart';
-import '../../core/theme/app_typography.dart';
-import '../expenses/expense_detail_screen.dart';
-import '../../core/network/dio_client.dart';
-import '../../data/repositories/auth_repository.dart';
+import '../../core/widgets/motion_kit.dart';
+import '../../core/widgets/premium_shell.dart';
+import '../home/pdf_overview_screen.dart';
+import '../notifications/notification_screen.dart';
+import 'models/group_model.dart';
+import 'providers/group_provider.dart';
+import 'screens/group_detail_screen.dart';
 
-/// ----------------------------------------------------------------------------
-/// MÀN HÌNH DASHBOARD TRANG CHỦ (MAIN DASHBOARD SCREEN)
-/// Hiển thị tổng quan nợ ròng, nhóm chi tiêu & khoản chi gần đây
-/// ----------------------------------------------------------------------------
 class DashboardScreen extends ConsumerStatefulWidget {
   final VoidCallback onNavigateToCreateExpense;
   final VoidCallback onNavigateToSettlement;
+  final VoidCallback? onNavigateToGroups;
 
   const DashboardScreen({
     super.key,
     required this.onNavigateToCreateExpense,
     required this.onNavigateToSettlement,
+    this.onNavigateToGroups,
   });
 
   @override
@@ -31,70 +33,147 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen>
-    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
-  late AnimationController _animController;
-  late Animation<double> _fadeAnim;
+  final _money = NumberFormat.currency(
+    locale: 'vi_VN',
+    symbol: '₫',
+    decimalDigits: 0,
+  );
 
-  int _unreadNotificationCount = 0;
-  final currencyFormatter =
-      NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+  String _fullName = 'Bạn';
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 550),
-    );
-
-    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _animController.forward();
+    _loadProfile();
+    appDataSyncSignal.addListener(_onSync);
   }
 
   @override
   void dispose() {
-    _animController.dispose();
+    appDataSyncSignal.removeListener(_onSync);
     super.dispose();
+  }
+
+  void _onSync() {
+    if (mounted) _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final raw = await ApiClient.get('/users/me');
+      if (!mounted || raw is! Map) return;
+      final name = raw['fullName']?.toString().trim();
+      if (name != null && name.isNotEmpty) {
+        setState(() => _fullName = name);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _refresh() async {
+    await Future.wait([
+      ref.read(userGroupsProvider.notifier).fetchGroups(),
+      _loadProfile(),
+    ]);
+  }
+
+  String _greetingByHour() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Chào buổi sáng';
+    if (hour < 18) return 'Chào buổi chiều';
+    return 'Chào buổi tối';
+  }
+
+  String _groupEmoji(GroupModel group) {
+    final existing = group.categoryIcon?.trim() ?? '';
+    if (existing.isNotEmpty && existing != '👥') return existing;
+    final nameLower = group.name.toLowerCase();
+    if (nameLower.contains('trip') ||
+        nameLower.contains('du lịch') ||
+        nameLower.contains('đà lạt') ||
+        nameLower.contains('hải phòng')) {
+      return '🌴';
+    }
+    if (nameLower.contains('project') ||
+        nameLower.contains('team') ||
+        nameLower.contains('lập trình')) {
+      return '💻';
+    }
+    if (nameLower.contains('trọ') ||
+        nameLower.contains('phòng') ||
+        nameLower.contains('nhà')) {
+      return '🏠';
+    }
+    if (nameLower.contains('ăn') ||
+        nameLower.contains('uống') ||
+        nameLower.contains('cơm') ||
+        nameLower.contains('nhậu')) {
+      return '🍜';
+    }
+    return '👥';
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final groupsState = ref.watch(userGroupsProvider);
+
     return Scaffold(
-      backgroundColor: AppColors.n50,
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.s20, vertical: AppDimensions.s16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // --- 1. USER HEADER ---
-                _buildUserHeader(),
-                const SizedBox(height: AppDimensions.s20),
-
-                // --- 2. SUMMARY BALANCE CARD ---
-                _buildNetBalanceOverviewCard(),
-                const SizedBox(height: AppDimensions.s20),
-
-                // --- 3. QUICK ACTION BUTTONS ---
-                _buildQuickActionsRow(),
-                const SizedBox(height: AppDimensions.s24),
-
-                // --- 4. CURRENT ACTIVE GROUPS ---
-                _buildActiveGroupsSection(),
-                const SizedBox(height: AppDimensions.s24),
-
-                // --- 5. RECENT EXPENSES LIST ---
-                _buildRecentExpensesSection(context),
-                const SizedBox(height: AppDimensions.s32),
-              ],
+      backgroundColor: Colors.transparent,
+      body: PremiumBackground(
+        child: SafeArea(
+          bottom: false,
+          child: RefreshIndicator(
+            color: AppColors.p500,
+            onRefresh: _refresh,
+            child: groupsState.when(
+              loading: () => _loadingSkeleton(),
+              error: (error, _) => ListView(
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                padding: const EdgeInsets.fromLTRB(16, 100, 16, 100),
+                children: [
+                  PremiumSurface(
+                    child: Column(
+                      children: [
+                        const Icon(
+                          CupertinoIcons.wifi_slash,
+                          color: AppColors.error,
+                          size: 36,
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Không tải được dữ liệu',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          error.toString().replaceFirst('Exception: ', ''),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: AppColors.n500,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: _refresh,
+                          child: const Text('Thử lại'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              data: (groups) => _content(groups),
             ),
           ),
         ),
@@ -102,65 +181,148 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  // --- USER HEADER ---
-  Widget _buildUserHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
+  Widget _loadingSkeleton() {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
+      children: const [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              padding: const EdgeInsets.all(2),
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: AppColors.cardGradient,
-              ),
-              child: const CircleAvatar(
-                radius: 22,
-                backgroundColor: AppColors.p600,
-                child: Icon(Icons.person, color: Colors.white, size: 24),
-              ),
-            ),
-            const SizedBox(width: AppDimensions.s12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Xin chào, Đạt!',
-                    style: AppTypography.title.copyWith(fontSize: 18)),
-                Text('Team IUMAITRUONG', style: AppTypography.caption),
+                ShimmerBox(width: 90, height: 13, radius: 5),
+                SizedBox(height: 6),
+                ShimmerBox(width: 170, height: 28, radius: 7),
               ],
             ),
+            ShimmerBox(width: 38, height: 38, radius: 19),
           ],
         ),
+        SizedBox(height: 18),
+        ShimmerBox(width: double.infinity, height: 176, radius: 18),
+        SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+                child:
+                    ShimmerBox(width: double.infinity, height: 74, radius: 14)),
+            SizedBox(width: 10),
+            Expanded(
+                child:
+                    ShimmerBox(width: double.infinity, height: 74, radius: 14)),
+            SizedBox(width: 10),
+            Expanded(
+                child:
+                    ShimmerBox(width: double.infinity, height: 74, radius: 14)),
+          ],
+        ),
+        SizedBox(height: 24),
+        ShimmerBox(width: double.infinity, height: 190, radius: 14),
+      ],
+    );
+  }
 
-        // Notification Bell Icon (Interactive FCM Notification Center)
-        InkWell(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            _showNotificationSheet(context);
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.n0,
-              shape: BoxShape.circle,
-              boxShadow: AppDimensions.shadowSm,
-            ),
-            child: Stack(
+  Widget _content(List<GroupModel> groups) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final receivable = groups
+        .where((g) => (g.userBalance ?? 0) > 0)
+        .fold<double>(0, (sum, g) => sum + (g.userBalance ?? 0));
+    final payable = groups
+        .where((g) => (g.userBalance ?? 0) < 0)
+        .fold<double>(0, (sum, g) => sum + (g.userBalance ?? 0).abs());
+    final net = receivable - payable;
+    final firstName = _fullName.split(RegExp(r'\s+')).last;
+    final visibleGroups = groups.take(5).toList();
+
+    return ListView(
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+      children: [
+        StaggeredEntrance(
+          index: 0,
+          child: PremiumHeader(
+            eyebrow: _greetingByHour(),
+            title: firstName,
+            trailing: const NotificationBell(),
+          ),
+        ),
+        const SizedBox(height: 16),
+        StaggeredEntrance(
+          index: 1,
+          child: _appleWalletBalanceCard(
+            net: net,
+            receivable: receivable,
+            payable: payable,
+          ),
+        ),
+        const SizedBox(height: 14),
+        StaggeredEntrance(
+          index: 2,
+          child: Row(
+            children: [
+              Expanded(
+                child: _iosActionButton(
+                  icon: CupertinoIcons.plus_circle_fill,
+                  iconColor: AppColors.p500,
+                  label: 'Thêm chi',
+                  onTap: widget.onNavigateToCreateExpense,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _iosActionButton(
+                  icon: CupertinoIcons.arrow_2_squarepath,
+                  iconColor: AppColors.success,
+                  label: 'Xén nợ',
+                  onTap: widget.onNavigateToSettlement,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _iosActionButton(
+                  icon: CupertinoIcons.chart_bar_fill,
+                  iconColor: AppColors.warning,
+                  label: 'Thống kê',
+                  onTap: () => Navigator.of(context).push(
+                    fintechRoute(const OverviewScreen(history: false)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        StaggeredEntrance(
+          index: 3,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
               children: [
-                const Icon(Icons.notifications_outlined,
-                    color: AppColors.n800, size: 22),
-                if (_unreadNotificationCount > 0)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      width: 9,
-                      height: 9,
-                      decoration: const BoxDecoration(
-                        color: AppColors.error,
-                        shape: BoxShape.circle,
+                Text(
+                  'NHÓM HOẠT ĐỘNG',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                    color: isDark
+                        ? const Color(0xFF8E8E93)
+                        : const Color(0xFF636366),
+                  ),
+                ),
+                const Spacer(),
+                if (groups.isNotEmpty)
+                  GestureDetector(
+                    onTap: widget.onNavigateToGroups,
+                    child: const Text(
+                      'Xem tất cả',
+                      style: TextStyle(
+                        color: AppColors.p500,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -168,76 +330,206 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             ),
           ),
         ),
+        const SizedBox(height: 8),
+        if (visibleGroups.isEmpty)
+          StaggeredEntrance(
+            index: 4,
+            child: PremiumSurface(
+              child: Column(
+                children: [
+                  const Icon(
+                    CupertinoIcons.person_2,
+                    size: 34,
+                    color: AppColors.n500,
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Chưa có nhóm chi tiêu',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Tạo nhóm mới hoặc nhập mã mời ở tab Nhóm để bắt đầu.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: AppColors.n500),
+                  ),
+                  if (widget.onNavigateToGroups != null) ...[
+                    const SizedBox(height: 14),
+                    FilledButton(
+                      onPressed: widget.onNavigateToGroups,
+                      child: const Text('Đi tới Nhóm'),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          )
+        else
+          StaggeredEntrance(
+            index: 4,
+            child: PremiumSurface(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  for (int i = 0; i < visibleGroups.length; i++) ...[
+                    _iosGroupRow(visibleGroups[i]),
+                    if (i < visibleGroups.length - 1)
+                      const Divider(height: 1, indent: 64),
+                  ],
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
 
-  // --- SUMMARY BALANCE CARD ---
-  Widget _buildNetBalanceOverviewCard() {
+  /// Thẻ số dư ròng phong cách Apple Card (Matte Charcoal #1C1C1E, sắc nét, tối giản).
+  Widget _appleWalletBalanceCard({
+    required double net,
+    required double receivable,
+    required double payable,
+  }) {
+    final statusText = net > 0
+        ? 'Đang được nhận lại'
+        : net < 0
+            ? 'Cần thanh toán'
+            : 'Đã cân bằng';
+
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppDimensions.s20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: AppColors.cardGradient,
-        borderRadius: AppDimensions.radius24,
-        boxShadow: AppDimensions.shadowMd,
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: .08),
+          width: 0.8,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('TỔNG SỐ DƯ RÒNG KHOẢN CHI',
-                  style: AppTypography.caption.copyWith(
-                      color: Colors.white.withOpacity(0.8),
-                      letterSpacing: 1.0,
-                      fontWeight: FontWeight.w700)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.success,
-                  borderRadius: AppDimensions.radius8,
+              Text(
+                'Số dư ròng',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .66),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
-                child: Text('CẦN NHẬN LẠI TIỀN',
-                    style: AppTypography.caption.copyWith(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800)),
+              ),
+              const Spacer(),
+              Text(
+                statusText,
+                style: TextStyle(
+                  color: net > 0
+                      ? AppColors.success
+                      : net < 0
+                          ? AppColors.error
+                          : Colors.white.withValues(alpha: .6),
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            '+340.000 ₫',
-            style: AppTypography.display.copyWith(
-                color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900),
+          AnimatedMoneyText(
+            amount: net,
+            showSign: true,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.8,
+            ),
           ),
-          const SizedBox(height: AppDimensions.s16),
-          const Divider(height: 1, color: Colors.white24),
-          const SizedBox(height: AppDimensions.s12),
+          const SizedBox(height: 18),
+          Container(
+            height: 0.6,
+            color: Colors.white.withValues(alpha: .12),
+          ),
+          const SizedBox(height: 14),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.arrow_upward_rounded,
-                      color: AppColors.successTint, size: 16),
-                  const SizedBox(width: 4),
-                  Text('Bạn đã ứng: 680.000 ₫',
-                      style: AppTypography.caption
-                          .copyWith(color: Colors.white.withOpacity(0.9))),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            color: AppColors.success,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Được nhận',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: .62),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    AnimatedMoneyText(
+                      amount: receivable,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              Row(
-                children: [
-                  const Icon(Icons.arrow_downward_rounded,
-                      color: AppColors.errorTint, size: 16),
-                  const SizedBox(width: 4),
-                  Text('Nợ phải gánh: 340.000 ₫',
-                      style: AppTypography.caption
-                          .copyWith(color: Colors.white.withOpacity(0.9))),
-                ],
+              Container(
+                width: 0.6,
+                height: 32,
+                color: Colors.white.withValues(alpha: .12),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            color: AppColors.error,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Phải trả',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: .62),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    AnimatedMoneyText(
+                      amount: payable,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -246,320 +538,123 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  // --- QUICK ACTION BUTTONS ROW ---
-  Widget _buildQuickActionsRow() {
-    return Row(
-      children: [
-        // Action 1: Tạo khoản chi mới
-        Expanded(
-          child: InkWell(
-            onTap: widget.onNavigateToCreateExpense,
-            borderRadius: AppDimensions.radius20,
-            child: Container(
-              padding: const EdgeInsets.all(AppDimensions.s16),
-              decoration: BoxDecoration(
-                color: AppColors.n0,
-                borderRadius: AppDimensions.radius20,
-                boxShadow: AppDimensions.shadowSm,
-                border: Border.all(color: AppColors.p100),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.p50,
-                      borderRadius: AppDimensions.radius12,
-                    ),
-                    child: const Icon(Icons.add_circle_outline_rounded,
-                        color: AppColors.p500, size: 22),
-                  ),
-                  const SizedBox(width: AppDimensions.s12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Tạo khoản chi',
-                            style: AppTypography.title.copyWith(fontSize: 14)),
-                        Text('Chia tiền tự động',
-                            style:
-                                AppTypography.caption.copyWith(fontSize: 11)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        const SizedBox(width: AppDimensions.s12),
-
-        // Action 2: Quyết toán nợ
-        Expanded(
-          child: InkWell(
-            onTap: widget.onNavigateToSettlement,
-            borderRadius: AppDimensions.radius20,
-            child: Container(
-              padding: const EdgeInsets.all(AppDimensions.s16),
-              decoration: BoxDecoration(
-                color: AppColors.n0,
-                borderRadius: AppDimensions.radius20,
-                boxShadow: AppDimensions.shadowSm,
-                border: Border.all(color: AppColors.p100),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.warningTint,
-                      borderRadius: AppDimensions.radius12,
-                    ),
-                    child: const Icon(Icons.auto_awesome_rounded,
-                        color: AppColors.warning, size: 22),
-                  ),
-                  const SizedBox(width: AppDimensions.s12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Quyết toán',
-                            style: AppTypography.title.copyWith(fontSize: 14)),
-                        Text('Min-Cash-Flow',
-                            style:
-                                AppTypography.caption.copyWith(fontSize: 11)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // --- ACTIVE GROUPS SECTION ---
-  Widget _buildActiveGroupsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _iosActionButton({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return ScaleTap(
+      onTap: onTap,
+      child: PremiumSurface(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        radius: 14,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Nhóm chi tiêu (1)',
-                style: AppTypography.label.copyWith(fontSize: 15)),
-            TextButton(
-              onPressed: () {},
-              child: Text('Tất cả',
-                  style: AppTypography.label
-                      .copyWith(color: AppColors.p600, fontSize: 13)),
+            Icon(icon, color: iconColor, size: 24),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : const Color(0xFF000000),
+              ),
             ),
           ],
         ),
-
-        // Group Card
-        Container(
-          padding: const EdgeInsets.all(AppDimensions.s16),
-          decoration: BoxDecoration(
-            color: AppColors.n0,
-            borderRadius: AppDimensions.radius20,
-            boxShadow: AppDimensions.shadowSm,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.p50,
-                      borderRadius: AppDimensions.radius16,
-                    ),
-                    child: const Icon(Icons.groups_rounded,
-                        color: AppColors.p500, size: 24),
-                  ),
-                  const SizedBox(width: AppDimensions.s12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Du Lịch Hà Giang',
-                            style: AppTypography.title.copyWith(fontSize: 16)),
-                        Text('4 thành viên • Tiền tệ VND',
-                            style: AppTypography.caption),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                        color: AppColors.successTint,
-                        borderRadius: AppDimensions.radius8),
-                    child: Text('Đang hoạt động',
-                        style: AppTypography.caption.copyWith(
-                            color: AppColors.success,
-                            fontWeight: FontWeight.w700)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppDimensions.s16),
-              const Divider(height: 1, color: AppColors.n100),
-              const SizedBox(height: AppDimensions.s12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Tổng chi tiêu nhóm:', style: AppTypography.caption),
-                  Text('2.450.000 ₫',
-                      style: AppTypography.bodyLarge.copyWith(
-                          fontWeight: FontWeight.w800, color: AppColors.p600)),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  // --- RECENT EXPENSES SECTION ---
-  Widget _buildRecentExpensesSection(BuildContext context) {
-    final recentExpenses = [
-      {
-        'title': 'Ăn lẩu nướng Gogi House',
-        'category': 'Ăn uống',
-        'icon': Icons.restaurant_rounded,
-        'color': const Color(0xFFFF7675),
-        'amount': 680000.0,
-        'payer': 'Đạt (Tôi)',
-        'time': '3 giờ trước',
-      },
-      {
-        'title': 'Vé xe giường nằm Hà Giang',
-        'category': 'Di chuyển',
-        'icon': Icons.directions_bus_rounded,
-        'color': const Color(0xFF74B9FF),
-        'amount': 1200000.0,
-        'payer': 'Hoàng (Dev 1)',
-        'time': 'Hôm qua',
-      },
-      {
-        'title': 'Cà phê Highland view núi',
-        'category': 'Giải trí',
-        'icon': Icons.local_cafe_rounded,
-        'color': const Color(0xFFFD79A8),
-        'amount': 240000.0,
-        'payer': 'Minh (Dev 3)',
-        'time': '2 ngày trước',
-      },
-    ];
+  Widget _iosGroupRow(GroupModel group) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final balance = group.userBalance ?? 0;
+    final isPositive = balance > 0;
+    final isNegative = balance < 0;
+    final amountColor = isPositive
+        ? AppColors.success
+        : isNegative
+            ? AppColors.error
+            : AppColors.n500;
+    final amountText = isPositive
+        ? '+${_money.format(balance)}'
+        : isNegative
+            ? '-${_money.format(balance.abs())}'
+            : 'Cân bằng';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return ScaleTap(
+      onTap: () => Navigator.of(context).push(
+        fintechRoute(GroupDetailScreen(group: group)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
           children: [
-            Text('Khoản chi gần đây',
-                style: AppTypography.label.copyWith(fontSize: 15)),
-            TextButton(
-              onPressed: () {},
-              child: Text('Xem lịch sử',
-                  style: AppTypography.label
-                      .copyWith(color: AppColors.p600, fontSize: 13)),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color:
+                    isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  _groupEmoji(group),
+                  style: const TextStyle(fontSize: 20),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    group.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: isDark ? Colors.white : const Color(0xFF000000),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${group.memberCount} thành viên',
+                    style: const TextStyle(
+                      color: AppColors.n500,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              amountText,
+              style: TextStyle(
+                color: amountColor,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              CupertinoIcons.chevron_forward,
+              size: 16,
+              color: AppColors.n400,
             ),
           ],
         ),
-        ...recentExpenses.map((exp) {
-          final color = exp['color'] as Color;
-          final icon = exp['icon'] as IconData;
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: AppDimensions.s12),
-            decoration: BoxDecoration(
-              color: AppColors.n0,
-              borderRadius: AppDimensions.radius20,
-              boxShadow: AppDimensions.shadowSm,
-            ),
-            child: ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              leading: CircleAvatar(
-                backgroundColor: color.withOpacity(0.15),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              title: Text(exp['title'] as String,
-                  style: AppTypography.bodyMedium
-                      .copyWith(fontWeight: FontWeight.w700)),
-              subtitle: Text('${exp['payer']} • ${exp['time']}',
-                  style: AppTypography.caption),
-              trailing: Text(
-                currencyFormatter.format(exp['amount']),
-                style: AppTypography.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w800, color: AppColors.n900),
-              ),
-              onTap: () {
-                HapticFeedback.lightImpact();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const ExpenseDetailScreen()),
-                );
-              },
-            ),
-          );
-        }),
-      ],
+      ),
     );
-  }
-
-  // --- MODAL THÔNG BÁO PUSH REAL-TIME FCM (BE4-SET-02 & FE4-PAY-01) ---
-  Future<void> _showNotificationSheet(BuildContext context) async {
-    final future = _loadNotifications();
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => SizedBox(
-          height: MediaQuery.sizeOf(context).height * 0.65,
-          child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: future,
-              builder: (context, snapshot) {
-                if (snapshot.hasError)
-                  return Center(
-                      child:
-                          Text('Không tải được thông báo: ${snapshot.error}'));
-                if (!snapshot.hasData)
-                  return const Center(child: CircularProgressIndicator());
-                final notifications = snapshot.data!;
-                if (notifications.isEmpty)
-                  return const Center(child: Text('Chưa có thông báo.'));
-                return ListView(children: [
-                  const ListTile(title: Text('Thông báo')),
-                  for (final item in notifications)
-                    ListTile(
-                      leading: const Icon(Icons.notifications_outlined),
-                      title: Text(item['title']?.toString() ?? ''),
-                      subtitle: Text(item['content']?.toString() ?? ''),
-                      onTap: () {
-                        Navigator.pop(context);
-                        widget.onNavigateToSettlement();
-                      },
-                    ),
-                ]);
-              })),
-    );
-  }
-
-  Future<List<Map<String, dynamic>>> _loadNotifications() async {
-    final userId = await AuthRepository().getCurrentUserId();
-    final response = await dioClient
-        .get('/notifications', queryParameters: {'userId': userId});
-    return (response.data['data'] as List)
-        .map((e) => Map<String, dynamic>.from(e as Map))
-        .toList();
   }
 }

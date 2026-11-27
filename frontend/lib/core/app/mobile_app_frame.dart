@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 
+import '../theme/app_dimensions.dart';
+
 /// Constrain the navigator during build, before route/overlay layout begins.
 class MobileAppFrame extends StatelessWidget {
   final Widget child;
@@ -10,9 +12,9 @@ class MobileAppFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final width = media.size.width.clamp(0.0, 430.0);
+    final width = media.size.width.clamp(0.0, AppDimensions.maxAppWidth);
     return ColoredBox(
-      color: const Color(0xFFECECF3),
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: Center(
         child: SizedBox(
           width: width,

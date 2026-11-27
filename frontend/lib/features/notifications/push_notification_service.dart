@@ -39,8 +39,9 @@ class PushNotificationService {
       if (!await FirebaseMessaging.instance.isSupported()) return null;
       final settings =
           await FirebaseMessaging.instance.getNotificationSettings();
-      if (settings.authorizationStatus == AuthorizationStatus.denied)
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
         return null;
+      }
       return await FirebaseMessaging.instance
           .getToken(vapidKey: kIsWeb ? _webVapidKey : null);
     } catch (error) {

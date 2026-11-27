@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import '../../core/network/api_response.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/network/network_error.dart';
 
 class AuthRepository {
   final Dio _dio;
@@ -64,7 +65,7 @@ class AuthRepository {
       }
 
       throw Exception(
-        e.message ?? 'Không thể kết nối đến máy chủ',
+        networkErrorMessage(e),
       );
     }
   }
@@ -113,7 +114,7 @@ class AuthRepository {
       }
 
       throw Exception(
-        e.message ?? 'Không thể kết nối đến máy chủ',
+        networkErrorMessage(e),
       );
     }
   }
@@ -223,7 +224,7 @@ class AuthRepository {
       }
 
       throw Exception(
-        e.message ?? 'Không thể kết nối đến máy chủ',
+        networkErrorMessage(e),
       );
     }
   }

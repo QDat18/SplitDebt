@@ -4,6 +4,16 @@ import 'package:flutter/material.dart';
 
 /// QUY CHUẨN KHOẢNG CÁCH, BO GÓC & BÓNG ĐỔ DESIGN SYSTEM v1.0.0
 class AppDimensions {
+  static const double compactBreakpoint = 600;
+  static const double navigationRailBreakpoint = 840;
+  static const double extendedNavigationBreakpoint = 1200;
+  static const double maxAppWidth = 1440;
+  static const double maxContentWidth = 1040;
+  static const double minTouchTarget = 48;
+
+  static double horizontalPadding(double width) =>
+      width < compactBreakpoint ? 16 : 32;
+
   // --- SPACING SCALE ---
   static const double s4 = 4.0;
   static const double s8 = 8.0;
@@ -35,26 +45,26 @@ class AppDimensions {
 
   // --- SHADOWS ---
   static List<BoxShadow> get shadowSm => [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.04),
-          blurRadius: 6,
-          offset: const Offset(0, 2),
-        ),
-      ];
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.04),
+      blurRadius: 6,
+      offset: const Offset(0, 2),
+    ),
+  ];
 
   static List<BoxShadow> get shadowMd => [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.08),
-          blurRadius: 16,
-          offset: const Offset(0, 4),
-        ),
-      ];
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.08),
+      blurRadius: 16,
+      offset: const Offset(0, 4),
+    ),
+  ];
 
   static List<BoxShadow> get shadowLg => [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.12),
-          blurRadius: 24,
-          offset: const Offset(0, 8),
-        ),
-      ];
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.12),
+      blurRadius: 24,
+      offset: const Offset(0, 8),
+    ),
+  ];
 }

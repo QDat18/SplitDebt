@@ -1,319 +1,194 @@
-// Trách nhiệm file: Xây dựng màn hình settings screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/network/dio_client.dart';
+import '../../core/state/app_sync.dart';
+import '../../data/repositories/auth_repository.dart';
 
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_dimensions.dart';
-import '../../core/theme/app_typography.dart';
-import '../auth/providers/auth_provider.dart';
-import '../auth/login_screen.dart';
-import '../notifications/notification_screen.dart';
-
-/// ----------------------------------------------------------------------------
-/// MÀN HÌNH CÀI ĐẶT NHÓM & CÁ NHÂN (SETTINGS SCREEN)
-/// Cấu hình Tiền tệ, Hạn mức ngân sách, Auto-Freeze, Dark Mode & Notification
-/// ----------------------------------------------------------------------------
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
-
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends ConsumerState<SettingsScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animController;
-  late Animation<double> _fadeAnim;
-
-  // Cấu hình Cài đặt Nhóm
-  String _selectedCurrency = 'VND';
-  bool _smartSettlementEnabled = true;
-  double _monthlyBudget = 5000000;
-  double _autoFreezeDay = 28;
-
-  // Cấu hình Cài đặt Cá nhân
-  bool _isDarkMode = false;
-  String _language = 'Tiếng Việt';
-  bool _biometricsEnabled = true;
-
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  bool _loading = true, _saving = false, _settlementPush = true;
+  String? _error;
+  int? _id;
+  String _theme = 'SYSTEM', _language = 'VI';
+  String t(String vi, String en) => tr(context, vi, en);
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _animController.forward();
+    _load();
+  }
+
+  void _apply(Map<String, dynamic> data) {
+    final mode = parseBackendThemeMode(data['theme']?.toString());
+    final locale = parseBackendLocale(data['language']?.toString());
+    _theme = mode.name.toUpperCase();
+    _language = locale.languageCode.toUpperCase();
+    _settlementPush = data['notifyOnSettlement'] != false;
+    ref.read(themeModeProvider.notifier).state = mode;
+    ref.read(localeProvider.notifier).state = locale;
+  }
+
+  Future<void> _load() async {
+    if (_saving) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final id = await AuthRepository().getCurrentUserId();
+      final data = await fetchUserPreferences();
+      if (!mounted) return;
+      setState(() {
+        _id = id;
+        _apply(data);
+      });
+    } catch (_) {
+      if (mounted)
+        setState(() => _error = t(
+            'Không tải được cài đặt. Kiểm tra kết nối và thử lại.',
+            'Could not load settings. Check your connection and retry.'));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _save(Map<String, dynamic> patch) async {
+    if (_saving || _id == null) return;
+    setState(() => _saving = true);
+    try {
+      final r = await dioClient.put('/v1/settings/user/$_id', data: patch);
+      if (!mounted) return;
+      ref.read(preferenceRevisionProvider.notifier).state++;
+      setState(() => _apply(Map<String, dynamic>.from(r.data['data'] as Map)));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t('Đã lưu cài đặt.', 'Settings saved.'))));
+    } catch (_) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(t('Không lưu được. Cài đặt cũ vẫn được giữ.',
+                'Could not save. Previous settings are unchanged.'))));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.n50,
-      appBar: AppBar(
-        backgroundColor: AppColors.n50,
-        elevation: 0,
-        title: Text('Cài đặt & Cấu hình',
-            style: AppTypography.title.copyWith(fontSize: 17)),
-        centerTitle: true,
-      ),
-      body: FadeTransition(
-        opacity: _fadeAnim,
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.s20, vertical: AppDimensions.s12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --- 1. PHẦN CÀI ĐẶT NHÓM ---
-              _buildSectionHeader('CÀI ĐẶT NHÓM (DU LỊCH HÀ GIANG)'),
-              const SizedBox(height: AppDimensions.s12),
-              _buildGroupSettingsCard(),
-              const SizedBox(height: AppDimensions.s24),
-
-              // --- 2. PHẦN CÀI ĐẶT CÁ NHÂN ---
-              _buildSectionHeader('CÀI ĐẶT CÁ NHÂN & ỨNG DỤNG'),
-              const SizedBox(height: AppDimensions.s12),
-              _buildUserSettingsCard(),
-              const SizedBox(height: AppDimensions.s20),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.logout),
-                label: const Text('Đăng xuất'),
-                onPressed: () async {
-                  await ref.read(authProvider.notifier).logout();
-                  if (!context.mounted) return;
-                  Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      (_) => false);
-                },
-              ),
-              const SizedBox(height: AppDimensions.s32),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: AppTypography.caption.copyWith(
-        letterSpacing: 1.0,
-        fontWeight: FontWeight.w800,
-        color: AppColors.p700,
-      ),
-    );
-  }
-
-  // --- CARD CÀI ĐẶT NHÓM ---
-  Widget _buildGroupSettingsCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.n0,
-        borderRadius: AppDimensions.radius20,
-        boxShadow: AppDimensions.shadowSm,
-      ),
-      child: Column(
-        children: [
-          // Đơn vị tiền tệ
-          ListTile(
-            leading: const Icon(Icons.monetization_on_rounded,
-                color: AppColors.p500),
-            title: Text('Đơn vị tiền tệ nhóm',
-                style: AppTypography.bodyMedium
-                    .copyWith(fontWeight: FontWeight.w600)),
-            trailing: DropdownButton<String>(
-              value: _selectedCurrency,
-              underline: const SizedBox(),
-              items: const [
-                DropdownMenuItem(value: 'VND', child: Text('VND (₫)')),
-                DropdownMenuItem(value: 'USD', child: Text('USD (\$)')),
-                DropdownMenuItem(value: 'EUR', child: Text('EUR (€)')),
-              ],
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() {
-                    _selectedCurrency = val;
-                  });
-                }
-              },
-            ),
-          ),
-
-          const Divider(height: 1, color: AppColors.n100),
-
-          // Tối ưu nợ thông minh (Smart Settlement Min-Cash-Flow)
-          SwitchListTile(
-            activeColor: AppColors.p500,
-            secondary: const Icon(Icons.bolt_rounded, color: AppColors.warning),
-            title: Text('Tối ưu nợ thông minh (Min-Cash-Flow)',
-                style: AppTypography.bodyMedium
-                    .copyWith(fontWeight: FontWeight.w600)),
-            subtitle: Text('Rút gọn các giao dịch nợ vòng quanh',
-                style: AppTypography.caption),
-            value: _smartSettlementEnabled,
-            onChanged: (val) {
-              setState(() {
-                _smartSettlementEnabled = val;
-              });
-            },
-          ),
-
-          const Divider(height: 1, color: AppColors.n100),
-
-          // Hạn mức ngân sách hàng tháng
-          Padding(
-            padding: const EdgeInsets.all(AppDimensions.s16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Ngân sách hàng tháng nhóm',
-                        style: AppTypography.bodyMedium
-                            .copyWith(fontWeight: FontWeight.w600)),
-                    Text(
-                        '${(_monthlyBudget / 1000000).toStringAsFixed(1)} Tr ₫',
-                        style: AppTypography.title
-                            .copyWith(fontSize: 14, color: AppColors.p600)),
-                  ],
-                ),
-                Slider(
-                  value: _monthlyBudget,
-                  min: 1000000,
-                  max: 20000000,
-                  divisions: 19,
-                  activeColor: AppColors.p500,
-                  onChanged: (val) {
-                    setState(() {
-                      _monthlyBudget = val;
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          const Divider(height: 1, color: AppColors.n100),
-
-          // Ngày tự động đóng băng sổ sách
-          ListTile(
-            leading: const Icon(Icons.ac_unit_rounded, color: AppColors.info),
-            title: Text('Ngày tự đóng băng sổ sách',
-                style: AppTypography.bodyMedium
-                    .copyWith(fontWeight: FontWeight.w600)),
-            subtitle: Text(
-                'Tự động chốt sổ vào ngày ${_autoFreezeDay.toInt()} hàng tháng',
-                style: AppTypography.caption),
-            trailing: Text('Ngày ${_autoFreezeDay.toInt()}',
-                style: AppTypography.title
-                    .copyWith(fontSize: 14, color: AppColors.p600)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- CARD CÀI ĐẶT CÁ NHÂN ---
-  Widget _buildUserSettingsCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.n0,
-        borderRadius: AppDimensions.radius20,
-        boxShadow: AppDimensions.shadowSm,
-      ),
-      child: Column(
-        children: [
-          // Dark Mode Toggle
-          SwitchListTile(
-            activeColor: AppColors.p500,
-            secondary:
-                const Icon(Icons.dark_mode_rounded, color: AppColors.p500),
-            title: Text('Giao diện Tối (Dark Mode)',
-                style: AppTypography.bodyMedium
-                    .copyWith(fontWeight: FontWeight.w600)),
-            value: _isDarkMode,
-            onChanged: (val) {
-              setState(() {
-                _isDarkMode = val;
-              });
-            },
-          ),
-
-          const Divider(height: 1, color: AppColors.n100),
-
-          // Ngôn ngữ
-          ListTile(
-            leading: const Icon(Icons.language_rounded, color: AppColors.p500),
-            title: Text('Ngôn ngữ',
-                style: AppTypography.bodyMedium
-                    .copyWith(fontWeight: FontWeight.w600)),
-            trailing: DropdownButton<String>(
-              value: _language,
-              underline: const SizedBox(),
-              items: const [
-                DropdownMenuItem(
-                    value: 'Tiếng Việt', child: Text('Tiếng Việt 🇻🇳')),
-                DropdownMenuItem(value: 'English', child: Text('English 🇺🇸')),
-              ],
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() {
-                    _language = val;
-                  });
-                }
-              },
-            ),
-          ),
-
-          const Divider(height: 1, color: AppColors.n100),
-
-          // Sinh trắc học Biometrics
-          SwitchListTile(
-            activeColor: AppColors.p500,
-            secondary:
-                const Icon(Icons.fingerprint_rounded, color: AppColors.success),
-            title: Text('Xác thực Sinh trắc học (FaceID)',
-                style: AppTypography.bodyMedium
-                    .copyWith(fontWeight: FontWeight.w600)),
-            subtitle: Text('Bảo mật mở app bằng vân tay/FaceID',
-                style: AppTypography.caption),
-            value: _biometricsEnabled,
-            onChanged: (val) {
-              setState(() {
-                _biometricsEnabled = val;
-              });
-            },
-          ),
-
-          const Divider(height: 1, color: AppColors.n100),
-
-          // Thông báo nhắc nợ
-          ListTile(
-            leading: const Icon(Icons.notifications_active_rounded,
-                color: AppColors.warning),
-            title: Text('Thông báo nhắc nợ & Quyết toán',
-                style: AppTypography.bodyMedium
-                    .copyWith(fontWeight: FontWeight.w600)),
-            subtitle: const Text('Xem thông báo và bật thông báo đẩy'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const NotificationScreen())),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: Text(t('Cài đặt', 'Settings'))),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(
+                    child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child:
+                            Column(mainAxisSize: MainAxisSize.min, children: [
+                          Text(_error!, textAlign: TextAlign.center),
+                          const SizedBox(height: 12),
+                          FilledButton(
+                              onPressed: _load,
+                              child: Text(t('Thử lại', 'Retry')))
+                        ])))
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          if (_saving) const LinearProgressIndicator(),
+                          Text(t('Giao diện', 'Appearance'),
+                              style: Theme.of(context).textTheme.titleMedium),
+                          Card(
+                              child: Column(children: [
+                            ListTile(
+                                leading:
+                                    const Icon(Icons.brightness_6_outlined),
+                                title: Text(t('Chế độ màu', 'Color theme')),
+                                subtitle: Text(t('Sáng, tối hoặc theo thiết bị',
+                                    'Light, dark or system default'))),
+                            for (final option in {
+                              'SYSTEM': t('Theo thiết bị', 'System'),
+                              'LIGHT': t('Sáng', 'Light'),
+                              'DARK': t('Tối', 'Dark')
+                            }.entries)
+                              RadioListTile<String>(
+                                  title: Text(option.value),
+                                  value: option.key,
+                                  groupValue: _theme,
+                                  onChanged: _saving
+                                      ? null
+                                      : (v) {
+                                          if (v != null) _save({'theme': v});
+                                        }),
+                            const Divider(),
+                            ListTile(
+                                leading: const Icon(Icons.language),
+                                title: Text(t('Ngôn ngữ', 'Language')),
+                                subtitle: Text(t(
+                                    'Tiếng Anh hiện áp dụng cho điều hướng và cài đặt; một số nghiệp vụ vẫn tiếng Việt.',
+                                    'English covers navigation and settings; some workflows remain Vietnamese.'))),
+                            for (final option in {
+                              'VI': 'Tiếng Việt',
+                              'EN': 'English'
+                            }.entries)
+                              RadioListTile<String>(
+                                  title: Text(option.value),
+                                  value: option.key,
+                                  groupValue: _language,
+                                  onChanged: _saving
+                                      ? null
+                                      : (v) {
+                                          if (v != null) _save({'language': v});
+                                        }),
+                          ])),
+                          const SizedBox(height: 16),
+                          Text(t('Thông báo', 'Notifications'),
+                              style: Theme.of(context).textTheme.titleMedium),
+                          Card(
+                              child: SwitchListTile(
+                                  secondary:
+                                      const Icon(Icons.notifications_outlined),
+                                  title: Text(t('Thông báo đẩy về thanh toán',
+                                      'Payment push notifications')),
+                                  subtitle: Text(t(
+                                      'Không ảnh hưởng lịch sử thông báo trong ứng dụng. Cần bật quyền thông báo trên thiết bị.',
+                                      'In-app history is unaffected. Device notification permission is required.')),
+                                  value: _settlementPush,
+                                  onChanged: _saving
+                                      ? null
+                                      : (v) =>
+                                          _save({'notifyOnSettlement': v}))),
+                          const SizedBox(height: 16),
+                          Text(t('Thông tin chức năng', 'Feature information'),
+                              style: Theme.of(context).textTheme.titleMedium),
+                          Card(
+                              child: Column(children: [
+                            ListTile(
+                                leading: const Icon(Icons.currency_exchange),
+                                title: Text(t('Tiền tệ', 'Currency')),
+                                subtitle: Text(t(
+                                    'Giao diện khoản chi hiện hỗ trợ VND; không tự quy đổi tiền đã ghi.',
+                                    'Expense entry currently supports VND; existing amounts are not converted.'))),
+                            ListTile(
+                                leading: const Icon(Icons.group_outlined),
+                                title:
+                                    Text(t('Quản lý nhóm', 'Group management')),
+                                subtitle: Text(t(
+                                    'Mở Nhóm → chọn nhóm → Cài đặt nhóm để sửa thông tin theo quyền.',
+                                    'Open Groups → select a group → Group settings to edit authorized details.'))),
+                            ListTile(
+                                leading: const Icon(Icons.info_outline),
+                                title: Text(t('Tính năng chưa hỗ trợ',
+                                    'Not yet supported')),
+                                subtitle: Text(t(
+                                    'Khóa sinh trắc học, nhắc nợ tự động, phê duyệt chi, hạn mức và chốt sổ tự động chưa được thực thi đầy đủ. Các nút giả lập đã được ẩn.',
+                                    'Biometrics, automatic reminders, expense approval, budgets and auto-closing are not fully implemented. Inactive switches are hidden.'))),
+                          ])),
+                        ]),
+                  ),
+      );
 }

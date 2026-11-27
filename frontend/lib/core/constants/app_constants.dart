@@ -9,12 +9,19 @@ class AppConstants {
 
   static String get apiBaseUrl {
     const override = String.fromEnvironment('API_BASE_URL');
-    final url = override.isNotEmpty
-        ? override
-        : dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8081/api';
-    if (kIsWeb && url.contains('10.0.2.2')) {
-      return url.replaceAll('10.0.2.2', 'localhost');
+    final configured = override.trim().isNotEmpty
+        ? override.trim()
+        : (dotenv.env['API_BASE_URL'] ?? '').trim();
+    final fallback = kIsWeb ? 'http://localhost:8081/api' : 'http://10.0.2.2:8081/api';
+    final url = configured.isEmpty ? fallback : configured;
+    final uri = Uri.tryParse(url);
+    if (uri == null || !uri.hasAuthority ||
+        !const ['http', 'https'].contains(uri.scheme) || uri.host.isEmpty ||
+        uri.hasQuery || uri.hasFragment || uri.userInfo.isNotEmpty) {
+      throw FormatException('API_BASE_URL không hợp lệ.');
     }
-    return url;
+    final resolved = kIsWeb && uri.host == '10.0.2.2'
+        ? uri.replace(host: 'localhost') : uri;
+    return resolved.toString().replaceFirst(RegExp(r'/+$'), '');
   }
 }

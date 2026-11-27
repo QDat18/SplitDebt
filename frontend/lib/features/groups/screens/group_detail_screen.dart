@@ -7,6 +7,7 @@ import '../models/group_member_model.dart';
 import '../providers/group_provider.dart';
 
 import '../../../core/network/dio_client.dart';
+import '../../../core/state/app_sync.dart';
 import '../../../core/theme/pdf_components.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../expenses/pdf_expense_detail.dart';
@@ -133,6 +134,13 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   void initState() {
     super.initState();
     _load();
+    appDataSyncSignal.addListener(_load);
+  }
+
+  @override
+  void dispose() {
+    appDataSyncSignal.removeListener(_load);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -153,11 +161,12 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
         _error = null;
       });
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = 'Không tải được khoản chi.';
           _loading = false;
         });
+      }
     }
   }
 

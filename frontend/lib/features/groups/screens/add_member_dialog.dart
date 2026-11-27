@@ -83,15 +83,16 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
                 prefixIcon: Icon(Icons.email_outlined),
               ),
               validator: (val) {
-                if (val == null || val.trim().isEmpty)
+                if (val == null || val.trim().isEmpty) {
                   return 'Vui lòng nhập email';
+                }
                 if (!val.contains('@')) return 'Email không hợp lệ';
                 return null;
               },
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedRole,
+              initialValue: _selectedRole,
               decoration: const InputDecoration(
                 labelText: 'Vai trò trong nhóm',
                 prefixIcon: Icon(Icons.admin_panel_settings_outlined),

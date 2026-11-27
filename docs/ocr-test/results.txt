@@ -1,0 +1,14 @@
+PASS standard printed receipt
+PASS no total: do not guess
+PASS tax mismatch warning and next-line total
+PASS ambiguous totals
+PASS decimal formatting and discount
+Result[text=H?A ??N
+
+C?m g? 45.000
+
+Tr? ?? 5.000
+
+T?ng c?ng 50.000 VND
+, total=50000, items=[Item[name=C?m g?, amount=45000], Item[name=Tr? ??, amount=5000]], warnings=[]]
+PASS real Tesseract output -> parser

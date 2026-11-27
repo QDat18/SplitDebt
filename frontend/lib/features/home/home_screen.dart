@@ -73,7 +73,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final groupsAsync = ref.watch(userGroupsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () => ref.read(userGroupsProvider.notifier).fetchGroups(),

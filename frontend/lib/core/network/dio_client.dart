@@ -2,8 +2,10 @@
 
 import 'package:dio/dio.dart';
 
+import '../app/app_keys.dart';
 import '../constants/app_constants.dart';
 import '../storage/token_storage.dart';
+import 'network_error.dart';
 
 class DioClient {
   late final Dio _dio;
@@ -21,7 +23,7 @@ class DioClient {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           // Login/register chưa có JWT nên không gắn token.
-          if (!options.path.contains('auth')) {
+          if (!_isPublicAuth(options.uri.path)) {
             final token = await tokenStorage.getToken();
 
             if (token != null && token.isNotEmpty) {
@@ -33,24 +35,18 @@ class DioClient {
         },
         onError: (DioException e, handler) async {
           if (e.response?.statusCode == 401 &&
-              !e.requestOptions.path.contains('/auth/')) {
+              !_isPublicAuth(e.requestOptions.uri.path)) {
             await tokenStorage.deleteToken();
+            sessionExpiredSignal.value = sessionExpiredSignal.value + 1;
           }
-          if (e.response != null && e.response?.data is Map<String, dynamic>) {
-            final data = e.response!.data as Map<String, dynamic>;
-
-            if (data.containsKey('message')) {
-              e = e.copyWith(
-                message: data['message']?.toString(),
-              );
-            }
-          }
-
-          return handler.next(e);
+          return handler.next(e.copyWith(message: networkErrorMessage(e)));
         },
       ),
     );
   }
+
+  static bool _isPublicAuth(String path) =>
+      path.endsWith('/auth/login') || path.endsWith('/auth/register');
 
   Dio get dio => _dio;
 }

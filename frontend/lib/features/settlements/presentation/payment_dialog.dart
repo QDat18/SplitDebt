@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../../../core/theme/pdf_components.dart';
+import '../../../core/state/app_sync.dart';
 import '../data/settlement_api_service.dart';
 import '../models/settlement_models.dart';
 
@@ -35,12 +36,14 @@ class _PaymentDialogState extends State<PaymentDialog> {
             settlementId: widget.settlement.id,
             paymentMethod: _method);
       }
+      notifyDataChanged();
       widget.onUpdated();
       if (mounted) setState(() => _done = true);
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Không thể cập nhật thanh toán: $error')));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

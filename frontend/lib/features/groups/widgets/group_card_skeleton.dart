@@ -54,7 +54,7 @@ class _GroupCardSkeletonState extends State<GroupCardSkeleton>
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(opacity),
+                        color: Colors.grey.withValues(alpha: opacity),
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
@@ -67,7 +67,7 @@ class _GroupCardSkeletonState extends State<GroupCardSkeleton>
                             width: 140,
                             height: 16,
                             decoration: BoxDecoration(
-                              color: Colors.grey.withOpacity(opacity),
+                              color: Colors.grey.withValues(alpha: opacity),
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -76,7 +76,7 @@ class _GroupCardSkeletonState extends State<GroupCardSkeleton>
                             width: 90,
                             height: 12,
                             decoration: BoxDecoration(
-                              color: Colors.grey.withOpacity(opacity),
+                              color: Colors.grey.withValues(alpha: opacity),
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -87,7 +87,7 @@ class _GroupCardSkeletonState extends State<GroupCardSkeleton>
                       width: 60,
                       height: 24,
                       decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(opacity),
+                        color: Colors.grey.withValues(alpha: opacity),
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
@@ -98,7 +98,7 @@ class _GroupCardSkeletonState extends State<GroupCardSkeleton>
                   width: double.infinity,
                   height: 12,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(opacity),
+                    color: Colors.grey.withValues(alpha: opacity),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),

@@ -1,19 +1,18 @@
-// Trách nhiệm file: Xây dựng màn hình splash screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
-
 import 'dart:async';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'onboarding_screen.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../core/providers/auth_provider.dart';
-import '../../core/theme/app_theme.dart';
-import '../../main_layout_screen.dart';
-import 'login_screen.dart';
-import '../../data/repositories/auth_repository.dart';
-import '../notifications/push_notification_service.dart';
 import '../../core/app/app_keys.dart';
+import '../../core/providers/auth_provider.dart';
+import '../../core/widgets/motion_kit.dart';
+import '../../core/widgets/premium_shell.dart';
+import '../../data/repositories/auth_repository.dart';
+import '../../main_layout_screen.dart';
+import '../notifications/push_notification_service.dart';
+import 'login_screen.dart';
+import 'onboarding_screen.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -22,51 +21,48 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen>
+    with SingleTickerProviderStateMixin {
   Timer? _timer;
+  late final AnimationController _animation;
 
   @override
   void initState() {
     super.initState();
-
-    _timer = Timer(
-      const Duration(seconds: 2),
-      _checkAuthAndNavigate,
-    );
+    _animation = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 520),
+    )..forward();
+    _timer = Timer(const Duration(milliseconds: 150), _checkAuthAndNavigate);
   }
 
   Future<void> _checkAuthAndNavigate() async {
-    // Giữ nguyên AuthNotifier của dev1-huy.
-    // Gọi lại checkToken để chắc chắn trạng thái auth đã được xác định.
     final isAuthenticated = await ref.read(authProvider.notifier).checkToken();
-
     if (!mounted) return;
 
     if (isAuthenticated) {
-      unawaited(_restorePush());
+      unawaited(_restorePushAndTheme());
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const MainLayoutScreen(),
-        ),
+        fintechRoute(const MainLayoutScreen()),
       );
-    } else {
-      final prefs = await SharedPreferences.getInstance();
-      if (!mounted) return;
-      final seen = prefs.getBool('onboarding_complete') ?? false;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => seen ? const LoginScreen() : const OnboardingScreen(),
-        ),
-      );
+      return;
     }
+
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    final seen = prefs.getBool('onboarding_complete') ?? false;
+    Navigator.of(context).pushReplacement(
+      fintechRoute(seen ? const LoginScreen() : const OnboardingScreen()),
+    );
   }
 
-  Future<void> _restorePush() async {
+  Future<void> _restorePushAndTheme() async {
     try {
+      final userId = await AuthRepository().getCurrentUserId();
       final push = PushNotificationService.instance;
       push.bindMessenger(scaffoldMessengerKey);
       await push.initialize();
-      await push.subscribeToUser(await AuthRepository().getCurrentUserId());
+      await push.subscribeToUser(userId);
     } catch (error) {
       debugPrint('Không khôi phục được thông báo: $error');
     }
@@ -75,48 +71,42 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _animation.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final fade = CurvedAnimation(parent: _animation, curve: Curves.easeOut);
     return Scaffold(
-      backgroundColor: AppTheme.primaryColor,
+      backgroundColor: const Color(0xFF000000),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: const Center(
-                child: Text(
-                  '✂️',
-                  style: TextStyle(fontSize: 48),
+        child: FadeTransition(
+          opacity: fade,
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SplitDebtMark(size: 76),
+              SizedBox(height: 18),
+              Text(
+                'SplitDebt',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'XÉN NỢ',
-              style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Chia tiền nhóm, hết lăn tăn',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
-            ),
-          ],
+              SizedBox(height: 6),
+              Text(
+                'Quản lý chi tiêu nhóm & chia nợ',
+                style: TextStyle(
+                  color: Color(0xFF8E8E93),
+                  fontSize: 13.5,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -46,7 +46,7 @@ class _MemberListSkeletonState extends State<MemberListSkeleton>
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: Colors.grey.withOpacity(opacity),
+                  backgroundColor: Colors.grey.withValues(alpha: opacity),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -57,7 +57,7 @@ class _MemberListSkeletonState extends State<MemberListSkeleton>
                         width: 120,
                         height: 14,
                         decoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(opacity),
+                          color: Colors.grey.withValues(alpha: opacity),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -66,7 +66,7 @@ class _MemberListSkeletonState extends State<MemberListSkeleton>
                         width: 180,
                         height: 12,
                         decoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(opacity),
+                          color: Colors.grey.withValues(alpha: opacity),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),

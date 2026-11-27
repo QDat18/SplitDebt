@@ -259,11 +259,21 @@ public class ExpenseServiceImpl implements ExpenseService {
         groupAccessService.requireActiveMember(groupId, currentUserId);
         List<Expense> expenses = expenseRepository.findByGroupIdOrderByExpenseDateDesc(groupId);
         List<ExpenseResponse> responses = new ArrayList<>();
-
-        for (Expense expense : expenses) {
-            List<ExpenseParticipant> participants = expenseParticipantRepository.findByExpenseId(expense.getId());
-            List<ExpenseItem> items = expenseItemRepository.findByExpenseId(expense.getId());
-            responses.add(mapToExpenseResponse(expense, participants, items));
+        // Bound SQL IN lists and fetch all relations in batches, preserving response order.
+        for (int start = 0; start < expenses.size(); start += 250) {
+            List<Expense> batch = expenses.subList(start, Math.min(start + 250, expenses.size()));
+            List<Long> ids = batch.stream().map(Expense::getId).toList();
+            var participants = expenseParticipantRepository.findByExpenseIdIn(ids).stream()
+                    .collect(Collectors.groupingBy(p -> p.getExpense().getId()));
+            var allItems = expenseItemRepository.findByExpenseIdIn(ids);
+            var items = allItems.stream().collect(Collectors.groupingBy(i -> i.getExpense().getId()));
+            java.util.Map<Long, List<ItemParticipant>> itemParts = new java.util.HashMap<>();
+            for (int i=0;i<allItems.size();i+=500) {
+                var itemIds=allItems.subList(i,Math.min(i+500,allItems.size())).stream().map(ExpenseItem::getId).toList();
+                itemParts.putAll(itemParticipantRepository.findByItemIdIn(itemIds).stream().collect(Collectors.groupingBy(p -> p.getItem().getId())));
+            }
+            for (Expense expense : batch) responses.add(mapToExpenseResponse(expense,
+                    participants.getOrDefault(expense.getId(),List.of()),items.getOrDefault(expense.getId(),List.of()),itemParts));
         }
 
         return responses;
@@ -456,6 +466,10 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     private ExpenseResponse mapToExpenseResponse(Expense expense, List<ExpenseParticipant> participants, List<ExpenseItem> items) {
+        return mapToExpenseResponse(expense, participants, items, null);
+    }
+
+    private ExpenseResponse mapToExpenseResponse(Expense expense, List<ExpenseParticipant> participants, List<ExpenseItem> items, java.util.Map<Long, List<ItemParticipant>> preloaded) {
         List<ExpenseParticipantResponse> participantResponses = participants.stream()
                 .map(p -> ExpenseParticipantResponse.builder()
                         .id(p.getId())
@@ -471,7 +485,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
         List<ExpenseItemResponse> itemResponses = items.stream()
                 .map(item -> {
-                    List<ItemParticipant> itemParts = itemParticipantRepository.findByItemId(item.getId());
+                    List<ItemParticipant> itemParts = preloaded == null ? itemParticipantRepository.findByItemId(item.getId()) : preloaded.getOrDefault(item.getId(), List.of());
                     List<ItemParticipantResponse> ipResponses = itemParts.stream()
                             .map(ip -> ItemParticipantResponse.builder()
                                     .id(ip.getId())

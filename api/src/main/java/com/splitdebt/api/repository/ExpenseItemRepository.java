@@ -15,5 +15,8 @@ public interface ExpenseItemRepository extends JpaRepository<ExpenseItem, Long> 
 
     List<ExpenseItem> findByExpenseId(Long expenseId);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"expense"})
+    List<ExpenseItem> findByExpenseIdIn(List<Long> expenseIds);
+
     void deleteByExpenseId(Long expenseId);
 }
