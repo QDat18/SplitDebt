@@ -7,6 +7,16 @@ import 'chat_models.dart';
 import 'chat_repository.dart';
 import 'uuid.dart';
 
+class RefreshResult {
+  final int newCount;
+  final bool failed;
+
+  const RefreshResult({
+    required this.newCount,
+    required this.failed,
+  });
+}
+
 class ChatState {
   final List<ChatMessage> messages;
   final bool loadingInitial;
@@ -127,26 +137,41 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
   }
 
-  Future<void> refreshNewer() async {
-    if (state.loadingInitial || _isRefreshingNewer || state.removed) return;
+  Future<RefreshResult> refreshNewer() async {
+    if (state.loadingInitial || _isRefreshingNewer || state.removed) {
+      return const RefreshResult(newCount: 0, failed: false);
+    }
     if (state.newestServerId == null && state.error != null) {
+      final prevIds = state.messages.map((m) => m.id).whereType<int>().toSet();
       await loadInitial();
-      return;
+      if (!mounted || state.error != null) {
+        return const RefreshResult(newCount: 0, failed: true);
+      }
+      final newCount = state.messages
+          .where((m) => m.id != null && !prevIds.contains(m.id))
+          .length;
+      return RefreshResult(newCount: newCount, failed: false);
     }
     final lastId = state.newestServerId ?? 0;
 
     _isRefreshingNewer = true;
     try {
       final newMsgs = await _repository.after(groupId, lastId);
-      if (mounted) {
-        state = state.copyWith(
-          messages: mergeMessages(state.messages, newMsgs),
-        );
-      }
+      if (!mounted) return const RefreshResult(newCount: 0, failed: false);
+      final existingIds =
+          state.messages.map((m) => m.id).whereType<int>().toSet();
+      final newCount = newMsgs
+          .where((m) => m.id != null && !existingIds.contains(m.id))
+          .length;
+      state = state.copyWith(
+        messages: mergeMessages(state.messages, newMsgs),
+      );
+      return RefreshResult(newCount: newCount, failed: false);
     } catch (e) {
       if (mounted && e is DioException && e.response?.statusCode == 403) {
         state = state.copyWith(removed: true);
       }
+      return const RefreshResult(newCount: 0, failed: true);
     } finally {
       _isRefreshingNewer = false;
     }

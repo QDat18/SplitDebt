@@ -289,5 +289,71 @@ void main() {
 
       expect(notifier.state.removed, isTrue);
     });
+
+    test('refreshNewer returns newCount for unseen messages, 0 for existing, failed on error', () async {
+      repo.mockLatest = [
+        ChatMessage(
+          id: 1,
+          groupId: 10,
+          senderId: 2,
+          senderName: 'B',
+          content: 'Existing',
+          createdAt: DateTime.now(),
+          clientMessageId: 'c1',
+          status: ChatStatus.sent,
+        ),
+      ];
+      await notifier.loadInitial();
+
+      // Returns 2 new messages
+      repo.mockAfter = [
+        ChatMessage(
+          id: 2,
+          groupId: 10,
+          senderId: 2,
+          senderName: 'B',
+          content: 'New 1',
+          createdAt: DateTime.now(),
+          clientMessageId: 'c2',
+          status: ChatStatus.sent,
+        ),
+        ChatMessage(
+          id: 3,
+          groupId: 10,
+          senderId: 2,
+          senderName: 'B',
+          content: 'New 2',
+          createdAt: DateTime.now(),
+          clientMessageId: 'c3',
+          status: ChatStatus.sent,
+        ),
+      ];
+      final res1 = await notifier.refreshNewer();
+      expect(res1.newCount, equals(2));
+      expect(res1.failed, isFalse);
+
+      // Returns same already-present message
+      repo.mockAfter = [
+        ChatMessage(
+          id: 3,
+          groupId: 10,
+          senderId: 2,
+          senderName: 'B',
+          content: 'New 2',
+          createdAt: DateTime.now(),
+          clientMessageId: 'c3',
+          status: ChatStatus.sent,
+        ),
+      ];
+      final res2 = await notifier.refreshNewer();
+      expect(res2.newCount, equals(0));
+      expect(res2.failed, isFalse);
+
+      // Network error -> failed = true
+      repo.shouldFailAfter = true;
+      final res3 = await notifier.refreshNewer();
+      expect(res3.newCount, equals(0));
+      expect(res3.failed, isTrue);
+    });
   });
 }
