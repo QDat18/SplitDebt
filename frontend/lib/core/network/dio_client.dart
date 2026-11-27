@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import '../constants/app_constants.dart';
 import '../storage/token_storage.dart';
+import 'server_warmup.dart';
 
 class DioClient {
   static void Function()? onReconsentRequired;
@@ -51,7 +52,11 @@ class DioClient {
               onReconsentRequired?.call();
             }
           }
-          if (e.response != null && e.response?.data is Map<String, dynamic>) {
+          final timeoutMsg = dioTimeoutMessage(e);
+          if (timeoutMsg != null) {
+            e = e.copyWith(message: timeoutMsg);
+          } else if (e.response != null &&
+              e.response?.data is Map<String, dynamic>) {
             final data = e.response!.data as Map<String, dynamic>;
 
             if (data.containsKey('message')) {

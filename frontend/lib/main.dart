@@ -1,5 +1,7 @@
 // Trách nhiệm file: Khởi tạo Flutter, nạp biến môi trường, cấu hình Firebase và dựng cây ứng dụng gốc.
 
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -13,6 +15,7 @@ import 'core/localization/app_strings.dart';
 import 'core/localization/locale_provider.dart';
 import 'core/navigation/route_observer.dart';
 import 'core/network/dio_client.dart';
+import 'core/network/server_warmup.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/splash_screen.dart';
 import 'features/legal/reconsent_screen.dart';
@@ -123,6 +126,8 @@ Future<void> main() async {
       ),
     );
   };
+
+  unawaited(warmUpServer(dioClient));
 
   runApp(
     const ProviderScope(
