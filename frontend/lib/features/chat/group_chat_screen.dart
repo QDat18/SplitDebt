@@ -12,11 +12,17 @@ import 'active_chat.dart';
 import 'chat_logic.dart';
 import 'chat_models.dart';
 import 'chat_notifier.dart';
+import 'chat_poll_policy.dart';
 
 class GroupChatScreen extends ConsumerStatefulWidget {
   final GroupModel group;
+  final DateTime Function()? nowProvider;
 
-  const GroupChatScreen({super.key, required this.group});
+  const GroupChatScreen({
+    super.key,
+    required this.group,
+    this.nowProvider,
+  });
 
   @override
   ConsumerState<GroupChatScreen> createState() => _GroupChatScreenState();
@@ -32,6 +38,11 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
   Timer? _markReadDebounce;
   StreamSubscription<RemoteMessage>? _fcmSubscription;
   int? _lastMarkedReadId;
+  DateTime? _lastActivity;
+  bool _lastPollFailed = false;
+  bool _isAppInBackground = false;
+
+  DateTime _now() => (widget.nowProvider ?? DateTime.now)();
 
   @override
   void initState() {
@@ -46,7 +57,7 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(chatNotifierProvider(_groupId).notifier).loadInitial();
-        _startPolling();
+        _markActivity();
         _listenToFcm();
       }
     });
@@ -60,6 +71,7 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
         final type = message.data['type']?.toString();
         final gId = message.data['groupId']?.toString();
         if (type == 'GROUP_MESSAGE' && gId == '$_groupId') {
+          _markActivity();
           ref.read(chatNotifierProvider(_groupId).notifier).refreshNewer();
         }
       });
@@ -68,14 +80,48 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
     }
   }
 
-  void _startPolling() {
+  void _markActivity() {
+    _lastActivity = _now();
+    _lastPollFailed = false;
+    _scheduleNextPoll();
+  }
+
+  void _scheduleNextPoll() {
     _pollTimer?.cancel();
-    if (ref.read(chatNotifierProvider(_groupId)).removed) return;
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (mounted) {
-        ref.read(chatNotifierProvider(_groupId).notifier).refreshNewer();
-      }
-    });
+    _pollTimer = null;
+    if (!mounted ||
+        _isAppInBackground ||
+        ref.read(chatNotifierProvider(_groupId)).removed) {
+      return;
+    }
+    final delay = nextChatPollDelay(
+      now: _now(),
+      lastActivity: _lastActivity,
+      lastPollFailed: _lastPollFailed,
+    );
+    _pollTimer = Timer(delay, _onPollTick);
+  }
+
+  Future<void> _onPollTick() async {
+    if (!mounted ||
+        _isAppInBackground ||
+        ref.read(chatNotifierProvider(_groupId)).removed) {
+      _stopPolling();
+      return;
+    }
+    final res =
+        await ref.read(chatNotifierProvider(_groupId).notifier).refreshNewer();
+    if (!mounted ||
+        _isAppInBackground ||
+        ref.read(chatNotifierProvider(_groupId)).removed) {
+      _stopPolling();
+      return;
+    }
+    if (res.newCount > 0) {
+      _lastActivity = _now();
+    }
+    _lastPollFailed = res.failed;
+    _scheduleNextPoll();
   }
 
   void _stopPolling() {
@@ -86,10 +132,12 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _isAppInBackground = false;
       ActiveChat.groupId = _groupId;
-      _startPolling();
+      _markActivity();
       ref.read(chatNotifierProvider(_groupId).notifier).refreshNewer();
     } else {
+      _isAppInBackground = true;
       _stopPolling();
     }
   }
@@ -121,7 +169,10 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
     setState(() {});
 
     final notifier = ref.read(chatNotifierProvider(_groupId).notifier);
-    await notifier.send(text);
+    final sent = await notifier.send(text);
+    if (sent && mounted) {
+      _markActivity();
+    }
 
     if (_scrollController.hasClients) {
       _scrollController.animateTo(

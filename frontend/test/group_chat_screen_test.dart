@@ -17,6 +17,9 @@ class MockChatRepository implements ChatRepository {
   int? markedReadId;
   String? lastSentContent;
   String? lastSentClientMessageId;
+  int afterCallCount = 0;
+  List<ChatMessage> nextAfterMessages = [];
+  bool shouldFailAfter = false;
 
   @override
   Future<MessagePage> latest(int groupId, {int limit = 30}) async {
@@ -25,7 +28,9 @@ class MockChatRepository implements ChatRepository {
 
   @override
   Future<List<ChatMessage>> after(int groupId, int afterId) async {
-    return [];
+    afterCallCount++;
+    if (shouldFailAfter) throw Exception('Network error');
+    return nextAfterMessages;
   }
 
   @override
@@ -317,4 +322,175 @@ void main() {
     expect(find.byType(TextField), findsNothing);
     expect(find.text('Bạn không còn là thành viên của nhóm này.'), findsOneWidget);
   });
+
+  testWidgets('adaptive polling: polls every 1s for 30s then slows to 5s when idle', (tester) async {
+      final mockRepo = MockChatRepository();
+      var fakeNow = DateTime(2026, 11, 27, 12, 0, 0);
+
+      Future<void> advance(Duration d) async {
+        const step = Duration(seconds: 1);
+        var remaining = d;
+        while (remaining >= step) {
+          fakeNow = fakeNow.add(step);
+          await tester.pump(step);
+          remaining -= step;
+        }
+        if (remaining > Duration.zero) {
+          fakeNow = fakeNow.add(remaining);
+          await tester.pump(remaining);
+        }
+      }
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            chatRepositoryProvider.overrideWithValue(mockRepo),
+            chatCurrentUserIdProvider.overrideWith((ref) => Future.value(1)),
+          ],
+          child: MaterialApp(
+            home: GroupChatScreen(group: group, nowProvider: () => fakeNow),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      await advance(const Duration(seconds: 30));
+      final countAt30 = mockRepo.afterCallCount;
+      expect(countAt30, greaterThanOrEqualTo(28));
+      expect(countAt30, lessThanOrEqualTo(31));
+
+      await advance(const Duration(seconds: 10));
+      final deltaInSlow10s = mockRepo.afterCallCount - countAt30;
+      expect(deltaInSlow10s, equals(2));
+    });
+
+    testWidgets('receiving a new message during slow poll switches back to 1s', (tester) async {
+      final mockRepo = MockChatRepository();
+      var fakeNow = DateTime(2026, 11, 27, 12, 0, 0);
+
+      Future<void> advance(Duration d) async {
+        const step = Duration(seconds: 1);
+        var remaining = d;
+        while (remaining >= step) {
+          fakeNow = fakeNow.add(step);
+          await tester.pump(step);
+          remaining -= step;
+        }
+      }
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            chatRepositoryProvider.overrideWithValue(mockRepo),
+            chatCurrentUserIdProvider.overrideWith((ref) => Future.value(1)),
+          ],
+          child: MaterialApp(
+            home: GroupChatScreen(group: group, nowProvider: () => fakeNow),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      // Enter slow poll (>30s idle)
+      await advance(const Duration(seconds: 35));
+      mockRepo.nextAfterMessages = [
+        ChatMessage(
+          id: 500,
+          groupId: 10,
+          senderId: 2,
+          senderName: 'B',
+          content: 'Wake up!',
+          clientMessageId: 'wake-500',
+          createdAt: fakeNow,
+          status: ChatStatus.sent,
+        ),
+      ];
+
+      final beforeTrigger = mockRepo.afterCallCount;
+      // Wait up to 5s for the slow poll tick to fire and fetch the new message
+      await advance(const Duration(seconds: 5));
+      expect(mockRepo.afterCallCount, greaterThan(beforeTrigger));
+
+      // Clear new messages and verify next poll happens in 1s
+      mockRepo.nextAfterMessages = [];
+      final afterNewMsgCount = mockRepo.afterCallCount;
+      await advance(const Duration(seconds: 1));
+      expect(mockRepo.afterCallCount, equals(afterNewMsgCount + 1));
+    });
+
+    testWidgets('poll error backs off to 5s even when recently active', (tester) async {
+      final mockRepo = MockChatRepository();
+      var fakeNow = DateTime(2026, 11, 27, 12, 0, 0);
+      mockRepo.shouldFailAfter = true;
+
+      Future<void> advance(Duration d) async {
+        const step = Duration(seconds: 1);
+        var remaining = d;
+        while (remaining >= step) {
+          fakeNow = fakeNow.add(step);
+          await tester.pump(step);
+          remaining -= step;
+        }
+      }
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            chatRepositoryProvider.overrideWithValue(mockRepo),
+            chatCurrentUserIdProvider.overrideWith((ref) => Future.value(1)),
+          ],
+          child: MaterialApp(
+            home: GroupChatScreen(group: group, nowProvider: () => fakeNow),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      // First fast poll fires at 1s and fails
+      await advance(const Duration(seconds: 1));
+      final countAfterFail = mockRepo.afterCallCount;
+      expect(countAfterFail, equals(1));
+
+      // Next 4s should NOT poll (backed off to 5s)
+      await advance(const Duration(seconds: 4));
+      expect(mockRepo.afterCallCount, equals(countAfterFail));
+
+      // At 5s total since failure, it polls again
+      await advance(const Duration(seconds: 1));
+      expect(mockRepo.afterCallCount, equals(countAfterFail + 1));
+    });
+
+    testWidgets('disposing screen cancels timer and stops calling after', (tester) async {
+      final mockRepo = MockChatRepository();
+      var fakeNow = DateTime(2026, 11, 27, 12, 0, 0);
+      final navKey = GlobalKey<NavigatorState>();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            chatRepositoryProvider.overrideWithValue(mockRepo),
+            chatCurrentUserIdProvider.overrideWith((ref) => Future.value(1)),
+          ],
+          child: MaterialApp(
+            navigatorKey: navKey,
+            home: GroupChatScreen(group: group, nowProvider: () => fakeNow),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      navKey.currentState!.pushReplacement(
+        MaterialPageRoute(builder: (_) => const Scaffold(body: Text('Other'))),
+      );
+      await tester.pumpAndSettle();
+
+      final countAfterDispose = mockRepo.afterCallCount;
+      fakeNow = fakeNow.add(const Duration(seconds: 10));
+      await tester.pump(const Duration(seconds: 10));
+      expect(mockRepo.afterCallCount, equals(countAfterDispose));
+    });
 }

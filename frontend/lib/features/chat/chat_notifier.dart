@@ -177,10 +177,10 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
   }
 
-  Future<void> send(String text) async {
-    if (state.removed) return;
+  Future<bool> send(String text) async {
+    if (state.removed) return false;
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty) return false;
 
     final clientMsgId = uuidV4();
     final pending = ChatMessage(
@@ -203,11 +203,13 @@ class ChatNotifier extends StateNotifier<ChatState> {
           messages: mergeMessages(state.messages, [serverMsg]),
         );
       }
+      return true;
     } catch (e) {
       debugPrint('Chat send error: $e');
       if (mounted) {
         _markSendFailure(clientMsgId, e);
       }
+      return false;
     }
   }
 
