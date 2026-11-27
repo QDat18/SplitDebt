@@ -9,12 +9,13 @@
 - **Group Chat Review (C1–C5) hoàn tất:** khởi tạo `lastReadMessageId` cho thành viên mới, fallback `loadInitial()` khi `refreshNewer` lỗi rỗng, giới hạn 2000 ký tự + `rejected` trên HTTP 400, trạng thái `removed` trên HTTP 403, đọc lại ngoài transaction khi `DataIntegrityViolationException`; `.\mvnw.cmd test` 103 passed, `flutter analyze` 0 error (54 info/warning có sẵn), `flutter test -j 1` 256 passed, 1 skipped (`holdout`).
 - **Group Chat Review vòng 1 (G1) hoàn tất:** thêm `@EntityGraph(attributePaths = {"sender", "group"})` cho `findBySenderIdAndClientMessageId` + `GroupChatNoTxTest` (không `@Transactional`); `.\mvnw.cmd test` 105 passed.
 - **Chat Adaptive Polling (T1–T3) hoàn tất:** `chat_poll_policy.dart` (1s trong 30s hoạt động, 5s khi im lặng/lỗi), `RefreshResult` từ `refreshNewer`, timer tự lên lịch duy nhất trong `GroupChatScreen`; `flutter analyze` 0 error (54 info/warning có sẵn), `flutter test -j 1` 264 passed, 1 skipped (`holdout`).
+- **Android Release APK (A1–A5) hoàn tất:** đổi Application ID thành `vn.hvnh.splitdebt`, cấu hình ký release (fallback khoá debug + `key.properties.example`), `android:label="SplitDebt"` + `app_version_test.dart`, `proguard-rules.pro` cho ML Kit, `tool/build_apk.ps1`, `docs/android-release.md`; `flutter analyze` 0 error, `flutter test -j 1` 265 passed, 1 skipped (`holdout`), `.\tool\build_apk.ps1 -ApiBaseUrl https://example.com/api` build thành công `app-release.apk` (85.58 MB).
 
 ## In progress
 - Chưa thực hiện được kiểm thử thủ công trên `Pixel_8a` (máy ảo không lên `adb` trong phiên chạy nền).
 
 ## Next
-- Chủ dự án chạy kiểm thử thủ công trên `Pixel_8a` theo spec mục 8 và điền các chỗ `[CẦN ĐIỀN]` trong `docs/legal/`.
+- Chủ dự án thêm app Android `vn.hvnh.splitdebt` vào Firebase và cập nhật `FIREBASE_ANDROID_APP_ID` trong `.env` (nếu không, push trên Android ngừng hoạt động, app vẫn chạy), tạo `.jks`/`key.properties` theo `docs/android-release.md`, chạy kiểm thử thủ công trên `Pixel_8a` và điền `[CẦN ĐIỀN]` trong `docs/legal/`.
 
 ## Blockers
 - X3 dừng ở converter VietReceipt; chưa chạy `pod install` trên macOS; `GroupServiceImpl.deleteGroup` có lỗi khoá ngoại từ trước khi nhóm có khoản chi (ngoài phạm vi plan).
