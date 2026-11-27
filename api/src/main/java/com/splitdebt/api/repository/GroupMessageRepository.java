@@ -2,6 +2,7 @@ package com.splitdebt.api.repository;
 
 import com.splitdebt.api.entity.GroupMessage;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,6 +23,7 @@ public interface GroupMessageRepository extends JpaRepository<GroupMessage, Long
 
     List<GroupMessage> findByGroupIdAndIdGreaterThanOrderByIdAsc(Long groupId, Long id, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"sender", "group"})
     Optional<GroupMessage> findBySenderIdAndClientMessageId(Long senderId, String clientMessageId);
 
     List<GroupMessage> findBySenderIdOrderByIdAsc(Long senderId);
