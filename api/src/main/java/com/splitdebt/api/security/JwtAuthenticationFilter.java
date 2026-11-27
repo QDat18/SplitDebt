@@ -4,6 +4,7 @@
 
 package com.splitdebt.api.security;
 
+import com.splitdebt.api.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -33,17 +35,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
                 String username = jwtUtils.getUserNameFromJwtToken(jwt);
 
-                // Here you would normally load the user details from the database.
-                // For now, we will create a simple authentication token.
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                username,
-                                null,
-                                new ArrayList<>() // Empty authorities list
-                        );
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                boolean activeUser = userRepository.findByEmail(username)
+                        .filter(u -> u.getDeletedAt() == null)
+                        .isPresent();
+                if (activeUser) {
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    username,
+                                    null,
+                                    new ArrayList<>() // Empty authorities list
+                            );
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             }
         } catch (Exception e) {
             logger.error("Cannot set user authentication: {}", e);

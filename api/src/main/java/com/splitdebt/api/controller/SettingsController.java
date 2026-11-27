@@ -28,6 +28,7 @@ public class SettingsController {
 
     private final SettingService settingService;
     private final UserRepository userRepository;
+    private final com.splitdebt.api.service.GroupAccessService groupAccessService;
 
     @GetMapping("/user/me")
     public ResponseEntity<UserPreferencesDto> getMyPreferences() {
@@ -38,6 +39,9 @@ public class SettingsController {
         dto.setLanguage(setting.getLanguage());
         dto.setCurrency(setting.getCurrency());
         dto.setTheme(setting.getTheme());
+        dto.setNotifyOnDebtReminder(setting.getNotifyOnDebtReminder());
+        dto.setNotifyOnSettlement(setting.getNotifyOnSettlement());
+        dto.setNotifyOnGroupMessage(setting.getNotifyOnGroupMessage());
         return ResponseEntity.ok(dto);
     }
 
@@ -48,6 +52,9 @@ public class SettingsController {
                 .language(dto.getLanguage())
                 .currency(dto.getCurrency())
                 .theme(dto.getTheme())
+                .notifyOnDebtReminder(dto.getNotifyOnDebtReminder())
+                .notifyOnSettlement(dto.getNotifyOnSettlement())
+                .notifyOnGroupMessage(dto.getNotifyOnGroupMessage())
                 .build();
         UserSettingResponse updated = settingService.updateUserSetting(user.getId(), request);
 
@@ -55,11 +62,15 @@ public class SettingsController {
         resDto.setLanguage(updated.getLanguage());
         resDto.setCurrency(updated.getCurrency());
         resDto.setTheme(updated.getTheme());
+        resDto.setNotifyOnDebtReminder(updated.getNotifyOnDebtReminder());
+        resDto.setNotifyOnSettlement(updated.getNotifyOnSettlement());
+        resDto.setNotifyOnGroupMessage(updated.getNotifyOnGroupMessage());
         return ResponseEntity.ok(resDto);
     }
 
     @GetMapping("/group/{groupId}")
     public ResponseEntity<GroupSettingsDto> getGroupSettings(@PathVariable Long groupId) {
+        groupAccessService.requireActiveMember(groupId, getCurrentUser().getId());
         GroupSettingResponse setting = settingService.getGroupSetting(groupId);
 
         GroupSettingsDto dto = new GroupSettingsDto();
@@ -70,6 +81,7 @@ public class SettingsController {
 
     @PutMapping("/group/{groupId}")
     public ResponseEntity<GroupSettingsDto> updateGroupSettings(@PathVariable Long groupId, @RequestBody GroupSettingsDto dto) {
+        groupAccessService.requireAdmin(groupId, getCurrentUser().getId());
         GroupSettingRequest request = GroupSettingRequest.builder()
                 .requireApproval(dto.getRequireApproval())
                 .currencyCode(dto.getDefaultCurrency())

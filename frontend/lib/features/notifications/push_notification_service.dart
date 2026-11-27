@@ -5,6 +5,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/theme/app_colors.dart';
+import '../chat/active_chat.dart';
+import 'notification_rationale_sheet.dart';
 import 'notification_repository.dart';
 
 class PushNotificationService {
@@ -30,8 +33,37 @@ class PushNotificationService {
         debugPrint('Không cập nhật được FCM token: $error');
       }
     }, onError: (Object error) => debugPrint('FCM token refresh: $error'));
-    await FirebaseMessaging.instance
-        .requestPermission(alert: true, badge: true, sound: true);
+  }
+
+  Future<AuthorizationStatus> currentStatus() async {
+    try {
+      if (!await FirebaseMessaging.instance.isSupported()) {
+        return AuthorizationStatus.notDetermined;
+      }
+      final settings =
+          await FirebaseMessaging.instance.getNotificationSettings();
+      return settings.authorizationStatus;
+    } catch (_) {
+      return AuthorizationStatus.notDetermined;
+    }
+  }
+
+  Future<bool> requestPermissionWithRationale(BuildContext context) async {
+    try {
+      if (!await FirebaseMessaging.instance.isSupported()) return false;
+      final status = await currentStatus();
+      if (status == AuthorizationStatus.authorized) return true;
+      if (!context.mounted) return false;
+      final accepted = await NotificationRationaleSheet.show(context);
+      if (!accepted) return false;
+      final settings = await FirebaseMessaging.instance
+          .requestPermission(alert: true, badge: true, sound: true);
+      return settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+    } catch (error) {
+      debugPrint('Không xin được quyền thông báo: $error');
+      return false;
+    }
   }
 
   Future<String?> getToken() async {
@@ -102,6 +134,10 @@ class PushNotificationService {
   void _handleForegroundMessage(
     RemoteMessage message,
   ) {
+    if (message.notification == null && message.data['title'] == null) {
+      return;
+    }
+
     final String title = message.notification?.title ??
         message.data['title']?.toString() ??
         'SplitDebt';
@@ -124,14 +160,22 @@ class PushNotificationService {
 
     final String? type = message.data['type']?.toString();
 
+    if (type == 'GROUP_MESSAGE' &&
+        ActiveChat.groupId != null &&
+        message.data['groupId']?.toString() == '${ActiveChat.groupId}') {
+      return;
+    }
+
     final Color bgColor = switch (type) {
-      'SETTLEMENT_CONFIRMED' => const Color(0xFF15803D), // xanh lá đậm
-      'SETTLEMENT_PAID' => const Color(0xFFD97706), // cam
-      'SETTLEMENT_REQUEST' => const Color(0xFF7C3AED), // tím
-      _ => const Color(0xFF4338CA), // tím đậm mặc định
+      'GROUP_MESSAGE' => AppColors.primary,
+      'SETTLEMENT_CONFIRMED' => AppColors.success, // xanh lá đậm
+      'SETTLEMENT_PAID' => AppColors.warning, // cam
+      'SETTLEMENT_REQUEST' => AppColors.p500, // tím
+      _ => AppColors.p700, // tím đậm mặc định
     };
 
     final IconData icon = switch (type) {
+      'GROUP_MESSAGE' => Icons.chat_bubble_outline_rounded,
       'SETTLEMENT_CONFIRMED' => Icons.check_circle_rounded,
       'SETTLEMENT_PAID' => Icons.move_to_inbox_rounded,
       'SETTLEMENT_REQUEST' => Icons.payment_rounded,

@@ -1,6 +1,7 @@
 // Trách nhiệm file: Thực hiện phần payment dialog của nghiệp vụ công nợ và xác nhận thanh toán.
 
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/pdf_components.dart';
 import '../data/settlement_api_service.dart';
 import '../models/settlement_models.dart';
@@ -68,10 +69,10 @@ class _PaymentDialogState extends State<PaymentDialog> {
                       const Center(
                           child: CircleAvatar(
                               radius: 46,
-                              backgroundColor: Color(0xFFE7FBF1),
+                              backgroundColor: AppColors.successTint,
                               child: CircleAvatar(
                                   radius: 31,
-                                  backgroundColor: Color(0xFF1CC66A),
+                                  backgroundColor: AppColors.success,
                                   child: Icon(Icons.check,
                                       color: Colors.white, size: 36)))),
                       const SizedBox(height: 30),
@@ -145,18 +146,18 @@ class _PaymentDialogState extends State<PaymentDialog> {
                         }.entries)
                           Card(
                               color: _method == e.key
-                                  ? const Color(0xFFF0EDFF)
+                                  ? AppColors.p50
                                   : Colors.white,
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   side: BorderSide(
                                       color: _method == e.key
                                           ? pdfPurple
-                                          : const Color(0xFFE8E9EF))),
+                                          : AppColors.n200)),
                               child: RadioListTile<String>(
                                   secondary: const CircleAvatar(
                                       radius: 16,
-                                      backgroundColor: Color(0xFFF0EDFF)),
+                                      backgroundColor: AppColors.p50),
                                   value: e.key,
                                   groupValue: _method,
                                   controlAffinity:

@@ -30,6 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @org.springframework.transaction.annotation.Transactional
 public class GroupControllerTest {
     @Autowired private com.splitdebt.api.repository.UserRepository users;
+    @Autowired private com.splitdebt.api.service.ConsentService consentService;
+    @Autowired private com.splitdebt.api.config.LegalProperties legalProperties;
     @Autowired private org.springframework.security.crypto.password.PasswordEncoder encoder;
     @Autowired private com.splitdebt.api.security.JwtUtils jwt;
     @org.springframework.boot.test.mock.mockito.MockBean
@@ -87,8 +89,12 @@ public class GroupControllerTest {
         return account(java.util.UUID.randomUUID() + "@test.com");
     }
     private String account(String email) {
-        if (!users.existsByEmail(email)) users.save(com.splitdebt.api.entity.User.builder()
-            .email(email).fullName("Test User").passwordHash(encoder.encode("Password123!")).build());
+        if (!users.existsByEmail(email)) {
+            var u = users.save(com.splitdebt.api.entity.User.builder()
+                .email(email).fullName("Test User").passwordHash(encoder.encode("Password123!")).build());
+            consentService.recordRegistration(u, new com.splitdebt.api.dto.consent.RegisterConsentsDto(
+                legalProperties.getTermsVersion(), legalProperties.getPrivacyVersion(), true), "android", "1.0.0");
+        }
         return email;
     }
     private String identity(String value) {

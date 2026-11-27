@@ -46,3 +46,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# External receipt datasets (must never be committed)
+test/fixtures/external/
+
+# ML Kit model tải bằng ios/setup_ios.sh
+/ios/Runner/mlkit/

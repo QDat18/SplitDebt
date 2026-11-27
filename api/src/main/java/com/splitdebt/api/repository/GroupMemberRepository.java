@@ -30,6 +30,8 @@ public interface GroupMemberRepository
 
     List<GroupMember> findByGroupId(Long groupId);
 
+    List<GroupMember> findByGroupIdAndStatus(Long groupId, GroupMemberStatus status);
+
     List<GroupMember> findByUserIdAndStatus(Long userId, GroupMemberStatus status);
 
     Optional<GroupMember> findByGroupIdAndUserId(

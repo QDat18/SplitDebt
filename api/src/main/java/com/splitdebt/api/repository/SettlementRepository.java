@@ -45,4 +45,11 @@ public interface SettlementRepository
     Optional<Settlement> findWithRelationsById(
             @Param("id") Long id
     );
+
+    @EntityGraph(attributePaths = {
+            "group",
+            "debtor",
+            "creditor"
+    })
+    List<Settlement> findByDebtorIdOrCreditorId(Long debtorId, Long creditorId);
 }

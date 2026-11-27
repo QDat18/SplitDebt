@@ -31,7 +31,7 @@ public class SettingServiceImpl implements SettingService {
     private final UserRepository userRepository;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public GroupSettingResponse getGroupSetting(Long groupId) {
         GroupSetting setting = groupSettingRepository.findByGroupId(groupId)
                 .orElseGet(() -> createDefaultGroupSetting(groupId));
@@ -87,7 +87,7 @@ public class SettingServiceImpl implements SettingService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public UserSettingResponse getUserSetting(Long userId) {
         UserSetting setting = userSettingRepository.findByUserId(userId)
                 .orElseGet(() -> createDefaultUserSetting(userId));
@@ -122,6 +122,10 @@ public class SettingServiceImpl implements SettingService {
 
         if (request.getNotifyOnSettlement() != null) {
             setting.setNotifyOnSettlement(request.getNotifyOnSettlement());
+        }
+
+        if (request.getNotifyOnGroupMessage() != null) {
+            setting.setNotifyOnGroupMessage(request.getNotifyOnGroupMessage());
         }
 
         if (request.getBiometricsEnabled() != null) {
@@ -169,6 +173,7 @@ public class SettingServiceImpl implements SettingService {
                 .notifyOnNewExpense(true)
                 .notifyOnDebtReminder(true)
                 .notifyOnSettlement(true)
+                .notifyOnGroupMessage(true)
                 .biometricsEnabled(false)
                 .build();
 
@@ -202,6 +207,7 @@ public class SettingServiceImpl implements SettingService {
                 .notifyOnNewExpense(s.getNotifyOnNewExpense())
                 .notifyOnDebtReminder(s.getNotifyOnDebtReminder())
                 .notifyOnSettlement(s.getNotifyOnSettlement())
+                .notifyOnGroupMessage(s.getNotifyOnGroupMessage())
                 .biometricsEnabled(s.getBiometricsEnabled())
                 .createdAt(s.getCreatedAt())
                 .updatedAt(s.getUpdatedAt())

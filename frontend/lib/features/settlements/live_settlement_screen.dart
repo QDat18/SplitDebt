@@ -1,7 +1,9 @@
 // Trách nhiệm file: Xây dựng màn hình live settlement screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
 
 import 'dart:async';
+import '../../core/navigation/route_observer.dart';
 import '../../core/theme/pdf_components.dart';
+import '../../core/utils/visible_poller.dart';
 import '../notifications/notification_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +24,7 @@ class GroupSettlementScreen extends StatefulWidget {
 }
 
 class _GroupSettlementScreenState extends State<GroupSettlementScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, RouteAware {
   final _api = SettlementApiService();
   final _currency =
       NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
@@ -30,6 +32,8 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
   List<Map<String, dynamic>> _groups = [];
   int? _userId;
   int? _groupId;
+  int? _loadedGroupId;
+  bool get _hasData => _debt != null && _loadedGroupId == _groupId;
   DebtSummary? _debt;
   SmartSettlementResult? _smart;
   List<SettlementRecord> _settlements = [];
@@ -38,24 +42,61 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
   String? _error;
   int _tab = 0;
   int _version = 0;
+  bool _pendingUserReload = false;
+  late final VisiblePoller _poller;
+  bool _subscribedToRoute = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _poller = VisiblePoller(
+      interval: const Duration(seconds: 20),
+      onTick: () => _load(silent: true),
+    );
+    _poller.start();
     _messages = FirebaseMessaging.onMessage.listen((message) {
-      if (message.data['groupId']?.toString() == _groupId?.toString()) _load();
+      if (message.data['groupId']?.toString() == _groupId?.toString()) {
+        _load(silent: true);
+      }
     });
     _initialize();
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_subscribedToRoute) {
+      final route = ModalRoute.of(context);
+      if (route != null) {
+        appRouteObserver.subscribe(this, route);
+        _subscribedToRoute = true;
+      }
+    }
+  }
+
+  @override
+  void didPushNext() {
+    _poller.setCovered(true);
+  }
+
+  @override
+  void didPopNext() {
+    _poller.setCovered(false);
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _load();
+    _poller.onLifecycle(state);
+    if (state == AppLifecycleState.resumed && !_poller.isCovered) {
+      _load(silent: true);
+    }
   }
 
   @override
   void dispose() {
+    appRouteObserver.unsubscribe(this);
+    _poller.stop();
     WidgetsBinding.instance.removeObserver(this);
     _messages?.cancel();
     super.dispose();
@@ -86,28 +127,41 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
           ? preferred
           : (groups.isEmpty ? null : (groups.first['id'] as num).toInt());
       if (_groupId != null) {
-        await _load();
+        await _load(userInitiated: true);
       } else {
         setState(() => _loading = false);
       }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
+        if (_hasData) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Không tải lại được. Kiểm tra kết nối và thử lại.'),
+            ),
+          );
+        }
         setState(() {
-          _error = '$error';
+          if (!_hasData) _error = '$error';
           _loading = false;
         });
+      }
     }
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool silent = false, bool userInitiated = false}) async {
     final group = _groupId;
     final user = _userId;
     if (group == null || user == null || !mounted) return;
+    if (userInitiated) {
+      _pendingUserReload = true;
+    }
     final version = ++_version;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final results = await Future.wait<Object>([
         _api.getDebtSummary(group),
@@ -115,18 +169,43 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
         _api.getSettlements(group),
       ]);
       if (!mounted || version != _version) return;
+      _pendingUserReload = false;
       setState(() {
         _debt = results[0] as DebtSummary;
         _smart = results[1] as SmartSettlementResult;
         _settlements = results[2] as List<SettlementRecord>;
+        _loadedGroupId = group;
+        _error = null;
         _loading = false;
       });
     } catch (error) {
-      if (mounted && version == _version)
+      if (!mounted || version != _version) return;
+      final shouldNotify = (userInitiated || _pendingUserReload) && _hasData;
+      _pendingUserReload = false;
+      if (shouldNotify) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không tải lại được. Kiểm tra kết nối và thử lại.'),
+          ),
+        );
+      }
+      if (silent) {
+        debugPrint('GroupSettlementScreen silent load error: $error');
+        final hasData = _hasData;
         setState(() {
-          _error = '$error';
+          if (!hasData) {
+            _error = '$error';
+          }
           _loading = false;
         });
+      } else {
+        setState(() {
+          if (!_hasData) {
+            _error = '$error';
+          }
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -139,7 +218,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                 currentUserId: _userId!,
                 settlement: record,
                 onUpdated: () {})));
-    await _load();
+    await _load(silent: true);
   }
 
   Future<void> _create(DebtEdge edge) async {
@@ -151,7 +230,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
       if (mounted && record.debtorId == _userId) {
         await _openPayment(record);
       } else {
-        await _load();
+        await _load(userInitiated: true);
         if (mounted)
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text(
@@ -177,9 +256,9 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                   icon: const Icon(Icons.refresh),
                   tooltip: 'Tải lại')
             ]),
-        body: _loading
+        body: (_loading && !_hasData)
             ? const Center(child: CircularProgressIndicator())
-            : _error != null
+            : (_error != null && !_hasData)
                 ? Center(
                     child: TextButton(
                         onPressed: _initialize,
@@ -187,7 +266,8 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                 : _groups.isEmpty
                     ? const Center(child: Text('Bạn chưa tham gia nhóm nào.'))
                     : RefreshIndicator(
-                        onRefresh: _load,
+                        onRefresh: () =>
+                            _load(silent: true, userInitiated: true),
                         child: ListView(
                             padding: const EdgeInsets.all(20),
                             children: [
@@ -200,7 +280,11 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                                             child: Text(g['name'])))
                                         .toList(),
                                     onChanged: (v) {
-                                      _groupId = v;
+                                      setState(() {
+                                        _groupId = v;
+                                        _debt = _smart = null;
+                                        _settlements = [];
+                                      });
                                       _load();
                                     }),
                                 const SizedBox(height: 20)
@@ -251,7 +335,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                                 const Center(
                                     child: CircleAvatar(
                                         radius: 32,
-                                        backgroundColor: Color(0xFFE7FBF1),
+                                        backgroundColor: AppColors.successTint,
                                         child: Text('✂️',
                                             style: TextStyle(fontSize: 28)))),
                                 const SizedBox(height: 18),
@@ -371,7 +455,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
                 fontSize: 18, fontWeight: FontWeight.w800, color: color))
       ]));
   Widget _countBox(String title, int count, bool after) => Card(
-      color: after ? const Color(0xFFE8FCF3) : Colors.white,
+      color: after ? AppColors.successTint : Colors.white,
       child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(children: [
@@ -382,7 +466,7 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
             Text('$count giao dịch',
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: after ? pdfGreen : const Color(0xFF202127)))
+                    color: after ? pdfGreen : AppColors.n800))
           ])));
   Widget _debtCard(String name, String subtitle, double amount) => Card(
       child: ListTile(
@@ -419,14 +503,14 @@ class _GroupSettlementScreenState extends State<GroupSettlementScreen>
           side: BorderSide(
               color: record.status == 'PAID'
                   ? Colors.orange
-                  : const Color(0xFFEDEDF3))),
+                  : AppColors.n200)),
       child: Padding(
           padding: const EdgeInsets.all(18),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               CircleAvatar(
-                  backgroundColor: const Color(0xFFE5DFFF),
+                  backgroundColor: AppColors.p50,
                   child: Text(
                       record.debtorName.isEmpty ? '?' : record.debtorName[0])),
               const SizedBox(width: 10),

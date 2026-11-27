@@ -12,6 +12,7 @@ import com.splitdebt.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,9 +74,17 @@ public class FcmTokenService {
                 normalizedPlatform
         );
 
-        fcmTokenRepository.save(
-                fcmToken
-        );
+        try {
+            fcmTokenRepository.saveAndFlush(
+                    fcmToken
+            );
+        } catch (DataIntegrityViolationException ex) {
+            fcmTokenRepository.findByToken(token).ifPresent(existing -> {
+                existing.setUser(user);
+                existing.setPlatform(normalizedPlatform);
+                fcmTokenRepository.save(existing);
+            });
+        }
 
         log.debug(
                 "Registered FCM token. userId={}, platform={}",

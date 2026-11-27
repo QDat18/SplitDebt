@@ -3,8 +3,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/repositories/auth_repository.dart';
 import 'providers/auth_provider.dart';
+import '../groups/providers/group_provider.dart';
+import '../legal/reconsent_screen.dart';
 import 'register_screen.dart';
 import '../../main_layout_screen.dart';
 
@@ -156,6 +160,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             .login(email, password);
                         if (mounted) {
                           if (success) {
+                            ref.invalidate(userGroupsProvider);
+                            final consent = await AuthRepository().fetchConsentStatus();
+                            if (!mounted) return;
+                            if (consent?.reconsentRequired == true) {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                  builder: (_) => const ReconsentScreen(),
+                                ),
+                                (route) => false,
+                              );
+                              return;
+                            }
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                   content: Text('Đăng nhập thành công!')),
@@ -191,7 +207,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               // Divider
               Row(
                 children: [
-                  const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+                  const Expanded(child: Divider(color: AppColors.n200)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
@@ -199,7 +215,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
-                  const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+                  const Expanded(child: Divider(color: AppColors.n200)),
                 ],
               ),
               const SizedBox(height: 24),

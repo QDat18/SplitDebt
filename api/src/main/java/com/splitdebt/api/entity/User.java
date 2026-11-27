@@ -34,4 +34,7 @@ public class User extends BaseEntity {
 
     @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;
+
+    @Column(name = "deleted_at")
+    private java.time.LocalDateTime deletedAt;
 }

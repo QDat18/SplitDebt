@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/app_keys.dart';
 import '../storage/token_storage.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../../features/legal/legal_texts.dart';
 import '../../features/notifications/push_notification_service.dart';
 
 enum AuthState { loading, authenticated, unauthenticated }
@@ -71,11 +72,21 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
   Future<bool> register(
     String fullName,
     String email,
-    String password,
-  ) async {
+    String password, {
+    String termsVersion = kTermsVersion,
+    String privacyVersion = kPrivacyVersion,
+    bool ageConfirmed = true,
+  }) async {
     state = const AsyncValue.loading();
     try {
-      await _authRepository.register(fullName, email, password);
+      await _authRepository.register(
+        fullName,
+        email,
+        password,
+        termsVersion: termsVersion,
+        privacyVersion: privacyVersion,
+        ageConfirmed: ageConfirmed,
+      );
       state = const AsyncValue.data(AuthState.unauthenticated);
       return true;
     } catch (e, st) {

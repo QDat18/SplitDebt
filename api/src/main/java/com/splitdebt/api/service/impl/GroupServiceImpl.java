@@ -19,6 +19,7 @@ import com.splitdebt.api.exception.UserNotFoundException;
 import com.splitdebt.api.repository.GroupMemberRepository;
 import com.splitdebt.api.repository.GroupRepository;
 import com.splitdebt.api.repository.UserRepository;
+import com.splitdebt.api.service.GroupAccessService;
 import com.splitdebt.api.service.GroupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,12 +37,17 @@ public class GroupServiceImpl implements GroupService {
     private final GroupMemberRepository groupMemberRepository;
     private final UserRepository userRepository;
     private final com.splitdebt.api.service.DebtCalculationService debtCalculationService;
+    private final GroupAccessService groupAccessService;
+    private final com.splitdebt.api.repository.GroupMessageRepository groupMessageRepository;
 
     @Override
     @Transactional
     public GroupResponseDto createGroup(GroupRequestDto request, Long currentUserId) {
         if (request.getName() == null || request.getName().isBlank() || request.getName().trim().length() > 150) {
             throw new IllegalArgumentException("Tên nhóm phải có từ 1 đến 150 ký tự");
+        }
+        if (request.getDescription() != null && request.getDescription().codePointCount(0, request.getDescription().length()) > 500) {
+            throw new IllegalArgumentException("Mô tả nhóm tối đa 500 ký tự");
         }
         User currentUser = requireUser(currentUserId);
 
@@ -75,8 +81,10 @@ public class GroupServiceImpl implements GroupService {
                 .orElseThrow(() -> new GroupPermissionException("You are not a member of this group"));
 
         int memberCount = groupMemberRepository.countByGroupId(groupId);
+        Long lastReadId = currentMember.getLastReadMessageId() != null ? currentMember.getLastReadMessageId() : 0L;
+        int unreadCount = (int) groupMessageRepository.countUnread(groupId, lastReadId, currentUserId);
 
-        return mapToGroupResponseDto(group, currentMember.getRole(), memberCount);
+        return mapToGroupResponseDto(group, currentMember.getRole(), memberCount, null, unreadCount);
     }
 
     @Override
@@ -85,25 +93,27 @@ public class GroupServiceImpl implements GroupService {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new GroupNotFoundException("Group not found with ID: " + groupId));
 
+        groupAccessService.requireAdmin(groupId, currentUserId);
         GroupMember currentMember = groupMemberRepository.findByGroupIdAndUserId(groupId, currentUserId)
                 .orElseThrow(() -> new GroupPermissionException("You are not a member of this group"));
-
-        if (currentMember.getRole() != GroupRole.OWNER && currentMember.getRole() != GroupRole.ADMIN) {
-            throw new GroupPermissionException("Only OWNER or ADMIN can update group details");
-        }
 
         if (request.getName() != null && !request.getName().isBlank()) {
             if (request.getName().trim().length() > 150) throw new IllegalArgumentException("Tên nhóm tối đa 150 ký tự");
             group.setName(request.getName().trim());
         }
         if (request.getDescription() != null) {
+            if (request.getDescription().codePointCount(0, request.getDescription().length()) > 500) {
+                throw new IllegalArgumentException("Mô tả nhóm tối đa 500 ký tự");
+            }
             group.setDescription(request.getDescription());
         }
 
         Group updatedGroup = groupRepository.save(group);
         int memberCount = groupMemberRepository.countByGroupId(groupId);
+        Long lastReadId = currentMember.getLastReadMessageId() != null ? currentMember.getLastReadMessageId() : 0L;
+        int unreadCount = (int) groupMessageRepository.countUnread(groupId, lastReadId, currentUserId);
 
-        return mapToGroupResponseDto(updatedGroup, currentMember.getRole(), memberCount);
+        return mapToGroupResponseDto(updatedGroup, currentMember.getRole(), memberCount, null, unreadCount);
     }
 
     @Override
@@ -112,12 +122,9 @@ public class GroupServiceImpl implements GroupService {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new GroupNotFoundException("Group not found with ID: " + groupId));
 
-        GroupMember currentMember = groupMemberRepository.findByGroupIdAndUserId(groupId, currentUserId)
-                .orElseThrow(() -> new GroupPermissionException("You are not a member of this group"));
+        groupAccessService.requireAdmin(groupId, currentUserId);
 
-        if (currentMember.getRole() != GroupRole.OWNER && currentMember.getRole() != GroupRole.ADMIN) {
-            throw new GroupPermissionException("Only OWNER or ADMIN can delete group");
-        }
+        groupMessageRepository.deleteByGroupId(groupId);
 
         List<GroupMember> members = groupMemberRepository.findByGroupId(groupId);
         groupMemberRepository.deleteAll(members);
@@ -165,7 +172,9 @@ public class GroupServiceImpl implements GroupService {
             } catch (Exception e) {
                 // Fallback to ZERO
             }
-            return mapToGroupResponseDto(group, membership.getRole(), count, userBalance);
+            Long lastReadId = membership.getLastReadMessageId() != null ? membership.getLastReadMessageId() : 0L;
+            int unreadCount = (int) groupMessageRepository.countUnread(group.getId(), lastReadId, currentUserId);
+            return mapToGroupResponseDto(group, membership.getRole(), count, userBalance, unreadCount);
         }).collect(Collectors.toList());
     }
 
@@ -175,12 +184,9 @@ public class GroupServiceImpl implements GroupService {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new GroupNotFoundException("Group not found with ID: " + groupId));
 
+        groupAccessService.requireAdmin(groupId, currentUserId);
         GroupMember currentMember = groupMemberRepository.findByGroupIdAndUserId(groupId, currentUserId)
                 .orElseThrow(() -> new GroupPermissionException("You are not a member of this group"));
-
-        if (currentMember.getRole() != GroupRole.OWNER && currentMember.getRole() != GroupRole.ADMIN) {
-            throw new GroupPermissionException("Only OWNER or ADMIN can add members to the group");
-        }
 
         User targetUser;
         if (request.getUserId() != null) {
@@ -191,6 +197,10 @@ public class GroupServiceImpl implements GroupService {
                     .orElseThrow(() -> new UserNotFoundException("Email chưa đăng ký tài khoản SplitDebt"));
         } else {
             throw new IllegalArgumentException("Either userId or email must be provided");
+        }
+
+        if (targetUser.getDeletedAt() != null) {
+            throw new UserNotFoundException("Không tìm thấy người dùng");
         }
 
         if (groupMemberRepository.existsByGroupIdAndUserId(groupId, targetUser.getId())) {
@@ -207,6 +217,7 @@ public class GroupServiceImpl implements GroupService {
                 .group(group)
                 .user(targetUser)
                 .role(assignedRole)
+                .lastReadMessageId(groupMessageRepository.findLatestMessageId(group.getId()))
                 .build();
 
         GroupMember savedMember = groupMemberRepository.save(newMember);
@@ -263,12 +274,9 @@ public class GroupServiceImpl implements GroupService {
             return;
         }
 
+        groupAccessService.requireAdmin(groupId, currentUserId);
         GroupMember callerMember = groupMemberRepository.findByGroupIdAndUserId(groupId, currentUserId)
                 .orElseThrow(() -> new GroupPermissionException("You are not a member of this group"));
-
-        if (callerMember.getRole() != GroupRole.OWNER && callerMember.getRole() != GroupRole.ADMIN) {
-            throw new GroupPermissionException("Only OWNER or ADMIN can remove members");
-        }
 
         GroupMember targetMember = groupMemberRepository.findByGroupIdAndUserId(groupId, memberUserId)
                 .orElseThrow(() -> new UserNotFoundException("Target user is not a member of this group"));
@@ -285,11 +293,44 @@ public class GroupServiceImpl implements GroupService {
                 .orElseThrow(() -> new UserNotFoundException("Không tìm thấy tài khoản"));
     }
 
+    @Override
+    @Transactional
+    public GroupResponseDto joinGroupByInviteCode(String inviteCode, Long currentUserId) {
+        if (inviteCode == null || inviteCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã mời không được để trống");
+        }
+
+        Group group = groupRepository.findByInviteCode(inviteCode.trim())
+                .orElseThrow(() -> new GroupNotFoundException("Mã mời không hợp lệ hoặc nhóm không tồn tại"));
+
+        User currentUser = requireUser(currentUserId);
+
+        java.util.Optional<GroupMember> existingMember = groupMemberRepository.findByGroupIdAndUserId(group.getId(), currentUserId);
+        if (existingMember.isPresent()) {
+            throw new IllegalArgumentException("Bạn đã ở trong nhóm này rồi");
+        }
+
+        GroupMember newMember = GroupMember.builder()
+                .group(group)
+                .user(currentUser)
+                .role(GroupRole.MEMBER)
+                .lastReadMessageId(groupMessageRepository.findLatestMessageId(group.getId()))
+                .build();
+        groupMemberRepository.save(newMember);
+
+        int memberCount = groupMemberRepository.countByGroupId(group.getId());
+        return mapToGroupResponseDto(group, GroupRole.MEMBER, memberCount, null, 0);
+    }
+
     private GroupResponseDto mapToGroupResponseDto(Group group, GroupRole currentUserRole, int memberCount) {
-        return mapToGroupResponseDto(group, currentUserRole, memberCount, null);
+        return mapToGroupResponseDto(group, currentUserRole, memberCount, null, 0);
     }
 
     private GroupResponseDto mapToGroupResponseDto(Group group, GroupRole currentUserRole, int memberCount, java.math.BigDecimal userBalance) {
+        return mapToGroupResponseDto(group, currentUserRole, memberCount, userBalance, 0);
+    }
+
+    private GroupResponseDto mapToGroupResponseDto(Group group, GroupRole currentUserRole, int memberCount, java.math.BigDecimal userBalance, int unreadMessageCount) {
         User creator = group.getOwner();
         return GroupResponseDto.builder()
                 .id(group.getId())
@@ -299,7 +340,9 @@ public class GroupServiceImpl implements GroupService {
                 .createdByName(creator != null ? creator.getFullName() : "Unknown")
                 .currentUserRole(currentUserRole)
                 .memberCount(memberCount)
+                .inviteCode(group.getInviteCode())
                 .userBalance(userBalance)
+                .unreadMessageCount(unreadMessageCount)
                 .createdAt(group.getCreatedAt())
                 .updatedAt(group.getUpdatedAt())
                 .build();

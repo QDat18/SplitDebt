@@ -1,0 +1,359 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:split_debt/features/chat/chat_models.dart';
+import 'package:split_debt/features/chat/chat_notifier.dart';
+import 'package:split_debt/features/chat/chat_repository.dart';
+
+class FakeChatRepository implements ChatRepository {
+  List<ChatMessage> mockLatest = [];
+  bool mockLatestHasMore = false;
+  List<ChatMessage> mockBefore = [];
+  bool mockBeforeHasMore = false;
+  List<ChatMessage> mockAfter = [];
+  bool shouldFailSend = false;
+  DioException? sendDioException;
+  bool shouldFailAfter = false;
+  DioException? afterDioException;
+  bool shouldFailLatest = false;
+  int latestCallCount = 0;
+  int afterCallCount = 0;
+
+  final List<String> sentIds = [];
+
+  @override
+  Future<MessagePage> latest(int groupId) async {
+    latestCallCount++;
+    if (shouldFailLatest) throw Exception('Initial load error');
+    return MessagePage(messages: mockLatest, hasMore: mockLatestHasMore);
+  }
+
+  @override
+  Future<MessagePage> before(int groupId, int id) async {
+    return MessagePage(messages: mockBefore, hasMore: mockBeforeHasMore);
+  }
+
+  @override
+  Future<List<ChatMessage>> after(int groupId, int id) async {
+    afterCallCount++;
+    if (afterDioException != null) throw afterDioException!;
+    if (shouldFailAfter) throw Exception('Network error');
+    return mockAfter;
+  }
+
+  @override
+  Future<ChatMessage> send(int groupId, String content, String clientMessageId) async {
+    sentIds.add(clientMessageId);
+    if (sendDioException != null) throw sendDioException!;
+    if (shouldFailSend) throw Exception('Send failed');
+    return ChatMessage(
+      id: 999,
+      groupId: groupId,
+      senderId: 1,
+      senderName: 'Me',
+      content: content,
+      createdAt: DateTime.now(),
+      clientMessageId: clientMessageId,
+      status: ChatStatus.sent,
+    );
+  }
+
+  @override
+  Future<void> markRead(int groupId, int lastId) async {}
+}
+
+void main() {
+  group('ChatNotifier', () {
+    late FakeChatRepository repo;
+    late ChatNotifier notifier;
+
+    setUp(() {
+      repo = FakeChatRepository();
+      notifier = ChatNotifier(
+        repository: repo,
+        groupId: 10,
+        myUserId: 1,
+        myUserName: 'Me',
+      );
+    });
+
+    test('send success replaces pending with server message', () async {
+      await notifier.send('Hello server');
+
+      expect(notifier.state.messages.length, equals(1));
+      expect(notifier.state.messages.first.status, equals(ChatStatus.sent));
+      expect(notifier.state.messages.first.id, equals(999));
+    });
+
+    test('send failure marks failed; retry reuses the same clientMessageId', () async {
+      repo.shouldFailSend = true;
+      await notifier.send('Failed msg');
+
+      expect(notifier.state.messages.length, equals(1));
+      expect(notifier.state.messages.first.status, equals(ChatStatus.failed));
+      final failedClientMsgId = notifier.state.messages.first.clientMessageId;
+
+      repo.shouldFailSend = false;
+      await notifier.retry(failedClientMsgId);
+
+      expect(notifier.state.messages.length, equals(1));
+      expect(notifier.state.messages.first.status, equals(ChatStatus.sent));
+      expect(repo.sentIds, equals([failedClientMsgId, failedClientMsgId]));
+    });
+
+    test('refreshNewer returning the same message as pending does not duplicate', () async {
+      // User sent pending message
+      repo.shouldFailSend = true;
+      await notifier.send('Msg in flight');
+      final clientMsgId = notifier.state.messages.first.clientMessageId;
+
+      // Poll returns the confirmed server message
+      repo.mockAfter = [
+        ChatMessage(
+          id: 50,
+          groupId: 10,
+          senderId: 1,
+          senderName: 'Me',
+          content: 'Msg in flight',
+          createdAt: DateTime.now(),
+          clientMessageId: clientMsgId,
+          status: ChatStatus.sent,
+        ),
+      ];
+
+      await notifier.refreshNewer();
+
+      expect(notifier.state.messages.length, equals(1));
+      expect(notifier.state.messages.first.id, equals(50));
+      expect(notifier.state.messages.first.status, equals(ChatStatus.sent));
+    });
+
+    test('refreshNewer error keeps messages and sets no error', () async {
+      repo.mockLatest = [
+        ChatMessage(
+          id: 1,
+          groupId: 10,
+          senderId: 2,
+          senderName: 'B',
+          content: 'Existing msg',
+          createdAt: DateTime.now(),
+          clientMessageId: 'c1',
+          status: ChatStatus.sent,
+        ),
+      ];
+      await notifier.loadInitial();
+
+      repo.shouldFailAfter = true;
+      await notifier.refreshNewer();
+
+      expect(notifier.state.messages.length, equals(1));
+      expect(notifier.state.error, isNull);
+    });
+
+    test('loadOlder prepends and updates hasMore', () async {
+      repo.mockLatest = [
+        ChatMessage(
+          id: 10,
+          groupId: 10,
+          senderId: 2,
+          senderName: 'B',
+          content: 'Latest msg',
+          createdAt: DateTime.now(),
+          clientMessageId: 'c10',
+          status: ChatStatus.sent,
+        ),
+      ];
+      repo.mockLatestHasMore = true;
+      await notifier.loadInitial();
+
+      repo.mockBefore = [
+        ChatMessage(
+          id: 5,
+          groupId: 10,
+          senderId: 2,
+          senderName: 'B',
+          content: 'Older msg',
+          createdAt: DateTime.now(),
+          clientMessageId: 'c5',
+          status: ChatStatus.sent,
+        ),
+      ];
+      repo.mockBeforeHasMore = false;
+
+      await notifier.loadOlder();
+
+      expect(notifier.state.messages.length, equals(2));
+      expect(notifier.state.messages[0].id, equals(5));
+      expect(notifier.state.messages[1].id, equals(10));
+      expect(notifier.state.hasMore, isFalse);
+    });
+
+    test('refreshNewer calls loadInitial when newestServerId is null and state has error', () async {
+      repo.shouldFailLatest = true;
+      await notifier.loadInitial();
+      expect(notifier.state.error, isNotNull);
+      expect(notifier.state.newestServerId, isNull);
+      expect(repo.latestCallCount, equals(1));
+
+      repo.shouldFailLatest = false;
+      repo.mockLatest = [
+        ChatMessage(
+          id: 7,
+          groupId: 10,
+          senderId: 2,
+          senderName: 'B',
+          content: 'Recovered',
+          createdAt: DateTime.now(),
+          clientMessageId: 'c7',
+          status: ChatStatus.sent,
+        ),
+      ];
+
+      await notifier.refreshNewer();
+
+      expect(repo.latestCallCount, equals(2));
+      expect(repo.afterCallCount, equals(0));
+      expect(notifier.state.error, isNull);
+      expect(notifier.state.messages.length, equals(1));
+      expect(notifier.state.messages.first.id, equals(7));
+    });
+
+    test('refreshNewer calls after(0) when newestServerId is null and state has no error', () async {
+      repo.mockLatest = [];
+      await notifier.loadInitial();
+      expect(notifier.state.error, isNull);
+      expect(notifier.state.newestServerId, isNull);
+
+      await notifier.refreshNewer();
+
+      expect(repo.latestCallCount, equals(1));
+      expect(repo.afterCallCount, equals(1));
+    });
+
+    test('send HTTP 400 marks message rejected with server message and cannot be retried', () async {
+      repo.sendDioException = DioException(
+        requestOptions: RequestOptions(path: '/groups/10/messages'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/groups/10/messages'),
+          statusCode: 400,
+          data: {'message': 'Nội dung vượt quá 2000 ký tự'},
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      await notifier.send('Bad message');
+
+      expect(notifier.state.messages.length, equals(1));
+      final msg = notifier.state.messages.first;
+      expect(msg.status, equals(ChatStatus.rejected));
+      expect(msg.errorMessage, equals('Nội dung vượt quá 2000 ký tự'));
+
+      // Retrying a rejected message should do nothing
+      await notifier.retry(msg.clientMessageId);
+      expect(repo.sentIds.length, equals(1));
+
+      // removeLocalMessage removes it locally
+      notifier.removeLocalMessage(msg.clientMessageId);
+      expect(notifier.state.messages, isEmpty);
+    });
+
+    test('refreshNewer HTTP 403 sets removed = true and subsequent refreshNewer is skipped', () async {
+      repo.afterDioException = DioException(
+        requestOptions: RequestOptions(path: '/groups/10/messages'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/groups/10/messages'),
+          statusCode: 403,
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      await notifier.refreshNewer();
+
+      expect(notifier.state.removed, isTrue);
+      expect(repo.afterCallCount, equals(1));
+
+      await notifier.refreshNewer();
+      expect(repo.afterCallCount, equals(1));
+    });
+
+    test('send HTTP 403 sets removed = true', () async {
+      repo.sendDioException = DioException(
+        requestOptions: RequestOptions(path: '/groups/10/messages'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/groups/10/messages'),
+          statusCode: 403,
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      await notifier.send('Hello?');
+
+      expect(notifier.state.removed, isTrue);
+    });
+
+    test('refreshNewer returns newCount for unseen messages, 0 for existing, failed on error', () async {
+      repo.mockLatest = [
+        ChatMessage(
+          id: 1,
+          groupId: 10,
+          senderId: 2,
+          senderName: 'B',
+          content: 'Existing',
+          createdAt: DateTime.now(),
+          clientMessageId: 'c1',
+          status: ChatStatus.sent,
+        ),
+      ];
+      await notifier.loadInitial();
+
+      // Returns 2 new messages
+      repo.mockAfter = [
+        ChatMessage(
+          id: 2,
+          groupId: 10,
+          senderId: 2,
+          senderName: 'B',
+          content: 'New 1',
+          createdAt: DateTime.now(),
+          clientMessageId: 'c2',
+          status: ChatStatus.sent,
+        ),
+        ChatMessage(
+          id: 3,
+          groupId: 10,
+          senderId: 2,
+          senderName: 'B',
+          content: 'New 2',
+          createdAt: DateTime.now(),
+          clientMessageId: 'c3',
+          status: ChatStatus.sent,
+        ),
+      ];
+      final res1 = await notifier.refreshNewer();
+      expect(res1.newCount, equals(2));
+      expect(res1.failed, isFalse);
+
+      // Returns same already-present message
+      repo.mockAfter = [
+        ChatMessage(
+          id: 3,
+          groupId: 10,
+          senderId: 2,
+          senderName: 'B',
+          content: 'New 2',
+          createdAt: DateTime.now(),
+          clientMessageId: 'c3',
+          status: ChatStatus.sent,
+        ),
+      ];
+      final res2 = await notifier.refreshNewer();
+      expect(res2.newCount, equals(0));
+      expect(res2.failed, isFalse);
+
+      // Network error -> failed = true
+      repo.shouldFailAfter = true;
+      final res3 = await notifier.refreshNewer();
+      expect(res3.newCount, equals(0));
+      expect(res3.failed, isTrue);
+    });
+  });
+}

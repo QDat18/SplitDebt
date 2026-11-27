@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConstants {
+  static const String appVersion = '1.0.0';
+
   static String get fcmWebVapidKey =>
       dotenv.env['FCM_WEB_VAPID_KEY']?.trim() ?? '';
 
@@ -12,7 +14,11 @@ class AppConstants {
     final url = override.isNotEmpty
         ? override
         : dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8081/api';
-    if (kIsWeb && url.contains('10.0.2.2')) {
+    // 10.0.2.2 chỉ tồn tại trên máy ảo Android. Web và máy ảo iOS gọi
+    // backend chạy cùng máy qua localhost. iPhone thật cần IP LAN hoặc URL
+    // đã deploy, truyền bằng --dart-define=API_BASE_URL=...
+    final isIos = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+    if ((kIsWeb || isIos) && url.contains('10.0.2.2')) {
       return url.replaceAll('10.0.2.2', 'localhost');
     }
     return url;

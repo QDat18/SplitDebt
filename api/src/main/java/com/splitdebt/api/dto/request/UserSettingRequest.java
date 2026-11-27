@@ -27,5 +27,7 @@ public class UserSettingRequest {
 
     private Boolean notifyOnSettlement;
 
+    private Boolean notifyOnGroupMessage;
+
     private Boolean biometricsEnabled;
 }

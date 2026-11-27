@@ -41,4 +41,11 @@ public interface ExpenseRepository
             "group"
     })
     List<Expense> findByGroupIdOrderByExpenseDateDesc(Long groupId);
+
+    @EntityGraph(attributePaths = {
+            "category",
+            "payer",
+            "group"
+    })
+    List<Expense> findByPayerId(Long payerId);
 }

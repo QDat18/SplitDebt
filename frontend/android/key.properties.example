@@ -1,0 +1,11 @@
+# Sao chép file này thành android/key.properties và điền thông tin thật.
+# Tuyệt đối KHÔNG commit android/key.properties hoặc file .jks lên Git.
+
+# Đường dẫn tới file keystore (.jks) nằm ngoài repo
+storeFile=C:/Users/YourName/splitdebt-release.jks
+# Mật khẩu của keystore
+storePassword=CHANGE_ME
+# Tên alias đã tạo bằng keytool
+keyAlias=splitdebt
+# Mật khẩu của key alias
+keyPassword=CHANGE_ME

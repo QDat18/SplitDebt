@@ -50,4 +50,7 @@ public class GroupMember {
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
     private GroupMemberStatus status = GroupMemberStatus.ACTIVE;
+
+    @Column(name = "last_read_message_id")
+    private Long lastReadMessageId;
 }

@@ -1,5 +1,6 @@
 // Trách nhiệm file: Xây dựng màn hình create expense screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,10 @@ import '../../core/theme/app_typography.dart';
 import '../../core/api/api_client.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../settlements/group_settlement_screen.dart';
+import 'models/expense_item_detail.dart';
+import 'receipt/receipt_flow.dart';
+import 'receipt/receipt_ocr_lab_screen.dart';
+export 'models/expense_item_detail.dart';
 
 /// ----------------------------------------------------------------------------
 /// DỮ LIỆU MẪU BAN ĐẦU CHO MÀN HÌNH TẠO KHOẢN CHI
@@ -49,20 +54,6 @@ class GroupMemberItem {
   });
 }
 
-class ExpenseItemDetail {
-  String id;
-  String name;
-  double price;
-  List<String> assignedMemberIds;
-
-  ExpenseItemDetail({
-    required this.id,
-    required this.name,
-    required this.price,
-    required this.assignedMemberIds,
-  });
-}
-
 enum SplitMode { equal, amount, percent, weight, item }
 
 /// ----------------------------------------------------------------------------
@@ -96,37 +87,37 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
       NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 
   // Danh mục khoản chi
-  final List<CategoryItem> _categories = const [
+  final List<CategoryItem> _categories = [
     CategoryItem(
         id: 'food',
         name: 'Ăn uống',
         icon: Icons.restaurant_rounded,
-        color: Color(0xFFFF7675)),
+        color: AppColors.error),
     CategoryItem(
         id: 'transport',
         name: 'Di chuyển',
         icon: Icons.directions_car_rounded,
-        color: Color(0xFF74B9FF)),
+        color: AppColors.avatarPalette[1]),
     CategoryItem(
         id: 'shopping',
         name: 'Mua sắm',
         icon: Icons.shopping_bag_rounded,
-        color: Color(0xFFA29BFE)),
+        color: AppColors.avatarPalette[3]),
     CategoryItem(
         id: 'entertainment',
         name: 'Giải trí',
         icon: Icons.local_activity_rounded,
-        color: Color(0xFFFD79A8)),
+        color: AppColors.avatarPalette[0]),
     CategoryItem(
         id: 'stay',
         name: 'Khách sạn',
         icon: Icons.hotel_rounded,
-        color: Color(0xFF55E6C1)),
+        color: AppColors.avatarPalette[2]),
     CategoryItem(
         id: 'other',
         name: 'Khác',
         icon: Icons.more_horiz_rounded,
-        color: Color(0xFFB2BEC3)),
+        color: AppColors.n500),
   ];
 
   late CategoryItem _selectedCategory;
@@ -533,11 +524,40 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
     });
   }
 
-  // Giả lập AI OCR Scan Hóa đơn
   Future<void> _scanReceiptOCR() async {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text(
-            'Quét hóa đơn chưa được kết nối. Bạn có thể nhập khoản chi và từng món bên dưới.')));
+    if (_isOcrScanning) return;
+    final applied = await ReceiptFlow.run(
+      context,
+      hasExistingItems: _items.isNotEmpty,
+      onScanningChanged: (scanning) {
+        if (mounted) {
+          setState(() => _isOcrScanning = scanning);
+        }
+      },
+    );
+    if (applied == null || !mounted) return;
+
+    setState(() {
+      _hasReceipt = true;
+      _titleController.text = applied.title;
+      if (applied.expenseDate != null) {
+        _expenseDate = applied.expenseDate!;
+      }
+      _amountController.text = currencyFormatter
+          .format(applied.totalAmount)
+          .replaceAll('₫', '')
+          .trim();
+      _items = applied.items;
+      _splitMode = applied.totalOnly ? SplitMode.equal : SplitMode.item;
+      _recalculateSplit();
+    });
+  }
+
+  void _openOcrLab() {
+    if (!kDebugMode) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ReceiptOcrLabScreen()),
+    );
   }
 
   @override
@@ -642,7 +662,7 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
             controller: _amountController,
             keyboardType: TextInputType.number,
             style: const TextStyle(
-                color: Color(0xFF6C5CE7),
+                color: AppColors.p500,
                 fontSize: 26,
                 fontWeight: FontWeight.w800),
             decoration:
@@ -689,10 +709,10 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                     avatar: Icon(cat.icon, size: 14),
                     selected: _selectedCategory.id == cat.id,
                     onSelected: (_) => setState(() => _selectedCategory = cat),
-                    selectedColor: const Color(0xFFE6E0FF),
+                    selectedColor: AppColors.p50,
                     backgroundColor: Colors.white,
                     showCheckmark: false,
-                    side: const BorderSide(color: Color(0xFFE8E9EF)),
+                    side: const BorderSide(color: AppColors.n200),
                     padding: const EdgeInsets.symmetric(horizontal: 4)))
                 .toList()),
       ]);
@@ -732,15 +752,26 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                 ),
               ),
               if (_isOcrScanning)
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.5, color: AppColors.p500),
+                const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2.2, color: AppColors.p500),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Đang đọc hoá đơn…',
+                      style: TextStyle(fontSize: 12, color: AppColors.p600),
+                    ),
+                  ],
                 )
               else
                 OutlinedButton.icon(
                   onPressed: _scanReceiptOCR,
+                  onLongPress: kDebugMode ? _openOcrLab : null,
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.p500),
                     shape: RoundedRectangleBorder(
@@ -748,9 +779,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
-                  icon: const Icon(Icons.auto_awesome,
+                  icon: const Icon(Icons.document_scanner_outlined,
                       size: 16, color: AppColors.p500),
-                  label: Text(_hasReceipt ? 'Quét lại' : 'Quét bill',
+                  label: Text(_hasReceipt ? 'Quét lại' : 'Quét hoá đơn',
                       style: AppTypography.label
                           .copyWith(color: AppColors.p500, fontSize: 13)),
                 ),
@@ -864,7 +895,7 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                 _splitMode = mode;
                 _recalculateSplit();
               }),
-          selectedColor: const Color(0xFFE6E0FF),
+          selectedColor: AppColors.p50,
           backgroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 3));
 

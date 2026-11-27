@@ -6,7 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/app/app_keys.dart';
+import '../../core/navigation/route_observer.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/utils/visible_poller.dart';
 import '../../data/repositories/auth_repository.dart';
+import 'notification_merge.dart';
 import 'push_notification_service.dart';
 
 class NotificationScreen extends StatefulWidget {
@@ -16,53 +20,135 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, RouteAware {
   List<Map<String, dynamic>> _items = [];
   int? _userId;
   bool _loading = true;
   bool _enabling = false;
   String? _error;
   StreamSubscription<RemoteMessage>? _messages;
+  late final VisiblePoller _poller;
+  final Set<Object> _pendingReadIds = {};
+  bool _subscribedToRoute = false;
+  int _version = 0;
+  bool _pendingUserReload = false;
+  bool get _hasData => _items.isNotEmpty || _userId != null;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _messages = FirebaseMessaging.onMessage.listen((_) => _load());
+    _poller = VisiblePoller(
+      interval: const Duration(seconds: 20),
+      onTick: () => _load(silent: true),
+    );
+    _poller.start();
+    _messages = FirebaseMessaging.onMessage.listen((_) => _load(silent: true));
     _load();
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_subscribedToRoute) {
+      final route = ModalRoute.of(context);
+      if (route != null) {
+        appRouteObserver.subscribe(this, route);
+        _subscribedToRoute = true;
+      }
+    }
+  }
+
+  @override
+  void didPushNext() {
+    _poller.setCovered(true);
+  }
+
+  @override
+  void didPopNext() {
+    _poller.setCovered(false);
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _load();
+    _poller.onLifecycle(state);
+    if (state == AppLifecycleState.resumed && !_poller.isCovered) {
+      _load(silent: true);
+    }
   }
 
   @override
   void dispose() {
+    appRouteObserver.unsubscribe(this);
+    _poller.stop();
     _messages?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool silent = false, bool userInitiated = false}) async {
+    if (userInitiated) {
+      _pendingUserReload = true;
+    }
+    final version = ++_version;
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final user = await AuthRepository().getCurrentUserId();
       final response = await dioClient
           .get('/notifications', queryParameters: {'userId': user});
-      if (!mounted) return;
+      if (!mounted || version != _version) return;
+      _pendingUserReload = false;
+      final rawList = (response.data['data'] as List)
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+
+      for (final item in rawList) {
+        if (item['isRead'] == true) {
+          _pendingReadIds.remove(item['id']);
+        }
+      }
+
+      final mergedList = applyPendingReads(rawList, _pendingReadIds);
+
       setState(() {
         _userId = user;
-        _items = (response.data['data'] as List)
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
+        _items = mergedList;
         _error = null;
         _loading = false;
       });
-    } catch (_) {
-      if (mounted)
+    } catch (e) {
+      if (!mounted || version != _version) return;
+      final hasData = _hasData;
+      final shouldNotify = (userInitiated || _pendingUserReload) && hasData;
+      _pendingUserReload = false;
+      if (shouldNotify) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không tải lại được. Kiểm tra kết nối và thử lại.'),
+          ),
+        );
+      }
+      if (silent) {
+        debugPrint('NotificationScreen silent load error: $e');
         setState(() {
-          _error = 'Không tải được thông báo. Hãy thử lại.';
+          if (!hasData) {
+            _error = 'Không tải được thông báo. Hãy thử lại.';
+          }
           _loading = false;
         });
+      } else {
+        setState(() {
+          if (!hasData) {
+            _error = 'Không tải được thông báo. Hãy thử lại.';
+          }
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -86,14 +172,29 @@ class _NotificationScreenState extends State<NotificationScreen>
   }
 
   Future<void> _read(Map<String, dynamic> item) async {
+    final id = item['id'];
+    if (id != null) {
+      _pendingReadIds.add(id);
+    }
+    setState(() => item['isRead'] = true);
     try {
-      await dioClient.patch('/notifications/${item['id']}/read',
+      await dioClient.patch('/notifications/$id/read',
           queryParameters: {'userId': _userId});
-      if (mounted) setState(() => item['isRead'] = true);
     } catch (_) {
-      if (mounted)
+      if (id != null) {
+        _pendingReadIds.remove(id);
+      }
+      if (mounted) {
+        setState(() {
+          if (id != null) {
+            _items = markUnread(_items, id);
+          } else {
+            item['isRead'] = false;
+          }
+        });
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Chưa đánh dấu đã đọc được. Hãy thử lại.')));
+      }
     }
   }
 
@@ -108,13 +209,13 @@ class _NotificationScreenState extends State<NotificationScreen>
               icon: const Icon(Icons.notifications_active_outlined)),
           IconButton(
               tooltip: 'Tải lại',
-              onPressed: _load,
+              onPressed: () => _load(userInitiated: true),
               icon: const Icon(Icons.refresh))
         ]),
-        body: _loading
+        body: (_loading && !_hasData)
             ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
-                onRefresh: _load,
+                onRefresh: () => _load(silent: true, userInitiated: true),
                 child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(20),
@@ -131,7 +232,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                         Card(
                             color: item['isRead'] == true
                                 ? Colors.white
-                                : const Color(0xFFF0EDFF),
+                                : AppColors.p50,
                             child: ListTile(
                                 contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 12),
@@ -141,7 +242,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                                         item['type'] == 'SETTLEMENT_PAID'
                                             ? Icons.payments_outlined
                                             : Icons.notifications_none,
-                                        color: const Color(0xFF6C5CE7),
+                                        color: AppColors.p500,
                                         size: 22)),
                                 title:
                                     Text(item['content']?.toString() ?? item['title']?.toString() ?? 'Thông báo',
@@ -153,8 +254,8 @@ class _NotificationScreenState extends State<NotificationScreen>
                                 subtitle: Padding(
                                     padding: const EdgeInsets.only(top: 6),
                                     child:
-                                        Text(_date(item['createdAt']), style: const TextStyle(fontSize: 12, color: Color(0xFF778092)))),
-                                trailing: item['isRead'] == true ? null : const Icon(Icons.circle, size: 8, color: Color(0xFF6C5CE7)),
+                                        Text(_date(item['createdAt']), style: const TextStyle(fontSize: 12, color: AppColors.n600))),
+                                trailing: item['isRead'] == true ? null : const Icon(Icons.circle, size: 8, color: AppColors.p500),
                                 onTap: () => _read(item))),
                     ])),
       );

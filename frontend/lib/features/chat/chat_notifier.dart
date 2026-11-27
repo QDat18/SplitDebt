@@ -1,0 +1,318 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/repositories/auth_repository.dart';
+import 'chat_logic.dart';
+import 'chat_models.dart';
+import 'chat_repository.dart';
+import 'uuid.dart';
+
+class RefreshResult {
+  final int newCount;
+  final bool failed;
+
+  const RefreshResult({
+    required this.newCount,
+    required this.failed,
+  });
+}
+
+class ChatState {
+  final List<ChatMessage> messages;
+  final bool loadingInitial;
+  final bool loadingOlder;
+  final bool hasMore;
+  final String? error;
+  final bool removed;
+
+  const ChatState({
+    this.messages = const [],
+    this.loadingInitial = false,
+    this.loadingOlder = false,
+    this.hasMore = false,
+    this.error,
+    this.removed = false,
+  });
+
+  int? get newestServerId {
+    int? maxId;
+    for (final m in messages) {
+      if (m.id != null) {
+        if (maxId == null || m.id! > maxId) {
+          maxId = m.id;
+        }
+      }
+    }
+    return maxId;
+  }
+
+  ChatState copyWith({
+    List<ChatMessage>? messages,
+    bool? loadingInitial,
+    bool? loadingOlder,
+    bool? hasMore,
+    String? error,
+    bool? removed,
+  }) {
+    return ChatState(
+      messages: messages ?? this.messages,
+      loadingInitial: loadingInitial ?? this.loadingInitial,
+      loadingOlder: loadingOlder ?? this.loadingOlder,
+      hasMore: hasMore ?? this.hasMore,
+      error: error,
+      removed: removed ?? this.removed,
+    );
+  }
+}
+
+class ChatNotifier extends StateNotifier<ChatState> {
+  final ChatRepository _repository;
+  final int groupId;
+  int myUserId;
+  String myUserName;
+  bool _isRefreshingNewer = false;
+
+  ChatNotifier({
+    required ChatRepository repository,
+    required this.groupId,
+    required this.myUserId,
+    this.myUserName = '',
+  })  : _repository = repository,
+        super(const ChatState());
+
+  void updateCurrentUser(int id, [String name = '']) {
+    myUserId = id;
+    if (name.isNotEmpty) myUserName = name;
+  }
+
+  Future<void> loadInitial() async {
+    state = state.copyWith(loadingInitial: true, error: null);
+    try {
+      final page = await _repository.latest(groupId);
+      if (mounted) {
+        state = state.copyWith(
+          messages: page.messages,
+          hasMore: page.hasMore,
+          loadingInitial: false,
+        );
+      }
+    } catch (e) {
+      debugPrint('Chat send error: $e');
+      if (mounted) {
+        state = state.copyWith(
+          loadingInitial: false,
+          error: e.toString(),
+        );
+      }
+    }
+  }
+
+  Future<void> loadOlder() async {
+    if (state.loadingOlder || !state.hasMore || state.messages.isEmpty) return;
+    int? firstServerId;
+    for (final m in state.messages) {
+      if (m.id != null) {
+        if (firstServerId == null || m.id! < firstServerId) {
+          firstServerId = m.id;
+        }
+      }
+    }
+    if (firstServerId == null) return;
+
+    state = state.copyWith(loadingOlder: true);
+    try {
+      final page = await _repository.before(groupId, firstServerId);
+      if (mounted) {
+        state = state.copyWith(
+          messages: mergeMessages(page.messages, state.messages),
+          hasMore: page.hasMore,
+          loadingOlder: false,
+        );
+      }
+    } catch (e) {
+      debugPrint('Chat send error: $e');
+      if (mounted) {
+        state = state.copyWith(loadingOlder: false);
+      }
+    }
+  }
+
+  Future<RefreshResult> refreshNewer() async {
+    if (state.loadingInitial || _isRefreshingNewer || state.removed) {
+      return const RefreshResult(newCount: 0, failed: false);
+    }
+    if (state.newestServerId == null && state.error != null) {
+      final prevIds = state.messages.map((m) => m.id).whereType<int>().toSet();
+      await loadInitial();
+      if (!mounted || state.error != null) {
+        return const RefreshResult(newCount: 0, failed: true);
+      }
+      final newCount = state.messages
+          .where((m) => m.id != null && !prevIds.contains(m.id))
+          .length;
+      return RefreshResult(newCount: newCount, failed: false);
+    }
+    final lastId = state.newestServerId ?? 0;
+
+    _isRefreshingNewer = true;
+    try {
+      final newMsgs = await _repository.after(groupId, lastId);
+      if (!mounted) return const RefreshResult(newCount: 0, failed: false);
+      final existingIds =
+          state.messages.map((m) => m.id).whereType<int>().toSet();
+      final newCount = newMsgs
+          .where((m) => m.id != null && !existingIds.contains(m.id))
+          .length;
+      state = state.copyWith(
+        messages: mergeMessages(state.messages, newMsgs),
+      );
+      return RefreshResult(newCount: newCount, failed: false);
+    } catch (e) {
+      if (mounted && e is DioException && e.response?.statusCode == 403) {
+        state = state.copyWith(removed: true);
+      }
+      return const RefreshResult(newCount: 0, failed: true);
+    } finally {
+      _isRefreshingNewer = false;
+    }
+  }
+
+  Future<bool> send(String text) async {
+    if (state.removed) return false;
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return false;
+
+    final clientMsgId = uuidV4();
+    final pending = ChatMessage(
+      id: null,
+      groupId: groupId,
+      senderId: myUserId,
+      senderName: myUserName,
+      content: trimmed,
+      createdAt: DateTime.now(),
+      clientMessageId: clientMsgId,
+      status: ChatStatus.pending,
+    );
+
+    state = state.copyWith(messages: [...state.messages, pending]);
+
+    try {
+      final serverMsg = await _repository.send(groupId, trimmed, clientMsgId);
+      if (mounted) {
+        state = state.copyWith(
+          messages: mergeMessages(state.messages, [serverMsg]),
+        );
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Chat send error: $e');
+      if (mounted) {
+        _markSendFailure(clientMsgId, e);
+      }
+      return false;
+    }
+  }
+
+  Future<void> retry(String clientMessageId) async {
+    ChatMessage? target;
+    for (final m in state.messages) {
+      if (m.clientMessageId == clientMessageId) {
+        target = m;
+        break;
+      }
+    }
+    if (target == null || target.status != ChatStatus.failed) return;
+
+    final updated = state.messages.map((m) {
+      if (m.clientMessageId == clientMessageId) {
+        return m.copyWith(status: ChatStatus.pending);
+      }
+      return m;
+    }).toList();
+    state = state.copyWith(messages: updated);
+
+    try {
+      final serverMsg =
+          await _repository.send(groupId, target.content, clientMessageId);
+      if (mounted) {
+        state = state.copyWith(
+          messages: mergeMessages(state.messages, [serverMsg]),
+        );
+      }
+    } catch (e) {
+      debugPrint('Chat send error: $e');
+      if (mounted) {
+        _markSendFailure(clientMessageId, e);
+      }
+    }
+  }
+
+  void _markSendFailure(String clientMessageId, Object error) {
+    ChatStatus status = ChatStatus.failed;
+    String? errorMessage;
+    bool removed = state.removed;
+    if (error is DioException) {
+      final code = error.response?.statusCode;
+      if (code == 403) {
+        removed = true;
+      } else if (code == 400) {
+        status = ChatStatus.rejected;
+        final data = error.response?.data;
+        if (data is Map &&
+            data['message'] is String &&
+            (data['message'] as String).isNotEmpty) {
+          errorMessage = data['message'] as String;
+        } else {
+          errorMessage = 'Tin nhắn không hợp lệ';
+        }
+      }
+    }
+    final updated = state.messages.map((m) {
+      if (m.clientMessageId == clientMessageId) {
+        return m.copyWith(status: status, errorMessage: errorMessage);
+      }
+      return m;
+    }).toList();
+    state = state.copyWith(messages: updated, removed: removed);
+  }
+
+  void removeLocalMessage(String clientMessageId) {
+    state = state.copyWith(
+      messages: state.messages
+          .where((m) => m.clientMessageId != clientMessageId)
+          .toList(),
+    );
+  }
+
+  Future<void> markRead(int lastId) async {
+    try {
+      await _repository.markRead(groupId, lastId);
+    } catch (_) {
+      // Ignored
+    }
+  }
+}
+
+final chatRepositoryProvider = Provider<ChatRepository>((ref) {
+  return DioChatRepository();
+});
+
+final chatCurrentUserIdProvider = FutureProvider<int>((ref) async {
+  return AuthRepository().getCurrentUserId();
+});
+
+final chatNotifierProvider = StateNotifierProvider.autoDispose
+    .family<ChatNotifier, ChatState, int>((ref, groupId) {
+  final repo = ref.watch(chatRepositoryProvider);
+  final notifier = ChatNotifier(
+    repository: repo,
+    groupId: groupId,
+    myUserId: 0,
+  );
+  ref.listen<AsyncValue<int>>(chatCurrentUserIdProvider, (_, next) {
+    if (next.hasValue && next.value != null) {
+      notifier.updateCurrentUser(next.value!);
+    }
+  }, fireImmediately: true);
+  return notifier;
+});

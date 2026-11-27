@@ -7,6 +7,7 @@ package com.splitdebt.api.service;
 import com.splitdebt.api.entity.Notification;
 import com.splitdebt.api.entity.User;
 import com.splitdebt.api.repository.NotificationRepository;
+import com.splitdebt.api.repository.UserSettingRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,11 +22,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @RequiredArgsConstructor
 public class NotificationService {
 
-    private final NotificationRepository
-            notificationRepository;
-
-    private final FcmPushService
-            fcmPushService;
+    private final NotificationRepository notificationRepository;
+    private final FcmPushService fcmPushService;
+    private final UserSettingRepository userSettingRepository;
 
     public Notification createAndPush(
             User user,
@@ -49,18 +48,38 @@ public class NotificationService {
 
         Map<String, String> payload = new HashMap<>(data == null ? Map.of() : data);
         payload.put("type", type);
-        Long userId = user.getId();
-        Runnable push = () -> fcmPushService.sendToUserTopic(userId, title, content, payload);
-        // Clients re-fetch balances on push: the transaction must be visible first.
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() { push.run(); }
-            });
-        } else {
-            push.run();
+        Long userId = user != null ? user.getId() : null;
+        boolean allowPush = shouldPush(userId, type);
+
+        if (allowPush) {
+            Runnable push = () -> fcmPushService.sendToUserTopic(userId, title, content, payload);
+            // Clients re-fetch balances on push: the transaction must be visible first.
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() { push.run(); }
+                });
+            } else {
+                push.run();
+            }
         }
 
         return saved;
+    }
+
+    private boolean shouldPush(Long userId, String type) {
+        if (userId == null) {
+            return true;
+        }
+        return userSettingRepository.findByUserId(userId)
+                .map(setting -> {
+                    if ("SETTLEMENT_REQUEST".equals(type)) {
+                        return !Boolean.FALSE.equals(setting.getNotifyOnDebtReminder());
+                    } else if ("SETTLEMENT_PAID".equals(type) || "SETTLEMENT_CONFIRMED".equals(type)) {
+                        return !Boolean.FALSE.equals(setting.getNotifyOnSettlement());
+                    }
+                    return true;
+                })
+                .orElse(true);
     }
 }

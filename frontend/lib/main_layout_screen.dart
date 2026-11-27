@@ -1,9 +1,11 @@
 // Trách nhiệm file: Điều phối bố cục chính và thanh điều hướng giữa các khu vực sau đăng nhập.
 
 import 'package:flutter/material.dart';
-import 'features/groups/dashboard_screen.dart';
-import 'features/home/home_screen.dart';
-import 'features/home/pdf_overview_screen.dart';
+import 'core/localization/app_strings.dart';
+import 'core/theme/app_colors.dart';
+import 'features/home/dashboard_screen.dart';
+import 'features/groups/screens/groups_screen.dart';
+import 'features/history/history_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/expenses/create_expense_screen.dart';
 import 'features/settlements/live_settlement_screen.dart';
@@ -39,8 +41,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                 );
               },
             ),
-            const HomeScreen(),
-            const OverviewScreen(key: ValueKey('history'), history: true),
+            const GroupsScreen(),
+            const HistoryScreen(key: ValueKey('history'), history: true),
             const ProfileScreen(),
           ],
         ),
@@ -48,33 +50,33 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           currentIndex: _index,
           onTap: (i) => setState(() => _index = i),
           type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF6C5CE7),
-          unselectedItemColor: const Color(0xFF87909E),
+          backgroundColor: AppColors.n0,
+          selectedItemColor: AppColors.p500,
+          unselectedItemColor: AppColors.n500,
           selectedFontSize: 10,
           unselectedFontSize: 10,
           iconSize: 22,
           elevation: 0,
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard),
-              label: 'Trang chủ',
+              icon: const Icon(Icons.dashboard_outlined),
+              activeIcon: const Icon(Icons.dashboard),
+              label: context.tr('Trang chủ', 'Home'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people),
-              label: 'Nhóm',
+              icon: const Icon(Icons.people_outline),
+              activeIcon: const Icon(Icons.people),
+              label: context.tr('Nhóm', 'Groups'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.history_outlined),
-              activeIcon: Icon(Icons.history),
-              label: 'Lịch sử',
+              icon: const Icon(Icons.history_outlined),
+              activeIcon: const Icon(Icons.history),
+              label: context.tr('Lịch sử', 'History'),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Cá nhân',
+              icon: const Icon(Icons.person_outline),
+              activeIcon: const Icon(Icons.person),
+              label: context.tr('Cá nhân', 'Profile'),
             ),
           ],
         ),

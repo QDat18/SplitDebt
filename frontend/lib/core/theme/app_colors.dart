@@ -11,6 +11,7 @@ class AppColors {
   static const Color p300 = Color(0xFFA397FA);
   static const Color p400 = Color(0xFF806CF7);
   static const Color p500 = Color(0xFF6C5CE7); // Primary Brand Color
+  static const Color primary = p500;
   static const Color p600 = Color(0xFF5A4BD2);
   static const Color p700 = Color(0xFF493BB8);
   static const Color p800 = Color(0xFF4433B0);
@@ -41,6 +42,15 @@ class AppColors {
 
   static const Color info = Color(0xFF3B82F6);
   static const Color infoTint = Color(0xFFDBEAFE);
+
+  // --- AVATAR / DECORATIVE PALETTE ---
+  static const List<Color> avatarPalette = [
+    Color(0xFFFD79A8),
+    Color(0xFF74B9FF),
+    Color(0xFF55E6C1),
+    Color(0xFFA29BFE),
+    Color(0xFFFFA000),
+  ];
 
   // --- GRADIENTS (DẢI MÀU) ---
   static const LinearGradient primaryGradient = LinearGradient(

@@ -11,4 +11,7 @@ public class UserPreferencesDto {
     private String language;
     private String currency;
     private String theme;
+    private Boolean notifyOnDebtReminder;
+    private Boolean notifyOnSettlement;
+    private Boolean notifyOnGroupMessage;
 }

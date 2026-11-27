@@ -31,4 +31,11 @@ public interface ExpenseParticipantRepository
 
     // DEV2: xóa participants khi xóa/cập nhật expense
     void deleteByExpenseId(Long expenseId);
+
+    @EntityGraph(attributePaths = {
+            "expense",
+            "expense.group",
+            "expense.payer"
+    })
+    List<ExpenseParticipant> findByUserId(Long userId);
 }

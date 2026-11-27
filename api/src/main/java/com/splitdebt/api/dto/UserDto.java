@@ -4,6 +4,7 @@
 
 package com.splitdebt.api.dto;
 
+import com.splitdebt.api.dto.consent.ConsentStatusDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,4 +20,5 @@ public class UserDto {
     private String email;
     private String phone;
     private String avatarUrl;
+    private ConsentStatusDto consent;
 }
