@@ -5,6 +5,33 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
 import 'login_screen.dart';
 
+class OnboardingPage {
+  final IconData icon;
+  final String title;
+  final String body;
+
+  const OnboardingPage(this.icon, this.title, this.body);
+}
+
+/// Ba trang giới thiệu, theo chủ đề chuyến đi chung của cả nhóm.
+const kOnboardingPages = [
+  OnboardingPage(
+    Icons.luggage_rounded,
+    'Ghi chi tiêu chuyến đi',
+    'Vé xe, phòng nghỉ, bữa ăn: thêm khoản chi trong vài giây, chia đều hoặc tuỳ chỉnh cho từng người.',
+  ),
+  OnboardingPage(
+    Icons.alt_route_rounded,
+    'Xén nợ thông minh',
+    'Tự động gộp các khoản nợ chéo thành ít lần chuyển tiền nhất.',
+  ),
+  OnboardingPage(
+    Icons.map_rounded,
+    'Về nhà, sòng phẳng',
+    'Biết rõ ai nợ ai, bao nhiêu, và thanh toán chỉ với một chạm.',
+  ),
+];
+
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
   @override
@@ -13,92 +40,114 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   int _page = 0;
-  final _pages = const [
-    (
-      '💸',
-      'Ghi chi tiêu nhóm dễ dàng',
-      'Thêm khoản chi trong vài giây, chia đều hoặc tùy chỉnh cho từng thành viên'
-    ),
-    (
-      '✂️',
-      'Xén nợ thông minh',
-      'Tự động gộp các khoản nợ chéo thành ít giao dịch nhất có thể'
-    ),
-    (
-      '📈',
-      'Theo dõi minh bạch',
-      'Biết rõ ai nợ ai, bao nhiêu và thanh toán chỉ với một chạm'
-    ),
-  ];
+
+  bool get _isLast => _page == kOnboardingPages.length - 1;
+
   Future<void> _finish() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_complete', true);
-    if (mounted)
+    if (mounted) {
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+    }
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-          body: SafeArea(
-              child: Column(children: [
-        Expanded(
-            child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
+  Widget build(BuildContext context) {
+    final page = kOnboardingPages[_page];
+    return Scaffold(
+      backgroundColor: AppColors.n0,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeOut,
+                  child: Column(
+                    key: ValueKey(_page),
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                          width: 210,
-                          height: 210,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                              color: AppColors.p50,
-                              borderRadius: BorderRadius.circular(32)),
-                          child: Text(_pages[_page].$1,
-                              style: const TextStyle(fontSize: 86))),
-                      const SizedBox(height: 36),
-                      Text(_pages[_page].$2,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: 23, fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 14),
-                      Text(_pages[_page].$3,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              color: AppColors.n600, fontSize: 14)),
-                      const SizedBox(height: 28),
-                      Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(
-                              3,
-                              (i) => AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  margin:
-                                      const EdgeInsets.symmetric(horizontal: 4),
-                                  width: _page == i ? 22 : 7,
-                                  height: 7,
-                                  decoration: BoxDecoration(
-                                      color: _page == i
-                                          ? AppColors.p500
-                                          : AppColors.n200,
-                                      borderRadius:
-                                          BorderRadius.circular(8))))),
-                    ]))),
-        Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          color: AppColors.p50,
+                          borderRadius: BorderRadius.circular(40),
+                        ),
+                        child: Icon(page.icon, size: 72, color: AppColors.p500),
+                      ),
+                      const SizedBox(height: 40),
+                      Text(
+                        page.title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          height: 34 / 28,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 28 * -0.022,
+                          color: AppColors.n800,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        page.body,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          height: 24 / 17,
+                          color: AppColors.n600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                kOnboardingPages.length,
+                (i) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: _page == i ? 20 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: _page == i ? AppColors.p500 : AppColors.n200,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   FilledButton(
-                      onPressed:
-                          _page == 2 ? _finish : () => setState(() => _page++),
-                      child: Text(_page == 2 ? 'Bắt đầu' : 'Tiếp tục')),
+                    onPressed:
+                        _isLast ? _finish : () => setState(() => _page++),
+                    child: Text(_isLast ? 'Bắt đầu' : 'Tiếp tục'),
+                  ),
                   const SizedBox(height: 8),
                   TextButton(
-                      onPressed: _finish,
-                      child: Text(_page == 2 ? 'Đăng nhập' : 'Bỏ qua',
-                          style: const TextStyle(color: AppColors.n600))),
-                ])),
-      ])));
+                    style: TextButton.styleFrom(
+                        minimumSize: const Size.fromHeight(44)),
+                    onPressed: _finish,
+                    child: Text(_isLast ? 'Đăng nhập' : 'Bỏ qua',
+                        style: const TextStyle(
+                            color: AppColors.n600, fontSize: 15)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
