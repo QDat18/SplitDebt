@@ -36,7 +36,7 @@ void main() {
         expect(find.byType(NavigationRail), findsNothing);
         expect(
           tester.getSemantics(find.bySemanticsLabel('Trang chủ')),
-          containsSemantics(
+          isSemantics(
             label: 'Trang chủ',
             isButton: true,
             isSelected: true,

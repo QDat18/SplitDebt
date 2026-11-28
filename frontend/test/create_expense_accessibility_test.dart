@@ -4,7 +4,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:split_debt/core/network/dio_client.dart';
 import 'package:split_debt/core/theme/app_theme.dart';
 import 'package:split_debt/data/repositories/auth_repository.dart';
@@ -17,7 +16,6 @@ void main() {
 
   setUp(() {
     dotenv.loadFromString(envString: 'API_BASE_URL=http://localhost:8081/api');
-    GoogleFonts.config.allowRuntimeFetching = false;
     AuthRepository.setCachedUserId(1);
     saveRequests = 0;
     originalInterceptors = List.of(dioClient.interceptors);

@@ -243,10 +243,12 @@ class _OverviewScreenState extends State<OverviewScreen>
   String _eventSubtitle(Map<String, dynamic> e) {
     final kind = e['kind'] as int? ?? 1;
     final actor = e['actor']?.toString() ?? '';
-    if (kind == 3)
+    if (kind == 3) {
       return tr(context, 'Đã xác nhận nhận tiền', 'Confirmed receipt');
-    if (kind == 2)
+    }
+    if (kind == 2) {
       return tr(context, 'Đã xác nhận thanh toán', 'Confirmed payment');
+    }
     if (actor.isNotEmpty) {
       return tr(context, '$actor đã trả', 'Paid by $actor');
     }

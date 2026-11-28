@@ -98,12 +98,13 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
   Future<void> _loadCategories() async {
     try {
       final raw = await ApiClient.get('/v1/categories') as List;
-      if (mounted)
+      if (mounted) {
         setState(
           () => _categories = raw
               .map((e) => Map<String, dynamic>.from(e as Map))
               .toList(),
         );
+      }
     } catch (_) {
       /* category is optional; expense entry remains available */
     }
@@ -177,11 +178,12 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
         setState(() => _loadingMembers = false);
       }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loadError = error;
           _loadingMembers = false;
         });
+      }
     }
   }
 
@@ -226,11 +228,12 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
       _recalculateSplit();
       setState(() => _loadingMembers = false);
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loadError = error;
           _loadingMembers = false;
         });
+      }
     }
   }
 
@@ -357,10 +360,11 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
         ),
       );
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(_friendlyError(error))));
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -623,8 +627,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
               )
               .toList()
         : [];
-    if (_splitMode == SplitMode.item && _items.isEmpty)
+    if (_splitMode == SplitMode.item && _items.isEmpty) {
       _splitMode = SplitMode.equal;
+    }
   }
 
   Future<void> _changeEntryMode(bool scan) async {
@@ -654,13 +659,14 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
         _receipt = result;
         _amountController.text = result.total.toString();
         _expenseDate = result.date;
-        if (autoTitle)
+        if (autoTitle) {
           _titleController.text = result.merchant.isEmpty
               ? 'Chi tiêu theo hóa đơn'
               : result.merchant.substring(
                   0,
                   result.merchant.length > 160 ? 160 : result.merchant.length,
                 );
+        }
         _populateReceiptItems(result);
         _splitMode = _items.isEmpty ? SplitMode.equal : SplitMode.item;
         _recalculateSplit();
@@ -668,10 +674,11 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
     } on FormatException catch (error) {
       if (mounted) _showMessage(error.message);
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         _showMessage(
           'Không mở được hóa đơn. Hãy thử lại hoặc chọn nhập thủ công.',
         );
+      }
     } finally {
       if (mounted) setState(() => _isOcrScanning = false);
     }
@@ -1200,8 +1207,9 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                   firstDate: DateTime(2000),
                   lastDate: DateTime.now().add(const Duration(days: 365)),
                 );
-                if (picked != null && mounted)
+                if (picked != null && mounted) {
                   setState(() => _expenseDate = picked);
+                }
               },
         icon: const Icon(Icons.calendar_today_outlined),
         label: Text(

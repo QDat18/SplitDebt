@@ -28,10 +28,17 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Match MaterialApp.supportedLocales; discard unused plugin translations.
+        resourceConfigurations += listOf("vi", "en")
     }
 
     buildTypes {
         release {
+            // Keep unused Android code and resources out of every release APK.
+            isMinifyEnabled = true
+            isShrinkResources = true
+
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")

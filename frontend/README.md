@@ -7,9 +7,8 @@
 - Dart 3 và Flutter 3.47+
 - Riverpod cho state management
 - Dio cho HTTP client
-- `flutter_secure_storage` cho JWT
 - Firebase Core và Firebase Cloud Messaging
-- `shared_preferences` cho trạng thái onboarding
+- `shared_preferences` cho JWT, tùy chọn và trạng thái onboarding
 - `fl_chart` cho biểu đồ tài chính
 
 ## Chức năng
@@ -100,7 +99,7 @@ lib/
 │   ├── constants/       # Cấu hình đọc từ .env/dart-define
 │   ├── network/         # Dio, interceptor và response envelope
 │   ├── providers/       # Trạng thái dùng chung
-│   ├── storage/         # Lưu JWT bảo mật
+│   ├── storage/         # Lưu JWT qua shared_preferences
 │   └── theme/           # Màu, typography, spacing và PDF components
 ├── data/
 │   └── repositories/    # Repository dùng chung nhiều feature
@@ -139,18 +138,64 @@ Danh tính đăng nhập do JWT quyết định. Client không gửi `userId` đ
 dart format --output=none --set-exit-if-changed lib test
 flutter analyze
 flutter test
+```
+
+Bản debug chỉ dùng trong quá trình phát triển:
+
+```powershell
 flutter build apk --debug
 ```
 
-APK debug được tạo tại:
+APK debug được tạo tại `build/app/outputs/flutter-apk/app-debug.apk`.
+
+### APK release gọn cho điện thoại
+
+Chạy từ thư mục `frontend`:
+
+```powershell
+.\build-apk.ps1
+```
+
+Có thể ghi đè API của bản phát hành bằng URL HTTPS:
+
+```powershell
+.\build-apk.ps1 -ApiBaseUrl https://api.example.com/api
+```
+
+Script build ở chế độ release, tách APK theo kiến trúc CPU, bật tree shaking cho icon và lưu thông tin debug của Dart ngoài APK tại một thư mục riêng trong `build/symbols/` cho mỗi lần build. Cấu hình release Android bật R8 và thu gọn tài nguyên để loại mã Android và tài nguyên không được dùng. Các APK nằm tại:
 
 ```text
-build/app/outputs/flutter-apk/app-debug.apk
+build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+build/app/outputs/flutter-apk/app-x86_64-release.apk
 ```
+
+| APK | Thiết bị sử dụng |
+|---|---|
+| `app-arm64-v8a-release.apk` | Phần lớn điện thoại Android hiện nay |
+| `app-armeabi-v7a-release.apk` | Điện thoại Android dùng CPU ARM 32 bit |
+| `app-x86_64-release.apk` | Thiết bị Intel hoặc emulator x86_64 |
+
+Mỗi người dùng chỉ cần cài APK đúng kiến trúc thiết bị. Giữ lại thư mục symbols được script thông báo và `build/app/outputs/mapping/release/` cùng APK của từng bản phát hành để giải mã stack trace khi có crash. Lưu các file này trước lần build kế tiếp hoặc trước khi chạy `flutter clean`.
+
+Nếu phân phối qua Google Play, có thể build Android App Bundle để Play cung cấp phần phù hợp với từng thiết bị:
+
+```powershell
+$releaseId = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
+flutter build appbundle --release --tree-shake-icons --split-debug-info="build/symbols/play-$releaseId"
+```
+
+Bundle được tạo tại `build/app/outputs/bundle/release/app-release.aab`. Cũng lưu symbols và R8 mapping riêng cho mỗi bản bundle.
+
+### Phạm vi dọn dẹp
+
+`build/`, `.dart_tool/` và cache Gradle là dữ liệu build trên máy phát triển; xóa chúng chỉ giải phóng dung lượng máy và khiến lần build tiếp theo cần tạo lại. Mã nguồn Dart, test, tài liệu, thư mục iOS và web không được đóng nguyên thư mục vào APK Android, nên xóa chúng không làm APK người dùng nhỏ hơn. Flutter release biên dịch mã Dart và loại phần không sử dụng.
+
+Giữ các thư viện và model OCR/QR được đóng kèm để quét hóa đơn, quét QR vẫn hoạt động offline; giữ tính năng xuất PDF và các luồng nghiệp vụ hiện có.
 
 ## Bảo mật
 
-- JWT được lưu bằng `flutter_secure_storage`.
+- JWT hiện được lưu bằng `shared_preferences`; đây không phải kho lưu trữ được mã hóa.
 - Phản hồi xác thực không được ghi nguyên văn ra log.
 - Android release chặn cleartext HTTP; debug cho phép HTTP để kết nối backend local.
 - `.env`, `google-services.json` và `firebase.json` không được commit.

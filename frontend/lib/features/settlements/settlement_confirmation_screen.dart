@@ -477,7 +477,8 @@ class _SettlementConfirmationScreenState
                                 settlementId: widget.settlementId!,
                               );
                             } catch (e) {
-                              if (mounted) {
+                              if (!mounted) return;
+                              if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('Lỗi: $e'),
@@ -497,13 +498,14 @@ class _SettlementConfirmationScreenState
                               setState(() => _isLoading = false);
                               return;
                             }
+                            if (!mounted) return;
                             setState(() => _isLoading = false);
                           }
 
                           setState(() {
                             _payerConfirmed = true;
                           });
-                          if (mounted) {
+                          if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: const Text(
@@ -563,7 +565,8 @@ class _SettlementConfirmationScreenState
                                 settlementId: widget.settlementId!,
                               );
                             } catch (e) {
-                              if (mounted) {
+                              if (!mounted) return;
+                              if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('Lỗi: $e'),
@@ -583,13 +586,14 @@ class _SettlementConfirmationScreenState
                               setState(() => _isLoading = false);
                               return;
                             }
+                            if (!mounted) return;
                             setState(() => _isLoading = false);
                           }
 
                           setState(() {
                             _receiverConfirmed = true;
                           });
-                          if (mounted) {
+                          if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: const Row(
