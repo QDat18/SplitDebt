@@ -1,0 +1,54 @@
+Source: SplitDebt-test.zip (2026-11-28).
+Independent Java OCR algorithm checks (Java 21; not Spring integration):
+PASS standard printed receipt
+PASS no total: do not guess
+PASS tax mismatch warning and next-line total
+PASS ambiguous totals
+PASS decimal formatting and discount
+PASS table candidate preserved independently
+PASS reordered columns
+PASS invalid arithmetic rejected
+PASS multiple tables not combined
+PASS mismatch total warns
+PASS missing header rejected
+PASS missing qty rejected
+PASS ragged rows rejected
+PASS table footer skipped
+PASS uncertain fallback
+10 passed
+
+Python OCR adapter/API tests (mock model inference, not actual Paddle):
+test_alpha_composites_on_white (test_adapter.AdapterTests.test_alpha_composites_on_white) ... ok
+test_bad_image (test_adapter.AdapterTests.test_bad_image) ... ok
+test_bad_mode (test_adapter.AdapterTests.test_bad_mode) ... ok
+test_busy (test_adapter.AdapterTests.test_busy) ... ok
+test_empty_first_pass_can_recover (test_adapter.AdapterTests.test_empty_first_pass_can_recover) ... ok
+test_enhance_keeps_geometry (test_adapter.AdapterTests.test_enhance_keeps_geometry) ... ok
+test_exif_rotation (test_adapter.AdapterTests.test_exif_rotation) ... ok
+test_geometry (test_adapter.AdapterTests.test_geometry) ... ok
+test_health (test_adapter.AdapterTests.test_health) ... ok
+test_health_distinguishes_loaded_and_warmed_models (test_adapter.AdapterTests.test_health_distinguishes_loaded_and_warmed_models) ... ok
+test_inconsistent (test_adapter.AdapterTests.test_inconsistent) ... ok
+test_large_image (test_adapter.AdapterTests.test_large_image) ... ok
+test_long_receipt_preserves_small_print (test_adapter.AdapterTests.test_long_receipt_preserves_small_print) ... ok
+test_low_confidence_retries_without_losing_original (test_adapter.AdapterTests.test_low_confidence_retries_without_losing_original) ... ok
+test_merged (test_adapter.AdapterTests.test_merged) ... ok
+test_mock_inference (test_adapter.AdapterTests.test_mock_inference) ... ok
+test_nan (test_adapter.AdapterTests.test_nan) ... ok
+test_ocr_only (test_adapter.AdapterTests.test_ocr_only) ... ok
+test_polygon_geometry (test_adapter.AdapterTests.test_polygon_geometry) ... ok
+test_ragged (test_adapter.AdapterTests.test_ragged) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.320s
+
+OK
+
+Web OCR bridge test (mock browser engine):
+Browser receipt bridge: geometry, explicit blocks, fast path and QR bitmap cleanup passed.
+
+Maven wrapper attempt:
+wget: Failed to fetch https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.16/apache-maven-3.9.16-bin.zip
+
+Flutter/Android SDK, PowerShell and Docker unavailable in this runtime; APK, Gradle signing, Flutter tests, Docker and full backend not executed.
+ParserSmoke.java in source expected no warnings for missing quantity and date; aligned assertion with existing ReceiptParserTest, without changing parser behavior.

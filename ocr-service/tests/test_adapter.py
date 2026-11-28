@@ -37,6 +37,11 @@ class AdapterTests(unittest.TestCase):
     def test_nan(self):
         with self.assertRaises(ValueError): adapt({'rec_texts':['1'],'rec_boxes':[[0,0,10,10]],'rec_scores':[float('nan')]},'ocr')
     def test_health(self): self.assertEqual(TestClient(app).get('/health').json()['status'],'up')
+    def test_health_distinguishes_loaded_and_warmed_models(self):
+        with patch('main.models', {'ocr': object(), 'structure': object()}), patch('main.warmed', {'ocr'}):
+            result = TestClient(app).get('/health').json()
+        self.assertEqual(set(result['loaded']), {'ocr', 'structure'})
+        self.assertEqual(result['ready'], ['ocr'])
     def test_bad_image(self): self.assertEqual(TestClient(app).post('/recognize',content=b'bad').status_code,400)
     def test_bad_mode(self): self.assertEqual(TestClient(app).post('/recognize?mode=bad',content=b'bad').status_code,400)
     def test_large_image(self): self.assertEqual(TestClient(app).post('/recognize',content=b'0'*(8*1024*1024+1)).status_code,413)

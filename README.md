@@ -32,3 +32,7 @@ Dự án được phân tách thành 2 phân hệ độc lập để dễ dàng 
 
 ## 📄 Giấy phép
 Dự án được phát triển phục vụ mục đích học tập và nghiên cứu.
+
+## Android release / APK
+
+See [Hướng dẫn đóng gói APK](docs/release/APK_GUIDE_VI.md). Release requires a real HTTPS API URL and signing key. Python OCR runs on the server, not on the phone.

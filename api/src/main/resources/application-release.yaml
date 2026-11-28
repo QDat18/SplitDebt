@@ -1,0 +1,21 @@
+# Internet-facing APK backend. Set DB_DDL_AUTO=update only on a deliberate schema initialization.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: ${DB_DDL_AUTO:validate}
+  datasource:
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      minimum-idle: 1
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+OCR_TESSERACT_ENABLED: ${TESSERACT_ENABLED:false}
+OCR_REQUEST_TIMEOUT_SECONDS: ${ADVANCED_OCR_TIMEOUT:90}

@@ -1,0 +1,9 @@
+{$API_DOMAIN} {
+    @api path /api/*
+    handle @api {
+        reverse_proxy api:8081
+    }
+    handle {
+        respond 404
+    }
+}

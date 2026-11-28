@@ -1,0 +1,6 @@
+# Copy to key.properties; never commit that file or the keystore.
+# Use forward slashes for Windows paths.
+storeFile=D:/SplitDebtKeys/splitdebt-release.jks
+storePassword=REPLACE_LOCALLY
+keyPassword=REPLACE_LOCALLY
+keyAlias=splitdebt

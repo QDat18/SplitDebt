@@ -1,4 +1,5 @@
 import logging
+import os
 import threading
 from fastapi import FastAPI, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
@@ -12,12 +13,13 @@ Image.MAX_IMAGE_PIXELS = 16_000_000
 log = logging.getLogger('uvicorn.error')
 slot = threading.Lock()
 models = {}
+warmed = set()
 
 
 def load_model(mode):
     if mode not in models:
         from paddleocr import PaddleOCR, PPStructureV3
-        common = dict(device='cpu', enable_mkldnn=False, cpu_threads=4,
+        common = dict(device='cpu', enable_mkldnn=False, cpu_threads=max(1, min(8, int(os.environ.get('OCR_CPU_THREADS', '4')))),
                       text_detection_model_name='PP-OCRv5_mobile_det',
                       text_recognition_model_name='latin_PP-OCRv5_mobile_rec',
                       use_doc_orientation_classify=True, use_doc_unwarping=True,
@@ -53,6 +55,7 @@ def recognize(data, mode):
                 return None
         first = infer(image)
         if first is not None and (mode == 'structure' or not needs_retry(first)):
+            warmed.add(mode)
             return first
         # Run expensive document/table recognition once. Only OCR retries an unclear image.
         try:
@@ -65,6 +68,7 @@ def recognize(data, mode):
         candidates = [payload for payload in (first, second) if payload is not None]
         if not candidates:
             raise HTTPException(422, 'OCR result is empty or invalid')
+        warmed.add(mode)
         return max(candidates, key=recognition_quality)
     except HTTPException:
         raise
@@ -78,7 +82,7 @@ def recognize(data, mode):
 
 @app.get('/health')
 def health():
-    return {'status': 'up', 'loaded': list(models), 'busy': slot.locked()}
+    return {'status': 'up', 'loaded': list(models), 'ready': sorted(warmed), 'busy': slot.locked()}
 
 
 @app.post('/recognize')

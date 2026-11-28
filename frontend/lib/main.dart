@@ -10,6 +10,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/app/app_keys.dart';
+import 'core/constants/app_constants.dart';
 import 'core/app/mobile_app_frame.dart';
 import 'core/state/app_sync.dart';
 import 'core/theme/app_theme.dart';
@@ -18,9 +19,12 @@ import 'firebase_options.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  debugPrint('FCM background message: ${message.messageId}');
+  if (!dotenv.isInitialized) {
+    await dotenv.load(fileName: AppConstants.clientConfigAsset);
+  }
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  }
 }
 
 Future<void> main() async {
@@ -34,25 +38,42 @@ Future<void> main() async {
     ),
   );
 
-  await dotenv.load(fileName: '.env');
+  try {
+    await dotenv.load(fileName: AppConstants.clientConfigAsset);
+    // Validate before creating providers or the global Dio client.
+    final apiUrl = AppConstants.apiBaseUrl;
+    debugPrint('API configured: ${Uri.parse(apiUrl).host}');
+  } catch (_) {
+    runApp(const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('Bản ứng dụng chưa có địa chỉ máy chủ hợp lệ. '
+                  'Vui lòng liên hệ nhóm phát triển để nhận bản APK đã cấu hình.'),
+            ),
+          ),
+        ),
+      ),
+    ));
+    return;
+  }
 
   final firebaseEnabled =
       (dotenv.env['FIREBASE_ENABLED'] ?? 'false').toLowerCase() == 'true';
   if (firebaseEnabled) {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-
-    debugPrint(
-      'Firebase initialized: '
-      '${DefaultFirebaseOptions.currentPlatform.projectId}',
-    );
-
-    if (!kIsWeb) {
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    try {
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)
+          .timeout(const Duration(seconds: 8));
+      if (!kIsWeb) {
+        FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      }
+    } catch (_) {
+      // Database notifications and login do not depend on push notifications.
+      debugPrint('Firebase push unavailable; continuing without FCM.');
     }
-  } else {
-    debugPrint('Firebase/FCM is disabled for this environment.');
   }
 
   runApp(const ProviderScope(child: SplitDebtApp()));

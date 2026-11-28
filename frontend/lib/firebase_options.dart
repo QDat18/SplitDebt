@@ -1,12 +1,12 @@
-// Trách nhiệm file: Tạo FirebaseOptions theo nền tảng hoàn toàn từ các biến trong file .env.
+// Trách nhiệm file: Tạo FirebaseOptions theo nền tảng hoàn toàn từ các biến trong file assets/client.env.
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-/// Firebase client configuration loaded only from the ignored `.env` file.
-/// No real Firebase identifier or key is committed to source control.
+/// Firebase client configuration loaded from the explicitly public `assets/client.env` file.
+/// Only client identifiers are allowed; do not include server credentials.
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) return _for('WEB');

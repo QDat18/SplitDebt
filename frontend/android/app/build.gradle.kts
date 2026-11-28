@@ -1,8 +1,15 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val releaseSigningFile = rootProject.file("key.properties")
+val releaseSigning = Properties().apply {
+    if (releaseSigningFile.exists()) releaseSigningFile.inputStream().use { load(it) }
 }
 
 android {
@@ -33,19 +40,36 @@ android {
         resourceConfigurations += listOf("vi", "en")
     }
 
+    signingConfigs {
+        if (releaseSigningFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(requireNotNull(releaseSigning.getProperty("storeFile")))
+                storePassword = requireNotNull(releaseSigning.getProperty("storePassword"))
+                keyAlias = requireNotNull(releaseSigning.getProperty("keyAlias"))
+                keyPassword = requireNotNull(releaseSigning.getProperty("keyPassword"))
+            }
+        }
+    }
     buildTypes {
         release {
             // Keep unused Android code and resources out of every release APK.
             isMinifyEnabled = true
             isShrinkResources = true
 
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Never distribute an APK signed with a shared debug key.
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 }
 
 flutter {
     source = "../.."
+}
+
+// Debug builds still work without a release keystore.
+gradle.taskGraph.whenReady {
+    if (allTasks.any { it.name == "assembleRelease" || it.name == "bundleRelease" } &&
+        !releaseSigningFile.exists()) {
+        throw GradleException("Missing android/key.properties. Configure release signing before building an APK.")
+    }
 }

@@ -1,0 +1,45 @@
+services:
+  api:
+    build:
+      context: ../api
+    env_file: ../api/.env
+    environment:
+      SPRING_PROFILES_ACTIVE: release
+      SERVER_BIND_ADDRESS: 0.0.0.0
+      PORT: 8081
+      OCR_SERVICE_URL: http://ocr:8002
+      ADVANCED_OCR_TIMEOUT: 90
+      TESSERACT_ENABLED: 'false'
+    depends_on:
+      ocr:
+        condition: service_started
+    restart: unless-stopped
+  ocr:
+    build:
+      context: ..
+      dockerfile: ocr-service/Dockerfile
+    environment:
+      PADDLE_PDX_CACHE_HOME: /cache/paddlex
+      HF_HOME: /cache/huggingface
+      DISABLE_MODEL_SOURCE_CHECK: 'True'
+    volumes:
+      - ocr_models:/cache
+    restart: unless-stopped
+  proxy:
+    image: caddy:2
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN in deploy/.env}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    restart: unless-stopped
+volumes:
+  ocr_models:
+  caddy_data:
+  caddy_config:

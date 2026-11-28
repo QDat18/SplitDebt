@@ -1,0 +1,17 @@
+**/.env
+**/.env.*
+**/*.jks
+**/*.keystore
+**/key.properties
+**/firebase-admin.json
+**/*service-account*.json
+**/.cache
+**/.venv
+**/models
+**/target
+**/build
+**/*.hprof
+**/.git
+release-output
+frontend
+api

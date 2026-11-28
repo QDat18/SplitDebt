@@ -1,6 +1,11 @@
 import 'package:dio/dio.dart';
 
 String networkErrorMessage(DioException error) {
+  if ((error.response?.statusCode ?? 0) >= 500) {
+    return error.response?.statusCode == 504
+        ? 'Máy chủ phản hồi quá lâu. Vui lòng thử lại.'
+        : 'Dịch vụ tạm thời chưa sẵn sàng. Vui lòng thử lại.';
+  }
   final data = error.response?.data;
   if (data is Map &&
       data['message'] is String &&
@@ -9,7 +14,7 @@ String networkErrorMessage(DioException error) {
   }
   switch (error.type) {
     case DioExceptionType.connectionError:
-      return 'Không kết nối được máy chủ. Kiểm tra backend, địa chỉ API và kết nối mạng (CORS nếu dùng Web).';
+      return 'Không kết nối được máy chủ. Kiểm tra Internet hoặc thử lại sau.';
     case DioExceptionType.connectionTimeout:
     case DioExceptionType.sendTimeout:
     case DioExceptionType.receiveTimeout:

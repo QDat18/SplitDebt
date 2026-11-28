@@ -40,3 +40,12 @@ __pycache__/
 .env
 .env.*
 !.env.example
+# APK distribution and server secrets
+frontend/android/key.properties
+*.jks
+*.keystore
+*.apk
+*.aab
+release-output/
+deploy/.env
+!frontend/assets/client.env

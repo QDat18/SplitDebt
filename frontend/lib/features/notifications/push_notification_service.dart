@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
@@ -19,6 +20,7 @@ class PushNotificationService {
   ScaffoldMessengerState? Function()? scaffoldMessengerResolver;
 
   Future<void> initialize() async {
+    if (Firebase.apps.isEmpty) return;
     if (!await FirebaseMessaging.instance.isSupported()) return;
     _messageSubscription ??= FirebaseMessaging.onMessage.listen(
       _handleForegroundMessage,
@@ -40,6 +42,7 @@ class PushNotificationService {
   }
 
   Future<String?> getToken() async {
+    if (Firebase.apps.isEmpty) return null;
     try {
       if (!await FirebaseMessaging.instance.isSupported()) return null;
       final settings = await FirebaseMessaging.instance
@@ -68,6 +71,7 @@ class PushNotificationService {
   }
 
   Future<void> subscribeToUser(int userId) async {
+    if (Firebase.apps.isEmpty) return;
     _subscribedUserId = userId;
     // Remove subscriptions left by older clients to avoid duplicate delivery.
     if (!kIsWeb) {
@@ -93,7 +97,7 @@ class PushNotificationService {
     try {
       if (token != null) await _repository.removeFcmToken(token: token);
     } finally {
-      await FirebaseMessaging.instance.deleteToken();
+      if (Firebase.apps.isNotEmpty) await FirebaseMessaging.instance.deleteToken();
     }
   }
 
@@ -118,12 +122,6 @@ class PushNotificationService {
         message.notification?.body ??
         message.data['body']?.toString() ??
         'Bạn có thông báo mới';
-
-    debugPrint('FCM foreground: $title - $body');
-
-    debugPrint('FCM messageId: ${message.messageId}');
-
-    debugPrint('FCM data: ${message.data}');
 
     final String? type = message.data['type']?.toString();
 

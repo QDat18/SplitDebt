@@ -24,6 +24,7 @@ import java.util.concurrent.*;
 public class ReceiptOcrService {
     private final ObjectMapper mapper;
     private final Semaphore slots = new Semaphore(2);
+    @Value("${OCR_TESSERACT_ENABLED:true}") private boolean tesseractEnabled;
     @Value("${OCR_TESSERACT_PATH:tesseract}") private String executable;
     @Value("${OCR_LANG:vie+eng}") private String language;
     @Value("${OCR_VISION_API_KEY:}") private String visionKey;
@@ -32,6 +33,7 @@ public class ReceiptOcrService {
     public boolean handwritingAvailable() { return !visionKey.isBlank(); }
     public ReceiptParser.Result scan(MultipartFile file, boolean handwriting) {
         if (file.isEmpty() || file.getSize() > 8 * 1024 * 1024) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Chọn ảnh JPEG/PNG tối đa 8 MB.");
+        if (!handwriting && !tesseractEnabled) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"OCR ảnh trên máy chủ đang tắt; sử dụng OCR nâng cao.");
         if (handwriting && !handwritingAvailable()) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"OCR viết tay chưa được cấu hình.");
         if (!slots.tryAcquire()) throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,"Đang có nhiều lượt quét, vui lòng thử lại.");
         try {
