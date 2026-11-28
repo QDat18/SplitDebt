@@ -79,8 +79,11 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
 
-  final currencyFormatter =
-      NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+  final currencyFormatter = NumberFormat.currency(
+    locale: 'vi_VN',
+    symbol: '₫',
+    decimalDigits: 0,
+  );
   final dateFormatter = DateFormat('HH:mm - dd/MM/yyyy');
 
   late ExpenseDetailModel _expense;
@@ -90,7 +93,8 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
     super.initState();
 
     // Dữ liệu mẫu khoản chi nếu không truyền vào
-    _expense = widget.expenseData ??
+    _expense =
+        widget.expenseData ??
         ExpenseDetailModel(
           id: 'exp_1001',
           title: 'Ăn lẩu nướng Gogi House',
@@ -108,22 +112,26 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
               'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80',
           participants: [
             ExpenseParticipantDetail(
-                name: 'Đạt (Tôi)',
-                avatarUrl: 'https://i.pravatar.cc/150?img=11',
-                amount: 210000,
-                isPayer: true),
+              name: 'Đạt (Tôi)',
+              avatarUrl: 'https://i.pravatar.cc/150?img=11',
+              amount: 210000,
+              isPayer: true,
+            ),
             ExpenseParticipantDetail(
-                name: 'Hoàng (Dev 1)',
-                avatarUrl: 'https://i.pravatar.cc/150?img=12',
-                amount: 190000),
+              name: 'Hoàng (Dev 1)',
+              avatarUrl: 'https://i.pravatar.cc/150?img=12',
+              amount: 190000,
+            ),
             ExpenseParticipantDetail(
-                name: 'Minh (Dev 3)',
-                avatarUrl: 'https://i.pravatar.cc/150?img=13',
-                amount: 140000),
+              name: 'Minh (Dev 3)',
+              avatarUrl: 'https://i.pravatar.cc/150?img=13',
+              amount: 140000,
+            ),
             ExpenseParticipantDetail(
-                name: 'Trang (Dev 4)',
-                avatarUrl: 'https://i.pravatar.cc/150?img=5',
-                amount: 140000),
+              name: 'Trang (Dev 4)',
+              avatarUrl: 'https://i.pravatar.cc/150?img=5',
+              amount: 140000,
+            ),
           ],
         );
 
@@ -134,10 +142,10 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
     );
 
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _slideAnim =
-        Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
-    );
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+        );
 
     _animController.forward();
   }
@@ -163,8 +171,9 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimensions.s20,
-                      vertical: AppDimensions.s12),
+                    horizontal: AppDimensions.s20,
+                    vertical: AppDimensions.s12,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -212,13 +221,18 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
             shape: BoxShape.circle,
             boxShadow: AppDimensions.shadowSm,
           ),
-          child: const Icon(Icons.arrow_back_ios_new_rounded,
-              size: 16, color: AppColors.n800),
+          child: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 16,
+            color: AppColors.n800,
+          ),
         ),
         onPressed: () => Navigator.maybePop(context),
       ),
-      title: Text('Chi tiết khoản chi',
-          style: AppTypography.title.copyWith(fontSize: 17)),
+      title: Text(
+        'Chi tiết khoản chi',
+        style: AppTypography.title.copyWith(fontSize: 17),
+      ),
       centerTitle: true,
       actions: [
         IconButton(
@@ -232,7 +246,8 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                 margin: const EdgeInsets.only(bottom: 95, left: 16, right: 16),
                 duration: const Duration(seconds: 2),
                 shape: RoundedRectangleBorder(
-                    borderRadius: AppDimensions.radius12),
+                  borderRadius: AppDimensions.radius12,
+                ),
               ),
             );
           },
@@ -259,28 +274,39 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: _expense.categoryColor.withValues(alpha: 0.15),
                   borderRadius: AppDimensions.radius12,
                 ),
                 child: Row(
                   children: [
-                    Icon(_expense.categoryIcon,
-                        size: 16, color: _expense.categoryColor),
+                    Icon(
+                      _expense.categoryIcon,
+                      size: 16,
+                      color: _expense.categoryColor,
+                    ),
                     const SizedBox(width: 6),
-                    Text(_expense.categoryName,
-                        style: AppTypography.label.copyWith(
-                            color: _expense.categoryColor, fontSize: 13)),
+                    Text(
+                      _expense.categoryName,
+                      style: AppTypography.label.copyWith(
+                        color: _expense.categoryColor,
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
                 ),
               ),
 
               // Status Badge (Đã chốt sổ / Chưa chốt)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: _expense.isSettled
                       ? AppColors.warningTint
@@ -319,9 +345,11 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
           const SizedBox(height: AppDimensions.s16),
 
           // Tiêu đề khoản chi
-          Text(_expense.title,
-              textAlign: TextAlign.center,
-              style: AppTypography.h2.copyWith(fontSize: 22)),
+          Text(
+            _expense.title,
+            textAlign: TextAlign.center,
+            style: AppTypography.h2.copyWith(fontSize: 22),
+          ),
           const SizedBox(height: 6),
 
           // Tổng số tiền lớn
@@ -361,28 +389,39 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                     Row(
                       children: [
                         Text('Người ứng tiền: ', style: AppTypography.caption),
-                        Text(_expense.payerName,
-                            style: AppTypography.bodySmall.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.p700)),
+                        Text(
+                          _expense.payerName,
+                          style: AppTypography.bodySmall.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.p700,
+                          ),
+                        ),
                       ],
                     ),
-                    Text(dateFormatter.format(_expense.createdAt),
-                        style: AppTypography.caption),
+                    Text(
+                      dateFormatter.format(_expense.createdAt),
+                      style: AppTypography.caption,
+                    ),
                   ],
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.n50,
                   borderRadius: AppDimensions.radius8,
                   border: Border.all(color: AppColors.n200),
                 ),
-                child: Text(_expense.splitModeName,
-                    style: AppTypography.caption
-                        .copyWith(fontSize: 11, fontWeight: FontWeight.w600)),
+                child: Text(
+                  _expense.splitModeName,
+                  style: AppTypography.caption.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
@@ -406,11 +445,16 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Phân rã chi tiêu (${_expense.participants.length} người)',
-                  style: AppTypography.label.copyWith(fontSize: 15)),
-              Text('Số tiền nợ',
-                  style: AppTypography.caption
-                      .copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                'Phân rã chi tiêu (${_expense.participants.length} người)',
+                style: AppTypography.label.copyWith(fontSize: 15),
+              ),
+              Text(
+                'Số tiền nợ',
+                style: AppTypography.caption.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: AppDimensions.s12),
@@ -423,8 +467,9 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                 children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor:
-                        p.isPayer ? AppColors.p600 : AppColors.p100,
+                    backgroundColor: p.isPayer
+                        ? AppColors.p600
+                        : AppColors.p100,
                     child: Text(
                       p.name.isNotEmpty ? p.name[0] : 'U',
                       style: TextStyle(
@@ -441,25 +486,33 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                       children: [
                         Row(
                           children: [
-                            Text(p.name,
-                                style: AppTypography.bodyMedium
-                                    .copyWith(fontWeight: FontWeight.w600)),
+                            Text(
+                              p.name,
+                              style: AppTypography.bodyMedium.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                             if (p.isPayer) ...[
                               const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.p50,
                                   borderRadius: AppDimensions.radius8,
                                 ),
-                                child: Text('Đã ứng tiền',
-                                    style: AppTypography.caption.copyWith(
-                                        fontSize: 10,
-                                        color: AppColors.p700,
-                                        fontWeight: FontWeight.w700)),
+                                child: Text(
+                                  'Đã ứng tiền',
+                                  style: AppTypography.caption.copyWith(
+                                    fontSize: 10,
+                                    color: AppColors.p700,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
-                            ]
+                            ],
                           ],
                         ),
                         Text(
@@ -467,10 +520,12 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                               ? 'Nhận lại: ${currencyFormatter.format(_expense.totalAmount - p.amount)}'
                               : 'Phải trả: ${currencyFormatter.format(p.amount)}',
                           style: AppTypography.caption.copyWith(
-                            color:
-                                p.isPayer ? AppColors.success : AppColors.n600,
-                            fontWeight:
-                                p.isPayer ? FontWeight.w700 : FontWeight.w500,
+                            color: p.isPayer
+                                ? AppColors.success
+                                : AppColors.n600,
+                            fontWeight: p.isPayer
+                                ? FontWeight.w700
+                                : FontWeight.w500,
                           ),
                         ),
                       ],
@@ -507,10 +562,15 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Ảnh hóa đơn đính kèm',
-                  style: AppTypography.label.copyWith(fontSize: 15)),
-              const Icon(Icons.zoom_in_rounded,
-                  size: 18, color: AppColors.p500),
+              Text(
+                'Ảnh hóa đơn đính kèm',
+                style: AppTypography.label.copyWith(fontSize: 15),
+              ),
+              const Icon(
+                Icons.zoom_in_rounded,
+                size: 18,
+                color: AppColors.p500,
+              ),
             ],
           ),
           const SizedBox(height: AppDimensions.s12),
@@ -528,15 +588,21 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                   bottom: 8,
                   right: 8,
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: AppDimensions.radius8,
                     ),
-                    child: Text('Chạm để xem ảnh gốc',
-                        style: AppTypography.caption
-                            .copyWith(color: Colors.white, fontSize: 11)),
+                    child: Text(
+                      'Chạm để xem ảnh gốc',
+                      style: AppTypography.caption.copyWith(
+                        color: Colors.white,
+                        fontSize: 11,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -558,21 +624,30 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
       ),
       child: Row(
         children: [
-          const Icon(Icons.lock_clock_rounded,
-              color: AppColors.warning, size: 24),
+          const Icon(
+            Icons.lock_clock_rounded,
+            color: AppColors.warning,
+            size: 24,
+          ),
           const SizedBox(width: AppDimensions.s12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Quy tắc khóa sổ BE2-EXP-02',
-                    style: AppTypography.label
-                        .copyWith(color: AppColors.warning, fontSize: 14)),
+                Text(
+                  'Quy tắc khóa sổ BE2-EXP-02',
+                  style: AppTypography.label.copyWith(
+                    color: AppColors.warning,
+                    fontSize: 14,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(
-                    'Khoản chi này đã chốt quyết toán toán nợ. Bạn không thể sửa hoặc xóa để tránh sai lệch sổ sách.',
-                    style: AppTypography.bodySmall
-                        .copyWith(color: AppColors.n800)),
+                  'Khoản chi này đã chốt quyết toán toán nợ. Bạn không thể sửa hoặc xóa để tránh sai lệch sổ sách.',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.n800,
+                  ),
+                ),
               ],
             ),
           ),
@@ -585,12 +660,15 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
   Widget _buildActionBottomBar(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.s20, vertical: AppDimensions.s16),
+        horizontal: AppDimensions.s20,
+        vertical: AppDimensions.s16,
+      ),
       decoration: BoxDecoration(
         color: AppColors.n0,
         boxShadow: AppDimensions.shadowLg,
         borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppDimensions.r24)),
+          top: Radius.circular(AppDimensions.r24),
+        ),
       ),
       child: SafeArea(
         child: Row(
@@ -603,23 +681,27 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                     : () => _confirmDeleteExpense(context),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(
-                      color: _expense.isSettled
-                          ? AppColors.n300
-                          : AppColors.error),
+                    color: _expense.isSettled
+                        ? AppColors.n300
+                        : AppColors.error,
+                  ),
                   minimumSize: const Size.fromHeight(50),
                   shape: RoundedRectangleBorder(
-                      borderRadius: AppDimensions.radius16),
+                    borderRadius: AppDimensions.radius16,
+                  ),
                 ),
-                icon: Icon(Icons.delete_outline_rounded,
-                    color:
-                        _expense.isSettled ? AppColors.n400 : AppColors.error,
-                    size: 20),
+                icon: Icon(
+                  Icons.delete_outline_rounded,
+                  color: _expense.isSettled ? AppColors.n400 : AppColors.error,
+                  size: 20,
+                ),
                 label: Text(
                   'Xóa khoản chi',
                   style: AppTypography.label.copyWith(
-                      color: _expense.isSettled
-                          ? AppColors.n400
-                          : AppColors.error),
+                    color: _expense.isSettled
+                        ? AppColors.n400
+                        : AppColors.error,
+                  ),
                 ),
               ),
             ),
@@ -635,27 +717,31 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const CreateExpenseScreen()),
+                            builder: (_) => const CreateExpenseScreen(),
+                          ),
                         );
                       },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      _expense.isSettled ? AppColors.n300 : AppColors.p500,
+                  backgroundColor: _expense.isSettled
+                      ? AppColors.n300
+                      : AppColors.p500,
                   foregroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(50),
                   shape: RoundedRectangleBorder(
-                      borderRadius: AppDimensions.radius16),
+                    borderRadius: AppDimensions.radius16,
+                  ),
                 ),
                 icon: Icon(
-                    _expense.isSettled
-                        ? Icons.lock_rounded
-                        : Icons.edit_rounded,
-                    color: Colors.white,
-                    size: 20),
+                  _expense.isSettled ? Icons.lock_rounded : Icons.edit_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 label: Text(
                   _expense.isSettled ? 'Đã khóa' : 'Chỉnh sửa',
-                  style: AppTypography.title
-                      .copyWith(color: Colors.white, fontSize: 15),
+                  style: AppTypography.title.copyWith(
+                    color: Colors.white,
+                    fontSize: 15,
+                  ),
                 ),
               ),
             ),
@@ -670,8 +756,10 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(AppDimensions.r24))),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppDimensions.r24),
+        ),
+      ),
       builder: (ctx) {
         return Container(
           padding: const EdgeInsets.all(AppDimensions.s24),
@@ -682,11 +770,16 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                    color: AppColors.n300, borderRadius: AppDimensions.radius8),
+                  color: AppColors.n300,
+                  borderRadius: AppDimensions.radius8,
+                ),
               ),
               const SizedBox(height: AppDimensions.s20),
-              const Icon(Icons.warning_amber_rounded,
-                  color: AppColors.error, size: 48),
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: AppColors.error,
+                size: 48,
+              ),
               const SizedBox(height: AppDimensions.s12),
               Text('Xác nhận xóa khoản chi?', style: AppTypography.h3),
               const SizedBox(height: AppDimensions.s8),
@@ -704,7 +797,8 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(48),
                         shape: RoundedRectangleBorder(
-                            borderRadius: AppDimensions.radius16),
+                          borderRadius: AppDimensions.radius16,
+                        ),
                       ),
                       child: const Text('Hủy bỏ'),
                     ),
@@ -721,10 +815,14 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                             backgroundColor: AppColors.error,
                             behavior: SnackBarBehavior.floating,
                             margin: const EdgeInsets.only(
-                                bottom: 95, left: 16, right: 16),
+                              bottom: 95,
+                              left: 16,
+                              right: 16,
+                            ),
                             duration: const Duration(seconds: 2),
                             shape: RoundedRectangleBorder(
-                                borderRadius: AppDimensions.radius12),
+                              borderRadius: AppDimensions.radius12,
+                            ),
                           ),
                         );
                       },
@@ -732,10 +830,13 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen>
                         backgroundColor: AppColors.error,
                         minimumSize: const Size.fromHeight(48),
                         shape: RoundedRectangleBorder(
-                            borderRadius: AppDimensions.radius16),
+                          borderRadius: AppDimensions.radius16,
+                        ),
                       ),
-                      child: const Text('Xóa ngay',
-                          style: TextStyle(color: Colors.white)),
+                      child: const Text(
+                        'Xóa ngay',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ],

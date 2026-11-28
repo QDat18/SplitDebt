@@ -1,20 +1,28 @@
-// Trách nhiệm file: Xây dựng màn hình group detail screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+// Trách nhiệm file: Màn hình chi tiết nhóm chuẩn Fintech: tổng quan công nợ, danh sách khoản chi, thành viên, công nợ và thao tác thanh toán.
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/group_model.dart';
-import '../models/group_member_model.dart';
-import '../providers/group_provider.dart';
 
 import '../../../core/network/dio_client.dart';
 import '../../../core/state/app_sync.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/pdf_components.dart';
+import '../../../core/widgets/fintech_components.dart';
+import '../../../core/widgets/motion_kit.dart';
+import '../../../core/widgets/premium_shell.dart';
 import '../../../data/repositories/auth_repository.dart';
+import '../../expenses/create_expense_screen.dart';
 import '../../expenses/pdf_expense_detail.dart';
+import '../../settlements/group_settlement_screen.dart';
+import '../models/group_member_model.dart';
+import '../models/group_model.dart';
+import '../providers/group_provider.dart';
+import '../widgets/member_list_skeleton.dart';
+import '../widgets/member_tile.dart';
 import 'add_member_dialog.dart';
 import 'group_settings_screen.dart';
-import '../../settlements/group_settlement_screen.dart';
-import '../../expenses/create_expense_screen.dart';
 
 class GroupDetailScreen extends ConsumerStatefulWidget {
   final GroupModel group;
@@ -26,110 +34,13 @@ class GroupDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
-  Future<void> _leaveGroup() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Rời khỏi nhóm'),
-        content: const Text('Bạn có chắc chắn muốn rời nhóm này?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Rời nhóm'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      try {
-        await ref.read(userGroupsProvider.notifier).leaveGroup(widget.group.id);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Đã rời khỏi nhóm'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-          Navigator.of(context).pop();
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Lỗi: ${e.toString().replaceAll('Exception: ', '')}',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
-  Future<void> _removeMember(GroupMemberModel member) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Xóa thành viên'),
-        content: Text(
-          'Bạn có chắc muốn xóa "${member.fullName}" khỏi nhóm?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xóa'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      try {
-        await ref
-            .read(userGroupsProvider.notifier)
-            .removeMember(widget.group.id, member.userId);
-        ref.invalidate(groupMembersProvider(widget.group.id));
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Đã xóa thành viên khỏi nhóm'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Lỗi: ${e.toString().replaceAll('Exception: ', '')}',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
   int _tab = 0;
   int? _user;
   List<Map<String, dynamic>> _expenses = [];
   Map<String, dynamic> _debt = {};
   bool _loading = true;
   String? _error;
+
   @override
   void initState() {
     super.initState();
@@ -148,22 +59,28 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
       _user = await AuthRepository().getCurrentUserId();
       final result = await Future.wait([
         dioClient.get('/v1/expenses/group/${widget.group.id}'),
-        dioClient.get('/groups/${widget.group.id}/debts',
-            queryParameters: {'userId': _user})
+        dioClient.get(
+          '/groups/${widget.group.id}/debts',
+          queryParameters: {'userId': _user},
+        ),
       ]);
       if (!mounted) return;
       setState(() {
         _expenses = (result[0].data['data'] as List)
-            .map((e) => Map<String, dynamic>.from(e))
+            .map((e) => Map<String, dynamic>.from(e as Map))
             .toList();
-        _debt = Map<String, dynamic>.from(result[1].data['data']);
+        _debt = Map<String, dynamic>.from(result[1].data['data'] as Map);
         _loading = false;
         _error = null;
       });
     } catch (_) {
       if (mounted) {
         setState(() {
-          _error = 'Không tải được khoản chi.';
+          _error = tr(
+            context,
+            'Không tải được dữ liệu nhóm. Kiểm tra kết nối và thử lại.',
+            'Could not load group data. Check your connection and retry.',
+          );
           _loading = false;
         });
       }
@@ -171,18 +88,135 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   }
 
   Future<void> _open(Widget screen) async {
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+    await Navigator.push(context, fintechRoute(screen));
     if (mounted) _load();
+  }
+
+  Future<void> _leaveGroup() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr(ctx, 'Rời khỏi nhóm', 'Leave group')),
+        content: Text(
+          tr(
+            ctx,
+            'Bạn có chắc chắn muốn rời nhóm "${widget.group.name}"?',
+            'Are you sure you want to leave "${widget.group.name}"?',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(tr(ctx, 'Hủy', 'Cancel')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.errorFor(ctx),
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(tr(ctx, 'Rời nhóm', 'Leave')),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    try {
+      await ref.read(userGroupsProvider.notifier).leaveGroup(widget.group.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tr(context, 'Đã rời khỏi nhóm.', 'Left group.')),
+          ),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+        );
+      }
+    }
+  }
+
+  Future<void> _removeMember(GroupMemberModel member) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr(ctx, 'Xóa thành viên', 'Remove member')),
+        content: Text(
+          tr(
+            ctx,
+            'Bạn có chắc muốn xóa "${member.fullName}" khỏi nhóm?',
+            'Remove "${member.fullName}" from this group?',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(tr(ctx, 'Hủy', 'Cancel')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.errorFor(ctx),
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(tr(ctx, 'Xóa', 'Remove')),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    try {
+      await ref
+          .read(userGroupsProvider.notifier)
+          .removeMember(widget.group.id, member.userId);
+      ref.invalidate(groupMembersProvider(widget.group.id));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              tr(
+                context,
+                'Đã xóa thành viên khỏi nhóm.',
+                'Member removed from group.',
+              ),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final members = ref.watch(groupMembersProvider(widget.group.id));
-    final total =
-        _expenses.fold<num>(0, (sum, e) => sum + (e['totalAmount'] as num));
+    final total = _expenses.fold<num>(
+      0,
+      (sum, e) => sum + ((e['totalAmount'] as num?) ?? 0),
+    );
+    final toPay = ((_debt['totalToPay'] as num?) ?? 0).toDouble();
+    final toReceive = ((_debt['totalToReceive'] as num?) ?? 0).toDouble();
+    final net = toReceive - toPay;
+    final groupIdInt = int.tryParse(widget.group.id);
+
     return Scaffold(
-      appBar: AppBar(title: Text(widget.group.name), actions: [
-        PopupMenuButton<String>(
+      appBar: AppBar(
+        title: Text(widget.group.name),
+        actions: [
+          PopupMenuButton<String>(
+            tooltip: tr(context, 'Tùy chọn nhóm', 'Group options'),
             onSelected: (v) {
               if (v == 'leave') {
                 _leaveGroup();
@@ -190,191 +224,394 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                 _open(GroupSettingsScreen(group: widget.group));
               }
             },
-            itemBuilder: (_) => [
-                  if (widget.group.isAdminOrOwner)
-                    const PopupMenuItem(
-                        value: 'settings', child: Text('Cài đặt nhóm')),
-                  const PopupMenuItem(value: 'leave', child: Text('Rời nhóm'))
-                ])
-      ]),
-      body: RefreshIndicator(
-          onRefresh: _load,
-          child: ListView(padding: const EdgeInsets.all(20), children: [
-            Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                    color: const Color(0xFF261C60),
-                    borderRadius: BorderRadius.circular(20)),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('TỔNG CHI TIÊU',
-                          style: TextStyle(
-                              fontSize: 11, color: Color(0xFFC4BAEF))),
-                      const SizedBox(height: 6),
-                      Text(_loading ? '…' : money(total),
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 18),
-                      const Divider(color: Color(0xFF433783)),
-                      Row(children: [
-                        Expanded(
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                              const Text('Bạn đang nợ',
-                                  style: TextStyle(
-                                      color: Color(0xFFC4BAEF), fontSize: 11)),
-                              Text(money(_debt['totalToPay'] ?? 0),
-                                  style: const TextStyle(
-                                      color: pdfRed,
-                                      fontWeight: FontWeight.bold))
-                            ])),
-                        Expanded(
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                              const Text('Bạn được nhận',
-                                  style: TextStyle(
-                                      color: Color(0xFFC4BAEF), fontSize: 11)),
-                              Text(money(_debt['totalToReceive'] ?? 0),
-                                  style: const TextStyle(
-                                      color: pdfGreen,
-                                      fontWeight: FontWeight.bold))
-                            ]))
-                      ]),
-                      const SizedBox(height: 16),
-                      Row(children: [
-                        Expanded(
-                            child: FilledButton.icon(
-                                onPressed: () => _open(CreateExpenseScreen(
-                                    groupId: int.parse(widget.group.id))),
-                                icon: const Icon(Icons.add, size: 18),
-                                label: const Text('Thêm chi'))),
-                        const SizedBox(width: 10),
-                        Expanded(
-                            child: FilledButton(
-                                style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(0xFF493D7E)),
-                                onPressed: () => _open(GroupSettlementScreen(
-                                    groupId: int.parse(widget.group.id))),
-                                child: const Text('Thanh toán')))
-                      ]),
-                    ])),
-            const SizedBox(height: 20),
-            PdfTabs(
-                labels: const ['Chi tiêu', 'Thành viên', 'Nợ'],
-                selected: _tab,
-                onChanged: (v) => setState(() => _tab = v)),
-            const SizedBox(height: 20),
-            if (_loading)
-              const Center(child: CircularProgressIndicator())
-            else if (_error != null)
-              TextButton(onPressed: _load, child: Text(_error!))
-            else if (_tab == 0) ...[
-              if (_expenses.isEmpty)
-                const Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Text(
-                        'Chưa có khoản chi. Nhấn “Thêm chi” để bắt đầu.',
-                        textAlign: TextAlign.center)),
-              for (final e in _expenses)
-                Card(
-                    child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        leading: const PersonBadge('🍲'),
-                        title: Text(e['title'] ?? '',
-                            style: const TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.w700)),
-                        subtitle: Text(
-                            '${e['payerName']} đã trả • ${e['expenseDate']}',
-                            style: const TextStyle(fontSize: 10)),
-                        trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(money(e['totalAmount']),
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700)),
-                              const SizedBox(height: 4),
-                              Text(
-                                  'Bạn: ${money((e['participants'] as List).where((p) => p['userId'] == _user).fold<num>(0, (sum, p) => sum + (p['amount'] as num)))}',
-                                  style: const TextStyle(
-                                      fontSize: 10, color: Color(0xFFFFA000)))
-                            ]),
-                        onTap: () => _open(ExpenseReadScreen(expense: e)))),
-            ] else if (_tab == 1) ...[
-              members.when(
-                  data: (list) => Column(children: [
-                        for (final m in list)
-                          Card(
-                              child: ListTile(
-                                  leading: PersonBadge(m.fullName),
-                                  title: Text(
-                                      '${m.fullName}${m.userId == _user.toString() ? ' (Bạn)' : ''}',
-                                      style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700)),
-                                  subtitle: Text(
-                                      m.role == 'OWNER'
-                                          ? 'Trưởng nhóm'
-                                          : 'Thành viên',
-                                      style: const TextStyle(fontSize: 12)),
-                                  trailing:
-                                      widget.group.isAdminOrOwner && !m.isOwner
-                                          ? IconButton(
-                                              tooltip: 'Xóa thành viên',
-                                              icon: const Icon(
-                                                  Icons.person_remove_outlined,
-                                                  size: 18),
-                                              onPressed: () => _removeMember(m))
-                                          : null))
-                      ]),
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Text('$e')),
+            itemBuilder: (ctx) => [
               if (widget.group.isAdminOrOwner)
-                OutlinedButton(
-                    onPressed: () async {
-                      await showDialog(
-                          context: context,
-                          builder: (_) =>
-                              AddMemberDialog(groupId: widget.group.id));
-                      ref.invalidate(groupMembersProvider(widget.group.id));
-                    },
-                    child: const Text('Thêm thành viên')),
-            ] else ...[
-              for (final b in _debt['netBalances'] as List? ?? [])
-                Card(
-                    child: ListTile(
-                        leading: PersonBadge(b['fullName']),
-                        title: Text(b['fullName'],
-                            style: const TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.w600)),
-                        subtitle: Text(
-                            b['netBalance'] > 0
-                                ? 'Được nhận'
-                                : b['netBalance'] < 0
-                                    ? 'Đang nợ'
-                                    : 'Đã cân bằng',
-                            style: const TextStyle(fontSize: 12)),
-                        trailing: Text(
-                            '${b['netBalance'] > 0 ? '+' : ''}${money(b['netBalance'])}',
-                            style: TextStyle(
-                                color: b['netBalance'] < 0 ? pdfRed : pdfGreen,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold)))),
-              FilledButton.icon(
-                  onPressed: () => _open(GroupSettlementScreen(
-                      groupId: int.parse(widget.group.id))),
-                  icon: const Text('✂', style: TextStyle(fontSize: 20)),
-                  label: const Text('Xén nợ')),
+                PopupMenuItem(
+                  value: 'settings',
+                  child: Text(tr(ctx, 'Cài đặt nhóm', 'Group settings')),
+                ),
+              PopupMenuItem(
+                value: 'leave',
+                child: Text(
+                  tr(ctx, 'Rời nhóm', 'Leave group'),
+                  style: TextStyle(color: AppColors.errorFor(ctx)),
+                ),
+              ),
             ],
-          ])),
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        color: scheme.primary,
+        onRefresh: _load,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: AppDimensions.maxContentWidth,
+            ),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(
+                AppDimensions.s16,
+                AppDimensions.s12,
+                AppDimensions.s16,
+                AppDimensions.s32,
+              ),
+              children: [
+                BalanceSummaryCard(
+                  net: net,
+                  receivable: toReceive,
+                  payable: toPay,
+                  title: tr(
+                    context,
+                    'Số dư của bạn trong nhóm',
+                    'Your group balance',
+                  ),
+                  subtitle: _loading
+                      ? null
+                      : tr(
+                          context,
+                          'Tổng chi tiêu nhóm: ${money(total)}',
+                          'Total group spend: ${money(total)}',
+                        ),
+                ),
+                const SizedBox(height: AppDimensions.s12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: groupIdInt == null
+                            ? null
+                            : () => _open(
+                                CreateExpenseScreen(groupId: groupIdInt),
+                              ),
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: Text(tr(context, 'Thêm chi', 'Add expense')),
+                      ),
+                    ),
+                    const SizedBox(width: AppDimensions.s8),
+                    Expanded(
+                      child: NavyActionButton(
+                        onPressed: groupIdInt == null
+                            ? null
+                            : () => _open(
+                                GroupSettlementScreen(groupId: groupIdInt),
+                              ),
+                        icon: CupertinoIcons.arrow_2_squarepath,
+                        label: tr(context, 'Thanh toán', 'Settle up'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppDimensions.s20),
+                PdfTabs(
+                  labels: [
+                    tr(context, 'Chi tiêu', 'Expenses'),
+                    tr(context, 'Thành viên', 'Members'),
+                    tr(context, 'Công nợ', 'Balances'),
+                  ],
+                  selected: _tab,
+                  onChanged: (v) => setState(() => _tab = v),
+                ),
+                const SizedBox(height: AppDimensions.s16),
+                if (_loading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Column(
+                      children: [
+                        ShimmerBox(
+                          width: double.infinity,
+                          height: 64,
+                          radius: 12,
+                        ),
+                        SizedBox(height: 8),
+                        ShimmerBox(
+                          width: double.infinity,
+                          height: 64,
+                          radius: 12,
+                        ),
+                      ],
+                    ),
+                  )
+                else if (_error != null)
+                  AppErrorState(
+                    title: tr(context, 'Lỗi tải dữ liệu', 'Load error'),
+                    message: _error!,
+                    onRetry: _load,
+                  )
+                else if (_tab == 0)
+                  _buildExpensesTab(scheme)
+                else if (_tab == 1)
+                  _buildMembersTab(members)
+                else
+                  _buildBalancesTab(scheme, groupIdInt),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpensesTab(ColorScheme scheme) {
+    if (_expenses.isEmpty) {
+      return AppEmptyState(
+        icon: CupertinoIcons.doc_text,
+        title: tr(context, 'Chưa có khoản chi', 'No expenses yet'),
+        message: tr(
+          context,
+          'Nhấn "Thêm chi" để ghi lại khoản chi đầu tiên của nhóm.',
+          'Tap "Add expense" to record your first group expense.',
+        ),
+      );
+    }
+
+    return PremiumSurface(
+      padding: EdgeInsets.zero,
+      radius: AppDimensions.r12,
+      child: Column(
+        children: [
+          for (int i = 0; i < _expenses.length; i++) ...[
+            _expenseRow(_expenses[i], scheme),
+            if (i < _expenses.length - 1) const Divider(height: 1, indent: 64),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _expenseRow(Map<String, dynamic> e, ColorScheme scheme) {
+    final participants = e['participants'] as List? ?? [];
+    final myShare = participants
+        .where((p) => p['userId'] == _user)
+        .fold<num>(0, (sum, p) => sum + ((p['amount'] as num?) ?? 0));
+
+    return InkWell(
+      onTap: () => _open(ExpenseReadScreen(expense: e)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            ExpenseIconBadge(
+              title: e['title']?.toString() ?? '',
+              categoryName: e['categoryName']?.toString(),
+              size: 40,
+            ),
+            const SizedBox(width: AppDimensions.s12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    e['title']?.toString() ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${e['payerName'] ?? ''} · ${e['expenseDate'] ?? ''}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppDimensions.s8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  money((e['totalAmount'] as num?) ?? 0),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  tr(
+                    context,
+                    'Bạn: ${money(myShare)}',
+                    'You: ${money(myShare)}',
+                  ),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMembersTab(AsyncValue<List<GroupMemberModel>> members) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        members.when(
+          data: (list) => PremiumSurface(
+            padding: EdgeInsets.zero,
+            radius: AppDimensions.r12,
+            child: Column(
+              children: [
+                for (int i = 0; i < list.length; i++) ...[
+                  MemberTile(
+                    member: list[i],
+                    canManage: widget.group.isAdminOrOwner,
+                    onRemove: () => _removeMember(list[i]),
+                  ),
+                  if (i < list.length - 1) const Divider(height: 1, indent: 64),
+                ],
+              ],
+            ),
+          ),
+          loading: () => const MemberListSkeleton(),
+          error: (e, _) => AppErrorState(
+            title: tr(context, 'Không tải được thành viên', 'Load error'),
+            message: e.toString().replaceAll('Exception: ', ''),
+            onRetry: () =>
+                ref.invalidate(groupMembersProvider(widget.group.id)),
+          ),
+        ),
+        if (widget.group.isAdminOrOwner) ...[
+          const SizedBox(height: AppDimensions.s16),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await showDialog(
+                context: context,
+                builder: (_) => AddMemberDialog(groupId: widget.group.id),
+              );
+              ref.invalidate(groupMembersProvider(widget.group.id));
+            },
+            icon: const Icon(Icons.person_add_outlined, size: 18),
+            label: Text(tr(context, 'Thêm thành viên', 'Add member')),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildBalancesTab(ColorScheme scheme, int? groupIdInt) {
+    final balances = (_debt['netBalances'] as List? ?? [])
+        .whereType<Map>()
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (balances.isEmpty)
+          AppEmptyState(
+            icon: CupertinoIcons.checkmark_circle,
+            title: tr(context, 'Chưa có công nợ', 'No balances yet'),
+            message: tr(
+              context,
+              'Công nợ của từng thành viên sẽ hiển thị sau khi có khoản chi.',
+              'Member balances will appear after expenses are added.',
+            ),
+          )
+        else
+          PremiumSurface(
+            padding: EdgeInsets.zero,
+            radius: AppDimensions.r12,
+            child: Column(
+              children: [
+                for (int i = 0; i < balances.length; i++) ...[
+                  _balanceRow(balances[i], scheme),
+                  if (i < balances.length - 1)
+                    const Divider(height: 1, indent: 64),
+                ],
+              ],
+            ),
+          ),
+        const SizedBox(height: AppDimensions.s16),
+        FilledButton.icon(
+          onPressed: groupIdInt == null
+              ? null
+              : () => _open(GroupSettlementScreen(groupId: groupIdInt)),
+          icon: const Icon(CupertinoIcons.arrow_2_squarepath, size: 18),
+          label: Text(
+            tr(context, 'Xem đề xuất thanh toán', 'View settlement plan'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _balanceRow(Map b, ColorScheme scheme) {
+    final bal = (b['netBalance'] as num?) ?? 0;
+    final name = b['fullName']?.toString() ?? '';
+    final color = bal > 0
+        ? AppColors.successFor(context)
+        : bal < 0
+        ? AppColors.errorFor(context)
+        : scheme.onSurfaceVariant;
+    final subtitle = bal > 0
+        ? tr(context, 'Được nhận', 'Owed')
+        : bal < 0
+        ? tr(context, 'Cần trả', 'Owes')
+        : tr(context, 'Đã cân bằng', 'Settled');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          PersonBadge(
+            name,
+            color: bal < 0 ? AppColors.errorFor(context) : scheme.primary,
+          ),
+          const SizedBox(width: AppDimensions.s12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            bal == 0 ? money(0) : '${bal > 0 ? '+' : '-'}${money(bal.abs())}',
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

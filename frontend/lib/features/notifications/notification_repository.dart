@@ -7,9 +7,7 @@ import '../../core/network/dio_client.dart';
 class NotificationRepository {
   final Dio _dio;
 
-  NotificationRepository({
-    Dio? dio,
-  }) : _dio = dio ?? dioClient;
+  NotificationRepository({Dio? dio}) : _dio = dio ?? dioClient;
 
   // ===========================================================================
   // REGISTER FCM TOKEN
@@ -22,11 +20,7 @@ class NotificationRepository {
     try {
       await _dio.post(
         '/notifications/fcm-token',
-        data: {
-          'userId': userId,
-          'token': token,
-          'platform': platform,
-        },
+        data: {'userId': userId, 'token': token, 'platform': platform},
       );
     } on DioException catch (e) {
       if (e.response?.data is Map) {
@@ -37,25 +31,16 @@ class NotificationRepository {
         );
       }
 
-      throw Exception(
-        e.message ?? 'Không thể đăng ký FCM token',
-      );
+      throw Exception(e.message ?? 'Không thể đăng ký FCM token');
     }
   }
 
   // ===========================================================================
   // REMOVE FCM TOKEN
   // ===========================================================================
-  Future<void> removeFcmToken({
-    required String token,
-  }) async {
+  Future<void> removeFcmToken({required String token}) async {
     try {
-      await _dio.delete(
-        '/notifications/fcm-token',
-        data: {
-          'token': token,
-        },
-      );
+      await _dio.delete('/notifications/fcm-token', data: {'token': token});
     } on DioException catch (e) {
       if (e.response?.data is Map) {
         final dynamic data = e.response?.data;
@@ -65,9 +50,7 @@ class NotificationRepository {
         );
       }
 
-      throw Exception(
-        e.message ?? 'Không thể xóa FCM token',
-      );
+      throw Exception(e.message ?? 'Không thể xóa FCM token');
     }
   }
 }

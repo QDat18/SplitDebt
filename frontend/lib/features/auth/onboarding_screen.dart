@@ -1,6 +1,13 @@
-// Trách nhiệm file: Hiển thị các trang giới thiệu và điều hướng đăng nhập.
+// Trách nhiệm file: Màn hình Onboarding theo bố cục Midnight Navy Hero + nền trắng thoáng + nút CTA Royal Blue.
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../core/state/app_sync.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_dimensions.dart';
+import '../../core/widgets/motion_kit.dart';
 import 'login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -13,31 +20,20 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   int _page = 0;
   bool _finishing = false;
-  final _pages = const [
-    (
-      '💸',
-      'Ghi chi tiêu nhóm dễ dàng',
-      'Thêm khoản chi trong vài giây, chia đều hoặc tùy chỉnh cho từng thành viên',
-    ),
-    (
-      '✂️',
-      'Xén nợ thông minh',
-      'Tự động gộp các khoản nợ chéo thành ít giao dịch nhất có thể',
-    ),
-    (
-      '📈',
-      'Theo dõi minh bạch',
-      'Biết rõ ai nợ ai, bao nhiêu và thanh toán chỉ với một chạm',
-    ),
+
+  static const _icons = [
+    CupertinoIcons.doc_text_fill,
+    CupertinoIcons.arrow_2_squarepath,
+    CupertinoIcons.checkmark_shield_fill,
   ];
 
   void _next(int displayedPage) {
     if (_finishing || _page != displayedPage) return;
-    if (_page >= _pages.length - 1) {
+    if (_page >= _icons.length - 1) {
       _finish();
       return;
     }
-    setState(() => _page++);
+    setState(() => _page = (_page + 1).clamp(0, _icons.length - 1));
   }
 
   Future<void> _finish() async {
@@ -47,124 +43,223 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       final prefs = await SharedPreferences.getInstance();
       final saved = await prefs.setBool('onboarding_complete', true);
       if (!saved) {
-        throw StateError('Không thể lưu trạng thái giới thiệu');
+        throw StateError('Unable to persist onboarding flag');
       }
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-    } catch (error) {
+      Navigator.of(context).pushReplacement(fintechRoute(const LoginScreen()));
+    } catch (_) {
       if (!mounted) return;
       setState(() => _finishing = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không thể tiếp tục. Vui lòng thử lại.')),
+        SnackBar(
+          content: Text(
+            tr(
+              context,
+              'Không thể tiếp tục. Vui lòng thử lại.',
+              'Could not continue. Please try again.',
+            ),
+          ),
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final displayedPage = _page;
-    final page = _pages[displayedPage];
-    final isLast = displayedPage == _pages.length - 1;
+    final scheme = Theme.of(context).colorScheme;
+    final displayedPage = _page.clamp(0, _icons.length - 1);
+    final isLast = displayedPage == _icons.length - 1;
+    final safeTop = MediaQuery.paddingOf(context).top;
+
+    final titles = [
+      tr(context, 'Ghi chi tiêu nhóm nhanh gọn', 'Log group expenses fast'),
+      tr(context, 'Tối ưu số lần chuyển khoản', 'Simplify group debts'),
+      tr(context, 'Xác nhận thanh toán minh bạch', 'Transparent settlement'),
+    ];
+    final descriptions = [
+      tr(
+        context,
+        'Nhập thủ công hoặc quét hóa đơn, chia đều, theo tỷ lệ, hệ số hay từng món.',
+        'Enter manually or scan receipts, split equally, by percentage, weight, or item.',
+      ),
+      tr(
+        context,
+        'Tự động gộp các khoản nợ chéo trong nhóm thành ít giao dịch nhất.',
+        'Automatically consolidate cross-debts into the fewest transfers possible.',
+      ),
+      tr(
+        context,
+        'Công nợ chỉ được trừ khi người nhận xác nhận đã nhận tiền.',
+        'Balances update only after the recipient confirms payment.',
+      ),
+    ];
 
     return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxHeight < 620;
-            final illustrationSize = compact ? 140.0 : 210.0;
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: illustrationSize,
-                            height: illustrationSize,
-                            alignment: Alignment.center,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxHeight < 620;
+          final heroHeight = compact ? 200.0 : 280.0;
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    children: [
+                      // Top Midnight Navy curved hero panel matching template
+                      Container(
+                        width: double.infinity,
+                        height: heroHeight + safeTop,
+                        padding: EdgeInsets.only(top: safeTop),
+                        decoration: const BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                          borderRadius: BorderRadius.vertical(
+                            bottom: Radius.circular(32),
+                          ),
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: compact ? 84 : 104,
+                            height: compact ? 84 : 104,
                             decoration: BoxDecoration(
-                              color: colors.primaryContainer,
-                              borderRadius: BorderRadius.circular(32),
-                            ),
-                            child: Text(
-                              page.$1,
-                              style: TextStyle(fontSize: compact ? 60 : 86),
-                            ),
-                          ),
-                          SizedBox(height: compact ? 20 : 36),
-                          Text(
-                            page.$2,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 23,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            page.$3,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: colors.onSurfaceVariant,
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(height: compact ? 16 : 28),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(
-                              _pages.length,
-                              (i) => AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                margin:
-                                    const EdgeInsets.symmetric(horizontal: 4),
-                                width: displayedPage == i ? 22 : 7,
-                                height: 7,
-                                decoration: BoxDecoration(
-                                  color: displayedPage == i
-                                      ? colors.primary
-                                      : colors.outlineVariant,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
+                              color: AppColors.p500.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(26),
+                              border: Border.all(
+                                color: AppColors.p400.withValues(alpha: 0.45),
+                                width: 1.2,
                               ),
                             ),
+                            child: Icon(
+                              _icons[displayedPage],
+                              size: compact ? 38 : 46,
+                              color: Colors.white,
+                            ),
                           ),
-                        ],
+                        ),
+                      ),
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              AppDimensions.s24,
+                              compact ? AppDimensions.s24 : AppDimensions.s32,
+                              AppDimensions.s24,
+                              AppDimensions.s16,
+                            ),
+                            child: Column(
+                              children: [
+                                Text(
+                                  titles[displayedPage],
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.headlineMedium,
+                                ),
+                                const SizedBox(height: AppDimensions.s12),
+                                Text(
+                                  descriptions[displayedPage],
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                ),
+                                SizedBox(
+                                  height: compact
+                                      ? AppDimensions.s20
+                                      : AppDimensions.s28,
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: List.generate(
+                                    _icons.length,
+                                    (i) => AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      margin: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                      ),
+                                      width: displayedPage == i ? 22 : 7,
+                                      height: 7,
+                                      decoration: BoxDecoration(
+                                        color: displayedPage == i
+                                            ? scheme.primary
+                                            : scheme.outlineVariant,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SafeArea(
+                    top: false,
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 420),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppDimensions.s24,
+                            AppDimensions.s8,
+                            AppDimensions.s24,
+                            AppDimensions.s20,
+                          ),
+                          child: isLast
+                              ? Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    FilledButton(
+                                      onPressed: _finishing
+                                          ? null
+                                          : () => _next(displayedPage),
+                                      child: Text(
+                                        tr(context, 'Bắt đầu', 'Get started'),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Row(
+                                  children: [
+                                    TextButton(
+                                      onPressed: _finishing ? null : _finish,
+                                      child: Text(
+                                        tr(context, 'Bỏ qua', 'Skip'),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    FilledButton(
+                                      onPressed: _finishing
+                                          ? null
+                                          : () => _next(displayedPage),
+                                      style: FilledButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 28,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        tr(context, 'Tiếp tục', 'Next'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          FilledButton(
-                            onPressed:
-                                _finishing ? null : () => _next(displayedPage),
-                            child: Text(isLast ? 'Bắt đầu' : 'Tiếp tục'),
-                          ),
-                          const SizedBox(height: 8),
-                          TextButton(
-                            onPressed: _finishing ? null : _finish,
-                            child: Text(isLast ? 'Đăng nhập' : 'Bỏ qua'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }

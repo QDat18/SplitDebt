@@ -17,16 +17,10 @@ import 'features/auth/splash_screen.dart';
 import 'firebase_options.dart';
 
 @pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(
-  RemoteMessage message,
-) async {
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  debugPrint(
-    'FCM background message: ${message.messageId}',
-  );
+  debugPrint('FCM background message: ${message.messageId}');
 }
 
 Future<void> main() async {
@@ -40,9 +34,7 @@ Future<void> main() async {
     ),
   );
 
-  await dotenv.load(
-    fileName: '.env',
-  );
+  await dotenv.load(fileName: '.env');
 
   final firebaseEnabled =
       (dotenv.env['FIREBASE_ENABLED'] ?? 'false').toLowerCase() == 'true';
@@ -57,31 +49,20 @@ Future<void> main() async {
     );
 
     if (!kIsWeb) {
-      FirebaseMessaging.onBackgroundMessage(
-        firebaseMessagingBackgroundHandler,
-      );
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     }
   } else {
     debugPrint('Firebase/FCM is disabled for this environment.');
   }
 
-  runApp(
-    const ProviderScope(
-      child: SplitDebtApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: SplitDebtApp()));
 }
 
 class SplitDebtApp extends ConsumerWidget {
-  const SplitDebtApp({
-    super.key,
-  });
+  const SplitDebtApp({super.key});
 
   @override
-  Widget build(
-    BuildContext context,
-    WidgetRef ref,
-  ) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     return MaterialApp(
       title: 'SplitDebt',

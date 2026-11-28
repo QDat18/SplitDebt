@@ -1,7 +1,13 @@
-// Trách nhiệm file: Cung cấp widget group card có thể tái sử dụng trong giao diện của feature.
+// Trách nhiệm file: Cung cấp widget group card chuẩn Fintech, gọn gàng, không dùng emoji, tương thích Light & Dark mode.
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+import '../../../core/state/app_sync.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/pdf_components.dart';
+import '../../../core/widgets/fintech_components.dart';
 import '../models/group_model.dart';
 
 class GroupCard extends StatelessWidget {
@@ -18,103 +24,77 @@ class GroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final balance = group.userBalance;
-    // Determine category icon emoji
-    String emoji = group.categoryIcon ?? '👥';
-    if (emoji == '👥') {
-      final nameLower = group.name.toLowerCase();
-      if (nameLower.contains('trip') ||
-          nameLower.contains('du lịch') ||
-          nameLower.contains('hải phòng') ||
-          nameLower.contains('đà lạt')) {
-        emoji = '🌴';
-      } else if (nameLower.contains('project') ||
-          nameLower.contains('team') ||
-          nameLower.contains('lập trình')) {
-        emoji = '💻';
-      } else if (nameLower.contains('trọ') ||
-          nameLower.contains('phòng') ||
-          nameLower.contains('nhà')) {
-        emoji = '🏠';
-      } else if (nameLower.contains('ăn') ||
-          nameLower.contains('uống') ||
-          nameLower.contains('cơm')) {
-        emoji = '🍜';
-      }
-    }
 
-    // Determine balance text & color matching Figma design
-    String balanceText = group.formattedBalance ?? 'Xem nợ';
-    Color balanceColor = const Color(0xFF6B7280);
+    String balanceText;
+    Color balanceColor;
+    IconData? balanceIcon;
 
     if (balance != null) {
       if (balance > 0) {
         balanceText = '+${money(balance)}';
-        balanceColor = const Color(0xFF10B981);
+        balanceColor = AppColors.successFor(context);
+        balanceIcon = CupertinoIcons.arrow_down_left;
       } else if (balance < 0) {
-        balanceText = money(balance);
-        balanceColor = const Color(0xFFEF4444);
+        balanceText = '-${money(balance.abs())}';
+        balanceColor = AppColors.errorFor(context);
+        balanceIcon = CupertinoIcons.arrow_up_right;
       } else {
-        balanceText = 'Đã cân bằng';
-        balanceColor = const Color(0xFF6B7280);
+        balanceText = tr(context, 'Đã cân bằng', 'Settled');
+        balanceColor = scheme.onSurfaceVariant;
       }
     } else {
+      balanceText = group.formattedBalance ?? tr(context, 'Xem nợ', 'View');
       if (balanceText.startsWith('+')) {
-        balanceColor = const Color(0xFF10B981);
+        balanceColor = AppColors.successFor(context);
+        balanceIcon = CupertinoIcons.arrow_down_left;
       } else if (balanceText.startsWith('-')) {
-        balanceColor = const Color(0xFFEF4444);
+        balanceColor = AppColors.errorFor(context);
+        balanceIcon = CupertinoIcons.arrow_up_right;
       } else {
-        balanceColor = const Color(0xFF6B7280);
+        balanceColor = scheme.onSurfaceVariant;
       }
     }
 
-    final String timeAgoStr = group.timeAgo ??
+    final timeAgoStr =
+        group.timeAgo ??
         (group.createdAt == null
             ? ''
             : '${group.createdAt!.day}/${group.createdAt!.month}/${group.createdAt!.year}');
+    final membersLabel = tr(
+      context,
+      '${group.memberCount} thành viên',
+      '${group.memberCount} members',
+    );
+    final subtitle = timeAgoStr.isNotEmpty
+        ? '$membersLabel · $timeAgoStr'
+        : membersLabel;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: AppDimensions.s8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Theme.of(context).dividerColor, width: 1.5),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
+        color: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.navy800
+            : AppColors.n50,
+        borderRadius: AppDimensions.radius16,
+        border: Border.all(color: AppColors.hairlineFor(context), width: 0.8),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: AppDimensions.radius16,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: AppDimensions.radius16,
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 14.0,
+              horizontal: AppDimensions.s12,
+              vertical: AppDimensions.s12,
             ),
             child: Row(
               children: [
-                // Left Emoji / Icon Box
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0EDFF),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Center(
-                    child: Text(emoji, style: const TextStyle(fontSize: 24)),
-                  ),
-                ),
-                const SizedBox(width: 14),
-
-                // Group Title & Subtitle (Member count • Time ago)
+                GroupAvatar(name: group.name, size: 42, radius: 10),
+                const SizedBox(width: AppDimensions.s12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,20 +102,19 @@ class GroupCard extends StatelessWidget {
                       Text(
                         group.name,
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: scheme.onSurface,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
-                        '${group.memberCount} thành viên • $timeAgoStr',
+                        subtitle,
                         style: TextStyle(
-                          fontSize: 13,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w400,
+                          fontSize: 12.5,
+                          color: scheme.onSurfaceVariant,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -143,76 +122,72 @@ class GroupCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-
-                // Right Balance Indicator
+                const SizedBox(width: AppDimensions.s8),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      balanceText,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: balanceColor,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (balanceIcon != null) ...[
+                          Icon(balanceIcon, size: 12, color: balanceColor),
+                          const SizedBox(width: 2),
+                        ],
+                        Text(
+                          balanceText,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: balanceColor,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
                     ),
-                    if (onActionSelected != null) ...[
-                      const SizedBox(height: 2),
-                      GestureDetector(
-                        onTapDown: (details) {
-                          final position = details.globalPosition;
-                          showMenu<String>(
-                            context: context,
-                            position: RelativeRect.fromLTRB(
-                              position.dx,
-                              position.dy,
-                              position.dx,
-                              position.dy,
-                            ),
-                            items: [
-                              if (group.isAdminOrOwner)
-                                const PopupMenuItem(
-                                  value: 'settings',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.settings_outlined, size: 18),
-                                      SizedBox(width: 8),
-                                      Text('Cài đặt nhóm'),
-                                    ],
-                                  ),
-                                ),
-                              const PopupMenuItem(
-                                value: 'leave',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.exit_to_app_rounded,
-                                      size: 18,
-                                      color: Colors.red,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Rời nhóm',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                  ],
+                ),
+                if (onActionSelected != null)
+                  PopupMenuButton<String>(
+                    tooltip: tr(context, 'Tùy chọn nhóm', 'Group options'),
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      size: 20,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    onSelected: (val) => onActionSelected!(val),
+                    itemBuilder: (ctx) => [
+                      if (group.isAdminOrOwner)
+                        PopupMenuItem(
+                          value: 'settings',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.settings_outlined, size: 18),
+                              const SizedBox(width: 8),
+                              Text(tr(ctx, 'Cài đặt nhóm', 'Group settings')),
                             ],
-                          ).then((val) {
-                            if (val != null) onActionSelected!(val);
-                          });
-                        },
-                        child: const Icon(
-                          Icons.more_horiz_rounded,
-                          size: 18,
-                          color: Color(0xFF9CA3AF),
+                          ),
+                        ),
+                      PopupMenuItem(
+                        value: 'leave',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.exit_to_app_rounded,
+                              size: 18,
+                              color: AppColors.errorFor(ctx),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              tr(ctx, 'Rời nhóm', 'Leave group'),
+                              style: TextStyle(color: AppColors.errorFor(ctx)),
+                            ),
+                          ],
                         ),
                       ),
                     ],
-                  ],
-                ),
+                  ),
               ],
             ),
           ),

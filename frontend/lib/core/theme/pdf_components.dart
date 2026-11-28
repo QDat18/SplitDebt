@@ -11,9 +11,11 @@ const pdfGreen = AppColors.success;
 const pdfRed = AppColors.error;
 const pdfMuted = AppColors.n600;
 
-String money(num value) =>
-    NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
-        .format(value);
+String money(num value) => NumberFormat.currency(
+  locale: 'vi_VN',
+  symbol: '₫',
+  decimalDigits: 0,
+).format(value);
 
 class PersonBadge extends StatelessWidget {
   final String name;
@@ -30,8 +32,9 @@ class PersonBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final trimmed = name.trim();
-    final glyph =
-        trimmed.isEmpty ? '?' : trimmed.characters.first.toUpperCase();
+    final glyph = trimmed.isEmpty
+        ? '?'
+        : trimmed.characters.first.toUpperCase();
     return Container(
       width: radius * 2,
       height: radius * 2,
@@ -71,19 +74,21 @@ class PdfTabs extends StatelessWidget {
     if (labels.isEmpty) return const SizedBox.shrink();
     final safeSelected = selected.clamp(0, labels.length - 1);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final trackColor =
-        isDark ? const Color(0xFF1C1C1E) : const Color(0xFFE5E5EA);
-    final thumbColor = isDark ? const Color(0xFF3A3A3C) : Colors.white;
-    final activeText = isDark ? Colors.white : const Color(0xFF000000);
-    final inactiveText =
-        isDark ? const Color(0xFF98989F) : const Color(0xFF636366);
+    final trackColor = isDark ? AppColors.navy700 : AppColors.n50;
+    final thumbColor = isDark ? AppColors.p300 : AppColors.navy900;
+    final activeText = isDark ? const Color(0xFF061840) : Colors.white;
+    final inactiveText = isDark ? const Color(0xFFB8BCD6) : AppColors.n600;
 
     return Container(
-      height: 36,
-      padding: const EdgeInsets.all(2),
+      height: 40,
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: trackColor,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.navy600 : AppColors.n100,
+          width: 0.8,
+        ),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -134,8 +139,9 @@ class PdfTabs extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 13,
                               color: isActive ? activeText : inactiveText,
-                              fontWeight:
-                                  isActive ? FontWeight.w600 : FontWeight.w500,
+                              fontWeight: isActive
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
                             ),
                             child: Text(
                               labels[i],

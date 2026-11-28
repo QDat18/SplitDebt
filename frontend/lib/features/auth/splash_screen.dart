@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/app/app_keys.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/widgets/motion_kit.dart';
 import '../../core/widgets/premium_shell.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -42,9 +43,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     if (isAuthenticated) {
       unawaited(_restorePushAndTheme());
-      Navigator.of(context).pushReplacement(
-        fintechRoute(const MainLayoutScreen()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(fintechRoute(const MainLayoutScreen()));
       return;
     }
 
@@ -79,33 +80,33 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Widget build(BuildContext context) {
     final fade = CurvedAnimation(parent: _animation, curve: Curves.easeOut);
     return Scaffold(
-      backgroundColor: const Color(0xFF000000),
-      body: Center(
-        child: FadeTransition(
-          opacity: fade,
-          child: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SplitDebtMark(size: 76),
-              SizedBox(height: 18),
-              Text(
-                'SplitDebt',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.5,
+      backgroundColor: AppColors.navy900,
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+        child: Center(
+          child: FadeTransition(
+            opacity: fade,
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SplitDebtMark(size: 76),
+                SizedBox(height: 18),
+                Text(
+                  'SplitDebt',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-              ),
-              SizedBox(height: 6),
-              Text(
-                'Quản lý chi tiêu nhóm & chia nợ',
-                style: TextStyle(
-                  color: Color(0xFF8E8E93),
-                  fontSize: 13.5,
+                SizedBox(height: 6),
+                Text(
+                  'Quản lý chi tiêu nhóm & chia nợ',
+                  style: TextStyle(color: Color(0xFFB8BCD6), fontSize: 13.5),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

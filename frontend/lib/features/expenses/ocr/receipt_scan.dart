@@ -195,6 +195,7 @@ class _ReceiptReviewState extends State<_ReceiptReview> {
   final _detected = <int?>[];
   final _money = NumberFormat.decimalPattern('vi_VN');
   DateTime? _date;
+  int? _tax, _discount, _surcharge;
   String? _error;
   String _raw = '', _progress = '', _notice = '';
   List<String> _warnings = [];
@@ -380,6 +381,9 @@ class _ReceiptReviewState extends State<_ReceiptReview> {
         ? d
         : null;
     _raw = data['text']?.toString() ?? '';
+    _tax = (data['tax'] as num?)?.toInt();
+    _discount = (data['discount'] as num?)?.toInt();
+    _surcharge = ((data['surcharge'] ?? data['serviceFee']) as num?)?.toInt();
     _warnings = (data['warnings'] as List? ?? [])
         .map((e) => e.toString())
         .toSet()
@@ -880,7 +884,10 @@ class _ReceiptReviewState extends State<_ReceiptReview> {
               FilteringTextInputFormatter.digitsOnly,
               LengthLimitingTextInputFormatter(12),
             ],
-            style: Theme.of(context).textTheme.titleLarge,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
             decoration: const InputDecoration(
               labelText: 'Tổng thanh toán',
               suffixText: 'VND',
@@ -889,6 +896,32 @@ class _ReceiptReviewState extends State<_ReceiptReview> {
             validator: (value) => _positive(value, 999999999999),
             onChanged: (_) => setState(() => _reviewed = false),
           ),
+          if (_tax != null || _discount != null || _surcharge != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
+              child: Column(
+                children: [
+                  if (_tax != null)
+                    _adjustmentRow('Thuế', '${_money.format(_tax)} đ'),
+                  if (_discount != null)
+                    _adjustmentRow(
+                      'Giảm giá',
+                      '-${_money.format(_discount!.abs())} đ',
+                    ),
+                  if (_surcharge != null)
+                    _adjustmentRow('Phụ phí', '${_money.format(_surcharge)} đ'),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           Text(
             'Chi tiết hàng hóa',
@@ -1164,11 +1197,44 @@ class _ReceiptReviewState extends State<_ReceiptReview> {
     );
   }
 
+  Widget _adjustmentRow(String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 13.5,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 13.5,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    ),
+  );
+
   Widget _lineEditor(int i) {
     final line = _lines[i], detected = _detected[i];
+    final hasMismatch = detected != null && detected != line.amount;
+    final scheme = Theme.of(context).colorScheme;
     return Card(
       key: ObjectKey(line),
       margin: const EdgeInsets.only(bottom: 12),
+      shape: hasMismatch
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(color: scheme.error, width: 1.2),
+            )
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(

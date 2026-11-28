@@ -1,7 +1,11 @@
-// Trách nhiệm file: Xây dựng màn hình group settings screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+// Trách nhiệm file: Màn hình cài đặt nhóm chuẩn hóa, không dùng emoji, tương thích Light & Dark mode.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/state/app_sync.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_dimensions.dart';
 import '../models/group_model.dart';
 import '../providers/group_provider.dart';
 
@@ -17,8 +21,8 @@ class GroupSettingsScreen extends ConsumerStatefulWidget {
 
 class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
-  late TextEditingController _descController;
+  late final TextEditingController _nameController;
+  late final TextEditingController _descController;
   bool _isSaving = false;
 
   @override
@@ -38,19 +42,26 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
   }
 
   Future<void> _saveChanges() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_isSaving || _formKey.currentState?.validate() != true) return;
     setState(() => _isSaving = true);
     try {
-      await ref.read(userGroupsProvider.notifier).updateGroup(
+      await ref
+          .read(userGroupsProvider.notifier)
+          .updateGroup(
             widget.group.id,
             _nameController.text.trim(),
             _descController.text.trim(),
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Đã cập nhật thông tin nhóm!'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Text(
+              tr(
+                context,
+                'Đã cập nhật thông tin nhóm.',
+                'Group information updated.',
+              ),
+            ),
           ),
         );
         Navigator.of(context).pop();
@@ -58,10 +69,7 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
         );
       }
     } finally {
@@ -73,58 +81,58 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Xác nhận xóa nhóm'),
-        content: const Text(
-          'Bạn có chắc chắn muốn xóa nhóm này? Hành động này không thể hoàn tác.',
+        title: Text(tr(ctx, 'Xác nhận xóa nhóm', 'Delete group')),
+        content: Text(
+          tr(
+            ctx,
+            'Bạn có chắc chắn muốn xóa nhóm này? Hành động này không thể hoàn tác.',
+            'Are you sure you want to delete this group? This action cannot be undone.',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Hủy'),
+            child: Text(tr(ctx, 'Hủy', 'Cancel')),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.errorFor(ctx),
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xóa nhóm'),
+            child: Text(tr(ctx, 'Xóa nhóm', 'Delete')),
           ),
         ],
       ),
     );
+    if (confirm != true || !mounted) return;
 
-    if (confirm == true) {
-      try {
-        await ref
-            .read(userGroupsProvider.notifier)
-            .deleteGroup(widget.group.id);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('🗑️ Đã xóa nhóm'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Lỗi: ${e.toString().replaceAll('Exception: ', '')}',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+    try {
+      await ref.read(userGroupsProvider.notifier).deleteGroup(widget.group.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tr(context, 'Đã xóa nhóm.', 'Group deleted.')),
+          ),
+        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+        );
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final errorColor = AppColors.errorFor(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cài đặt nhóm'),
+        title: Text(tr(context, 'Cài đặt nhóm', 'Group settings')),
         actions: [
           if (widget.group.isAdminOrOwner)
             TextButton(
@@ -135,81 +143,79 @@ class _GroupSettingsScreenState extends ConsumerState<GroupSettingsScreen> {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text(
-                      'Lưu',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                  : Text(tr(context, 'Lưu', 'Save')),
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Thông tin chung',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _nameController,
-                enabled: widget.group.isAdminOrOwner,
-                decoration: const InputDecoration(
-                  labelText: 'Tên nhóm',
-                  prefixIcon: Icon(Icons.drive_file_rename_outline_rounded),
-                ),
-                validator: (val) => val == null || val.trim().isEmpty
-                    ? 'Tên nhóm không được để trống'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descController,
-                enabled: widget.group.isAdminOrOwner,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Mô tả',
-                  prefixIcon: Icon(Icons.description_outlined),
-                ),
-              ),
-              const SizedBox(height: 32),
-              const Divider(),
-              const SizedBox(height: 16),
-              const Text(
-                'Vùng nguy hiểm',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (widget.group.isAdminOrOwner)
-                OutlinedButton.icon(
-                  onPressed: _deleteGroup,
-                  icon: const Icon(
-                    Icons.delete_forever_rounded,
-                    color: Colors.red,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppDimensions.s20),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    tr(context, 'Thông tin chung', 'General'),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  label: const Text(
-                    'Xóa nhóm này',
-                    style: TextStyle(color: Colors.red),
+                  const SizedBox(height: AppDimensions.s12),
+                  TextFormField(
+                    controller: _nameController,
+                    enabled: widget.group.isAdminOrOwner && !_isSaving,
+                    decoration: InputDecoration(
+                      labelText: tr(context, 'Tên nhóm', 'Group name'),
+                      prefixIcon: const Icon(Icons.drive_file_rename_outline),
+                    ),
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? tr(
+                            context,
+                            'Tên nhóm không được để trống.',
+                            'Group name is required.',
+                          )
+                        : null,
                   ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.red),
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  const SizedBox(height: AppDimensions.s16),
+                  TextFormField(
+                    controller: _descController,
+                    enabled: widget.group.isAdminOrOwner && !_isSaving,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      labelText: tr(context, 'Mô tả', 'Description'),
+                      prefixIcon: const Icon(Icons.description_outlined),
                     ),
                   ),
-                ),
-            ],
+                  if (widget.group.isAdminOrOwner) ...[
+                    const SizedBox(height: AppDimensions.s32),
+                    const Divider(),
+                    const SizedBox(height: AppDimensions.s16),
+                    Text(
+                      tr(context, 'Vùng nguy hiểm', 'Danger zone'),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleMedium?.copyWith(color: errorColor),
+                    ),
+                    const SizedBox(height: AppDimensions.s12),
+                    OutlinedButton.icon(
+                      onPressed: _isSaving ? null : _deleteGroup,
+                      icon: Icon(
+                        Icons.delete_outline_rounded,
+                        color: errorColor,
+                      ),
+                      label: Text(
+                        tr(context, 'Xóa nhóm này', 'Delete this group'),
+                        style: TextStyle(color: errorColor),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: errorColor),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

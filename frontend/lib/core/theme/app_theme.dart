@@ -1,4 +1,4 @@
-// Trách nhiệm file: Định nghĩa Theme Light & Dark chuẩn iOS HIG dùng thống nhất toàn ứng dụng.
+// Trách nhiệm file: Định nghĩa Theme Light & Dark theo phong cách Midnight Navy + Electric Royal Blue + Ice Surface.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,9 +7,9 @@ import 'app_colors.dart';
 
 class AppTheme {
   static const Color primaryColor = AppColors.p500;
-  static const Color backgroundColor = AppColors.n50;
+  static const Color backgroundColor = AppColors.n0;
   static const Color surfaceColor = AppColors.n0;
-  static const Color textPrimaryColor = Color(0xFF000000);
+  static const Color textPrimaryColor = AppColors.navy900;
   static const Color textSecondaryColor = AppColors.n600;
   static const Color errorColor = AppColors.error;
   static const Color successColor = AppColors.success;
@@ -19,20 +19,18 @@ class AppTheme {
 
   static ThemeData _buildTheme(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF000000) : AppColors.n50;
-    final cardBg = isDark ? const Color(0xFF1C1C1E) : AppColors.n0;
-    final textPrimary = isDark ? Colors.white : const Color(0xFF000000);
-    final textSecondary = isDark
-        ? const Color(0xFFB8B8C0)
-        : const Color(0xFF565660);
-    final hairline = isDark ? const Color(0xFF38383A) : const Color(0xFFE5E5EA);
-    final inputFill = isDark ? const Color(0xFF2C2C2E) : Colors.white;
-    final primary = isDark ? const Color(0xFFA8CBFF) : primaryColor;
-    final onPrimary = isDark ? const Color(0xFF002F65) : Colors.white;
-    final error = isDark ? const Color(0xFFFFB4AB) : errorColor;
-    final inputOutline = isDark
-        ? const Color(0xFF878791)
-        : const Color(0xFF85858E);
+    final bg = isDark ? AppColors.navy950 : AppColors.n0;
+    final cardBg = isDark ? AppColors.navy800 : AppColors.n0;
+    final subtleCard = isDark ? AppColors.navy700 : AppColors.n50;
+    final textPrimary = isDark ? Colors.white : AppColors.navy900;
+    final textSecondary = isDark ? const Color(0xFFB8BCD6) : AppColors.n600;
+    final hairline = isDark ? AppColors.navy600 : AppColors.n100;
+    final inputFill = isDark ? AppColors.navy700 : Colors.white;
+    final primary = isDark ? AppColors.p300 : primaryColor;
+    final onPrimary = isDark ? const Color(0xFF061840) : Colors.white;
+    final error = isDark ? AppColors.errorOnDark : errorColor;
+    final inputOutline = isDark ? const Color(0xFF7E83A8) : AppColors.n400;
+
     final scheme =
         ColorScheme.fromSeed(
           seedColor: primaryColor,
@@ -40,11 +38,19 @@ class AppTheme {
         ).copyWith(
           primary: primary,
           onPrimary: onPrimary,
+          primaryContainer: isDark ? const Color(0xFF1F2B6B) : AppColors.p50,
+          onPrimaryContainer: isDark ? Colors.white : AppColors.navy900,
+          secondary: isDark ? const Color(0xFF3B4380) : AppColors.navy900,
+          onSecondary: Colors.white,
           surface: cardBg,
+          surfaceContainerLow: subtleCard,
+          surfaceContainerHighest: isDark
+              ? AppColors.navy700
+              : const Color(0xFFEBEFF9),
           onSurface: textPrimary,
           onSurfaceVariant: textSecondary,
           error: error,
-          onError: isDark ? const Color(0xFF690005) : Colors.white,
+          onError: isDark ? const Color(0xFF560013) : Colors.white,
           outline: inputOutline,
           outlineVariant: hairline,
         );
@@ -59,13 +65,14 @@ class AppTheme {
       colorScheme: scheme,
       visualDensity: VisualDensity.standard,
       materialTapTargetSize: MaterialTapTargetSize.padded,
-      focusColor: primary.withValues(alpha: 0.18),
+      focusColor: primary.withValues(alpha: 0.16),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
       ),
       checkboxTheme: CheckboxThemeData(
         materialTapTargetSize: MaterialTapTargetSize.padded,
-        side: BorderSide(color: inputOutline, width: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+        side: BorderSide(color: inputOutline, width: 1.8),
       ),
       scaffoldBackgroundColor: bg,
       appBarTheme: AppBarTheme(
@@ -78,28 +85,28 @@ class AppTheme {
             ? SystemUiOverlayStyle.light
             : SystemUiOverlayStyle.dark,
         titleTextStyle: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontSize: 17.5,
+          fontWeight: FontWeight.w700,
           letterSpacing: -0.3,
           color: textPrimary,
         ),
       ),
       cardTheme: CardThemeData(
-        color: cardBg,
+        color: isDark ? AppColors.navy800 : AppColors.n50,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         margin: const EdgeInsets.only(bottom: 12),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: hairline, width: 0.6),
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: hairline, width: 0.8),
         ),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: cardBg,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         titleTextStyle: TextStyle(
-          fontSize: 20,
+          fontSize: 19,
           fontWeight: FontWeight.w700,
           color: textPrimary,
         ),
@@ -108,15 +115,13 @@ class AppTheme {
         backgroundColor: cardBg,
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: isDark
-            ? const Color(0xFF2C2C2E)
-            : const Color(0xFF1C1C1E),
-        contentTextStyle: TextStyle(
+        backgroundColor: AppColors.navy900,
+        contentTextStyle: const TextStyle(
           color: Colors.white,
           fontSize: 14,
           fontWeight: FontWeight.w500,
@@ -133,10 +138,10 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: TextStyle(
+          textStyle: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 15,
-            letterSpacing: -0.2,
+            letterSpacing: -0.1,
           ),
         ),
       ),
@@ -150,10 +155,10 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: TextStyle(
+          textStyle: const TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
-            letterSpacing: -0.2,
+            letterSpacing: -0.1,
           ),
         ),
       ),
@@ -166,17 +171,23 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+            fontSize: 14.5,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           minimumSize: const Size(48, 48),
           foregroundColor: primary,
-          textStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+            fontSize: 14.5,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
-      dividerTheme: DividerThemeData(color: hairline, thickness: 0.6),
+      dividerTheme: DividerThemeData(color: hairline, thickness: 0.8),
       textTheme: baseText.copyWith(
         displayLarge: TextStyle(
           fontSize: 32,
@@ -185,18 +196,18 @@ class AppTheme {
           color: textPrimary,
         ),
         headlineMedium: TextStyle(
-          fontSize: 28,
+          fontSize: 26,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.6,
           color: textPrimary,
         ),
         titleMedium: TextStyle(
           fontSize: 17,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
           letterSpacing: -0.3,
           color: textPrimary,
         ),
-        bodyLarge: TextStyle(fontSize: 16, height: 1.45, color: textPrimary),
+        bodyLarge: TextStyle(fontSize: 15.5, height: 1.45, color: textPrimary),
         bodyMedium: TextStyle(fontSize: 14, height: 1.45, color: textPrimary),
         bodySmall: TextStyle(fontSize: 13, height: 1.4, color: textSecondary),
       ),
@@ -244,9 +255,9 @@ class AppTheme {
       ),
       tooltipTheme: TooltipThemeData(
         waitDuration: const Duration(milliseconds: 400),
-        textStyle: TextStyle(color: isDark ? Colors.black : Colors.white),
+        textStyle: TextStyle(color: isDark ? AppColors.navy950 : Colors.white),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFFE5E5EA) : AppColors.n900,
+          color: isDark ? AppColors.p50 : AppColors.navy900,
           borderRadius: BorderRadius.circular(8),
         ),
       ),

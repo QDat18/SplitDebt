@@ -20,30 +20,36 @@ class PushNotificationService {
 
   Future<void> initialize() async {
     if (!await FirebaseMessaging.instance.isSupported()) return;
-    _messageSubscription ??=
-        FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-    _tokenSubscription ??=
-        FirebaseMessaging.instance.onTokenRefresh.listen((token) async {
+    _messageSubscription ??= FirebaseMessaging.onMessage.listen(
+      _handleForegroundMessage,
+    );
+    _tokenSubscription ??= FirebaseMessaging.instance.onTokenRefresh.listen((
+      token,
+    ) async {
       try {
         await _register(token);
       } catch (error) {
         debugPrint('Không cập nhật được FCM token: $error');
       }
     }, onError: (Object error) => debugPrint('FCM token refresh: $error'));
-    await FirebaseMessaging.instance
-        .requestPermission(alert: true, badge: true, sound: true);
+    await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
   }
 
   Future<String?> getToken() async {
     try {
       if (!await FirebaseMessaging.instance.isSupported()) return null;
-      final settings =
-          await FirebaseMessaging.instance.getNotificationSettings();
+      final settings = await FirebaseMessaging.instance
+          .getNotificationSettings();
       if (settings.authorizationStatus == AuthorizationStatus.denied) {
         return null;
       }
-      return await FirebaseMessaging.instance
-          .getToken(vapidKey: kIsWeb ? _webVapidKey : null);
+      return await FirebaseMessaging.instance.getToken(
+        vapidKey: kIsWeb ? _webVapidKey : null,
+      );
     } catch (error) {
       debugPrint('Không lấy được FCM token: $error');
       return null;
@@ -54,9 +60,10 @@ class PushNotificationService {
     final userId = _subscribedUserId;
     if (userId == null || token.isEmpty) return;
     await _repository.registerFcmToken(
-        userId: userId,
-        token: token,
-        platform: kIsWeb ? 'WEB' : defaultTargetPlatform.name.toUpperCase());
+      userId: userId,
+      token: token,
+      platform: kIsWeb ? 'WEB' : defaultTargetPlatform.name.toUpperCase(),
+    );
     _registeredToken = token;
   }
 
@@ -73,7 +80,8 @@ class PushNotificationService {
     final token = await getToken();
     if (token == null) {
       throw Exception(
-          'Hãy cho phép Notifications của trang và dùng hồ sơ trình duyệt thường, sau đó thử lại.');
+        'Hãy cho phép Notifications của trang và dùng hồ sơ trình duyệt thường, sau đó thử lại.',
+      );
     }
     await _register(token);
   }
@@ -100,28 +108,22 @@ class PushNotificationService {
     _tokenSubscription = null;
   }
 
-  void _handleForegroundMessage(
-    RemoteMessage message,
-  ) {
-    final String title = message.notification?.title ??
+  void _handleForegroundMessage(RemoteMessage message) {
+    final String title =
+        message.notification?.title ??
         message.data['title']?.toString() ??
         'SplitDebt';
 
-    final String body = message.notification?.body ??
+    final String body =
+        message.notification?.body ??
         message.data['body']?.toString() ??
         'Bạn có thông báo mới';
 
-    debugPrint(
-      'FCM foreground: $title - $body',
-    );
+    debugPrint('FCM foreground: $title - $body');
 
-    debugPrint(
-      'FCM messageId: ${message.messageId}',
-    );
+    debugPrint('FCM messageId: ${message.messageId}');
 
-    debugPrint(
-      'FCM data: ${message.data}',
-    );
+    debugPrint('FCM data: ${message.data}');
 
     final String? type = message.data['type']?.toString();
 

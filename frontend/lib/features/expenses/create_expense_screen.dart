@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/api/api_client.dart';
@@ -759,7 +758,7 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       DropdownButtonFormField<int>(
-                        value: _groupId,
+                        initialValue: _groupId,
                         isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Nhóm chi tiêu',
@@ -956,6 +955,7 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
           color: Theme.of(context).colorScheme.primary,
           fontSize: 28,
           fontWeight: FontWeight.w700,
+          fontFeatures: const [FontFeature.tabularFigures()],
         ),
         decoration: const InputDecoration(
           labelText: 'Tổng số tiền',
@@ -988,7 +988,7 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
 
   // --- CARD TIÊU ĐỀ KHOẢN CHI & DANH MỤC HORIZONTAL SCROLL ---
   Widget _buildTitleAndCategoryCard() => DropdownButtonFormField<int>(
-    value: _categoryId,
+    initialValue: _categoryId,
     isExpanded: true,
     decoration: const InputDecoration(labelText: 'Danh mục (không bắt buộc)'),
     items: [
@@ -1169,7 +1169,7 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
   Widget _buildPayerSelectorCard() => LayoutBuilder(
     builder: (context, constraints) {
       final payer = DropdownButtonFormField<String>(
-        value: _payerId,
+        initialValue: _payerId,
         isExpanded: true,
         decoration: const InputDecoration(
           labelText: 'Người đã thanh toán',
@@ -1314,87 +1314,98 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
 
   // 1. Chia đều (EQUAL)
   Widget _buildEqualSplitContent() {
+    final scheme = Theme.of(context).colorScheme;
     final selectedMembers = _members.where((m) => m.isSelected).toList();
     final perPerson = selectedMembers.isNotEmpty
         ? _totalAmount / selectedMembers.length
         : 0.0;
 
-    return Container(
-      key: const ValueKey('equal_split'),
-      padding: const EdgeInsets.all(AppDimensions.s16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: AppDimensions.radius20,
-        boxShadow: AppDimensions.shadowSm,
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'Tự động chia đều cho ${selectedMembers.length} người',
-                  style: _type(AppTypography.bodySmall).copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+    return _buildSplitPanel(
+      keyName: 'equal_split',
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                'Tự động chia đều cho ${selectedMembers.length} người',
+                style: _type(
+                  AppTypography.bodySmall,
+                ).copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                '${currencyFormatter.format(perPerson)} /người',
+                textAlign: TextAlign.end,
+                style: _type(AppTypography.title).copyWith(
+                  color: scheme.primary,
+                  fontSize: 14,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  '${currencyFormatter.format(perPerson)} /người',
-                  textAlign: TextAlign.end,
-                  style: _type(AppTypography.title).copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontSize: 14,
-                  ),
+            ),
+          ],
+        ),
+        const Divider(height: 20),
+        ..._members.map((m) {
+          final initial = m.name.trim().isEmpty
+              ? '?'
+              : m.name.trim().characters.first.toUpperCase();
+          return Material(
+            color: Colors.transparent,
+            child: CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              activeColor: scheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: AppDimensions.radius12,
+              ),
+              secondary: CircleAvatar(
+                radius: 16,
+                backgroundColor: scheme.primary.withValues(alpha: 0.12),
+                backgroundImage: m.avatarUrl.isEmpty
+                    ? null
+                    : NetworkImage(m.avatarUrl),
+                child: m.avatarUrl.isEmpty
+                    ? Text(
+                        initial,
+                        style: TextStyle(
+                          color: scheme.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      )
+                    : null,
+              ),
+              title: Text(
+                m.name,
+                style: _type(
+                  AppTypography.bodyMedium,
+                ).copyWith(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
+                m.isSelected
+                    ? currencyFormatter.format(m.amount)
+                    : 'Không tham gia',
+                style: _type(AppTypography.caption).copyWith(
+                  color: m.isSelected
+                      ? scheme.primary
+                      : scheme.onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
-            ],
-          ),
-          const Divider(height: 20, color: AppColors.n100),
-          ..._members.map((m) {
-            return Material(
-              color: Colors.transparent,
-              child: CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                activeColor: AppColors.p500,
-                shape: RoundedRectangleBorder(
-                  borderRadius: AppDimensions.radius12,
-                ),
-                secondary: CircleAvatar(
-                  radius: 16,
-                  backgroundImage: m.avatarUrl.isEmpty
-                      ? null
-                      : NetworkImage(m.avatarUrl),
-                ),
-                title: Text(
-                  m.name,
-                  style: _type(
-                    AppTypography.bodyMedium,
-                  ).copyWith(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  m.isSelected
-                      ? currencyFormatter.format(m.amount)
-                      : 'Không tham gia',
-                  style: _type(AppTypography.caption).copyWith(
-                    color: m.isSelected ? AppColors.p600 : AppColors.n400,
-                  ),
-                ),
-                value: m.isSelected,
-                onChanged: (val) {
-                  setState(() {
-                    m.isSelected = val ?? false;
-                    _recalculateSplit();
-                  });
-                },
-              ),
-            );
-          }),
-        ],
-      ),
+              value: m.isSelected,
+              onChanged: (val) {
+                setState(() {
+                  m.isSelected = val ?? false;
+                  _recalculateSplit();
+                });
+              },
+            ),
+          );
+        }),
+      ],
     );
   }
 
@@ -1758,6 +1769,7 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                         currencyFormatter.format(_totalAmount),
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                       Text(
@@ -1771,11 +1783,11 @@ class _CreateExpenseScreenState extends ConsumerState<CreateExpenseScreen>
                   final button = FilledButton.icon(
                     onPressed: canSave ? _saveExpense : null,
                     icon: _saving
-                        ? const SizedBox.square(
+                        ? SizedBox.square(
                             dimension: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: scheme.onPrimary,
                             ),
                           )
                         : const Icon(Icons.check),

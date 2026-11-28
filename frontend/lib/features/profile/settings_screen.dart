@@ -1,21 +1,33 @@
+// Trách nhiệm file: Màn hình Cài đặt chuẩn Mobile: Giao diện (Sáng/Tối/Hệ thống), Ngôn ngữ (VI/EN) và Thông báo đẩy thực tế.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/network/dio_client.dart';
 import '../../core/state/app_sync.dart';
+import '../../core/theme/app_dimensions.dart';
+import '../../core/widgets/fintech_components.dart';
+import '../../core/widgets/premium_shell.dart';
 import '../../data/repositories/auth_repository.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
+
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _loading = true, _saving = false, _settlementPush = true;
+  bool _loading = true;
+  bool _saving = false;
+  bool _settlementPush = true;
   String? _error;
   int? _id;
-  String _theme = 'SYSTEM', _language = 'VI';
+  String _theme = 'SYSTEM';
+  String _language = 'VI';
+
   String t(String vi, String en) => tr(context, vi, en);
+
   @override
   void initState() {
     super.initState();
@@ -47,10 +59,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _apply(data);
       });
     } catch (_) {
-      if (mounted)
-        setState(() => _error = t(
+      if (mounted) {
+        setState(
+          () => _error = t(
             'Không tải được cài đặt. Kiểm tra kết nối và thử lại.',
-            'Could not load settings. Check your connection and retry.'));
+            'Could not load settings. Check your connection and retry.',
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -65,130 +81,195 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ref.read(preferenceRevisionProvider.notifier).state++;
       setState(() => _apply(Map<String, dynamic>.from(r.data['data'] as Map)));
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t('Đã lưu cài đặt.', 'Settings saved.'))));
+        SnackBar(content: Text(t('Đã lưu cài đặt.', 'Settings saved.'))),
+      );
     } catch (_) {
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(t('Không lưu được. Cài đặt cũ vẫn được giữ.',
-                'Could not save. Previous settings are unchanged.'))));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              t(
+                'Không lưu được. Cài đặt cũ vẫn được giữ.',
+                'Could not save. Previous settings are unchanged.',
+              ),
+            ),
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
+  Widget _optionRow({
+    required String label,
+    required bool selected,
+    required VoidCallback? onTap,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return ListTile(
+      enabled: onTap != null,
+      onTap: onTap,
+      title: Text(
+        label,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+          color: scheme.onSurface,
+        ),
+      ),
+      trailing: selected
+          ? Icon(Icons.check_rounded, color: scheme.primary)
+          : null,
+    );
+  }
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(t('Cài đặt', 'Settings'))),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? Center(
-                    child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child:
-                            Column(mainAxisSize: MainAxisSize.min, children: [
-                          Text(_error!, textAlign: TextAlign.center),
-                          const SizedBox(height: 12),
-                          FilledButton(
-                              onPressed: _load,
-                              child: Text(t('Thử lại', 'Retry')))
-                        ])))
-                : RefreshIndicator(
-                    onRefresh: _load,
-                    child: ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.all(16),
-                        children: [
-                          if (_saving) const LinearProgressIndicator(),
-                          Text(t('Giao diện', 'Appearance'),
-                              style: Theme.of(context).textTheme.titleMedium),
-                          Card(
-                              child: Column(children: [
-                            ListTile(
-                                leading:
-                                    const Icon(Icons.brightness_6_outlined),
-                                title: Text(t('Chế độ màu', 'Color theme')),
-                                subtitle: Text(t('Sáng, tối hoặc theo thiết bị',
-                                    'Light, dark or system default'))),
-                            for (final option in {
-                              'SYSTEM': t('Theo thiết bị', 'System'),
-                              'LIGHT': t('Sáng', 'Light'),
-                              'DARK': t('Tối', 'Dark')
-                            }.entries)
-                              RadioListTile<String>(
-                                  title: Text(option.value),
-                                  value: option.key,
-                                  groupValue: _theme,
-                                  onChanged: _saving
-                                      ? null
-                                      : (v) {
-                                          if (v != null) _save({'theme': v});
-                                        }),
-                            const Divider(),
-                            ListTile(
-                                leading: const Icon(Icons.language),
-                                title: Text(t('Ngôn ngữ', 'Language')),
-                                subtitle: Text(t(
-                                    'Tiếng Anh hiện áp dụng cho điều hướng và cài đặt; một số nghiệp vụ vẫn tiếng Việt.',
-                                    'English covers navigation and settings; some workflows remain Vietnamese.'))),
-                            for (final option in {
-                              'VI': 'Tiếng Việt',
-                              'EN': 'English'
-                            }.entries)
-                              RadioListTile<String>(
-                                  title: Text(option.value),
-                                  value: option.key,
-                                  groupValue: _language,
-                                  onChanged: _saving
-                                      ? null
-                                      : (v) {
-                                          if (v != null) _save({'language': v});
-                                        }),
-                          ])),
-                          const SizedBox(height: 16),
-                          Text(t('Thông báo', 'Notifications'),
-                              style: Theme.of(context).textTheme.titleMedium),
-                          Card(
-                              child: SwitchListTile(
-                                  secondary:
-                                      const Icon(Icons.notifications_outlined),
-                                  title: Text(t('Thông báo đẩy về thanh toán',
-                                      'Payment push notifications')),
-                                  subtitle: Text(t(
-                                      'Không ảnh hưởng lịch sử thông báo trong ứng dụng. Cần bật quyền thông báo trên thiết bị.',
-                                      'In-app history is unaffected. Device notification permission is required.')),
-                                  value: _settlementPush,
-                                  onChanged: _saving
-                                      ? null
-                                      : (v) =>
-                                          _save({'notifyOnSettlement': v}))),
-                          const SizedBox(height: 16),
-                          Text(t('Thông tin chức năng', 'Feature information'),
-                              style: Theme.of(context).textTheme.titleMedium),
-                          Card(
-                              child: Column(children: [
-                            ListTile(
-                                leading: const Icon(Icons.currency_exchange),
-                                title: Text(t('Tiền tệ', 'Currency')),
-                                subtitle: Text(t(
-                                    'Giao diện khoản chi hiện hỗ trợ VND; không tự quy đổi tiền đã ghi.',
-                                    'Expense entry currently supports VND; existing amounts are not converted.'))),
-                            ListTile(
-                                leading: const Icon(Icons.group_outlined),
-                                title:
-                                    Text(t('Quản lý nhóm', 'Group management')),
-                                subtitle: Text(t(
-                                    'Mở Nhóm → chọn nhóm → Cài đặt nhóm để sửa thông tin theo quyền.',
-                                    'Open Groups → select a group → Group settings to edit authorized details.'))),
-                            ListTile(
-                                leading: const Icon(Icons.info_outline),
-                                title: Text(t('Tính năng chưa hỗ trợ',
-                                    'Not yet supported')),
-                                subtitle: Text(t(
-                                    'Khóa sinh trắc học, nhắc nợ tự động, phê duyệt chi, hạn mức và chốt sổ tự động chưa được thực thi đầy đủ. Các nút giả lập đã được ẩn.',
-                                    'Biometrics, automatic reminders, expense approval, budgets and auto-closing are not fully implemented. Inactive switches are hidden.'))),
-                          ])),
-                        ]),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final themeOptions = <String, String>{
+      'SYSTEM': t('Theo hệ thống', 'System default'),
+      'LIGHT': t('Sáng', 'Light'),
+      'DARK': t('Tối', 'Dark'),
+    };
+    const languageOptions = <String, String>{
+      'VI': 'Tiếng Việt',
+      'EN': 'English',
+    };
+
+    return Scaffold(
+      appBar: AppBar(title: Text(t('Cài đặt', 'Settings'))),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+          ? Padding(
+              padding: const EdgeInsets.all(AppDimensions.s20),
+              child: Center(
+                child: AppErrorState(
+                  title: t('Lỗi tải cài đặt', 'Load error'),
+                  message: _error!,
+                  onRetry: _load,
+                ),
+              ),
+            )
+          : RefreshIndicator(
+              color: scheme.primary,
+              onRefresh: _load,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 640),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(AppDimensions.s16),
+                    children: [
+                      if (_saving) ...[
+                        const LinearProgressIndicator(),
+                        const SizedBox(height: AppDimensions.s12),
+                      ],
+                      SectionLabel(title: t('Giao diện', 'Appearance')),
+                      const SizedBox(height: AppDimensions.s8),
+                      PremiumSurface(
+                        padding: EdgeInsets.zero,
+                        radius: AppDimensions.r12,
+                        child: Column(
+                          children: [
+                            for (int i = 0; i < themeOptions.length; i++) ...[
+                              _optionRow(
+                                label: themeOptions.values.elementAt(i),
+                                selected:
+                                    _theme == themeOptions.keys.elementAt(i),
+                                onTap: _saving
+                                    ? null
+                                    : () => _save({
+                                        'theme': themeOptions.keys.elementAt(i),
+                                      }),
+                              ),
+                              if (i < themeOptions.length - 1)
+                                const Divider(height: 1, indent: 16),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppDimensions.s20),
+                      SectionLabel(title: t('Ngôn ngữ', 'Language')),
+                      const SizedBox(height: AppDimensions.s8),
+                      PremiumSurface(
+                        padding: EdgeInsets.zero,
+                        radius: AppDimensions.r12,
+                        child: Column(
+                          children: [
+                            for (
+                              int i = 0;
+                              i < languageOptions.length;
+                              i++
+                            ) ...[
+                              _optionRow(
+                                label: languageOptions.values.elementAt(i),
+                                selected:
+                                    _language ==
+                                    languageOptions.keys.elementAt(i),
+                                onTap: _saving
+                                    ? null
+                                    : () => _save({
+                                        'language': languageOptions.keys
+                                            .elementAt(i),
+                                      }),
+                              ),
+                              if (i < languageOptions.length - 1)
+                                const Divider(height: 1, indent: 16),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppDimensions.s20),
+                      SectionLabel(title: t('Thông báo', 'Notifications')),
+                      const SizedBox(height: AppDimensions.s8),
+                      PremiumSurface(
+                        padding: EdgeInsets.zero,
+                        radius: AppDimensions.r12,
+                        child: SwitchListTile(
+                          secondary: const Icon(Icons.notifications_outlined),
+                          title: Text(
+                            t(
+                              'Thông báo đẩy về thanh toán',
+                              'Payment push notifications',
+                            ),
+                          ),
+                          subtitle: Text(
+                            t(
+                              'Cần cấp quyền thông báo trên thiết bị. Lịch sử thông báo trong ứng dụng không bị ảnh hưởng.',
+                              'Requires device notification permission. In-app history is unaffected.',
+                            ),
+                          ),
+                          value: _settlementPush,
+                          onChanged: _saving
+                              ? null
+                              : (v) => _save({'notifyOnSettlement': v}),
+                        ),
+                      ),
+                      const SizedBox(height: AppDimensions.s20),
+                      SectionLabel(title: t('Tiền tệ', 'Currency')),
+                      const SizedBox(height: AppDimensions.s8),
+                      PremiumSurface(
+                        padding: EdgeInsets.zero,
+                        radius: AppDimensions.r12,
+                        child: ListTile(
+                          leading: const Icon(Icons.currency_exchange),
+                          title: Text(t('Đơn vị tiền tệ', 'Default currency')),
+                          subtitle: Text(
+                            t(
+                              'VND (₫) — các khoản chi hiện được ghi nhận bằng VND.',
+                              'VND (₫) — expenses are currently recorded in VND.',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-      );
+                ),
+              ),
+            ),
+    );
+  }
 }

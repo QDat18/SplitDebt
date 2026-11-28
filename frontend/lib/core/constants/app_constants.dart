@@ -12,16 +12,23 @@ class AppConstants {
     final configured = override.trim().isNotEmpty
         ? override.trim()
         : (dotenv.env['API_BASE_URL'] ?? '').trim();
-    final fallback = kIsWeb ? 'http://localhost:8081/api' : 'http://10.0.2.2:8081/api';
+    final fallback = kIsWeb
+        ? 'http://localhost:8081/api'
+        : 'http://10.0.2.2:8081/api';
     final url = configured.isEmpty ? fallback : configured;
     final uri = Uri.tryParse(url);
-    if (uri == null || !uri.hasAuthority ||
-        !const ['http', 'https'].contains(uri.scheme) || uri.host.isEmpty ||
-        uri.hasQuery || uri.hasFragment || uri.userInfo.isNotEmpty) {
+    if (uri == null ||
+        !uri.hasAuthority ||
+        !const ['http', 'https'].contains(uri.scheme) ||
+        uri.host.isEmpty ||
+        uri.hasQuery ||
+        uri.hasFragment ||
+        uri.userInfo.isNotEmpty) {
       throw FormatException('API_BASE_URL không hợp lệ.');
     }
     final resolved = kIsWeb && uri.host == '10.0.2.2'
-        ? uri.replace(host: 'localhost') : uri;
+        ? uri.replace(host: 'localhost')
+        : uri;
     return resolved.toString().replaceFirst(RegExp(r'/+$'), '');
   }
 }

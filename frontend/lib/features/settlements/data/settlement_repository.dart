@@ -19,9 +19,7 @@ class SettlementRepository {
     try {
       await _dio.post(
         '/groups/$groupId/settlements/$settlementId/pay',
-        data: {
-          'paymentMethod': paymentMethod,
-        },
+        data: {'paymentMethod': paymentMethod},
       );
     } on DioException catch (e) {
       final dynamic d = e.response?.data;

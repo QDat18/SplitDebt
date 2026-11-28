@@ -1,11 +1,11 @@
-// Trách nhiệm file: Cung cấp nền iOS Grouped Background, bề mặt card sạch chuẩn Apple HIG, biểu tượng và tiêu đề lớn (Large Title).
+// Trách nhiệm file: Cung cấp nền trắng thoáng / Midnight Navy, thẻ bề mặt cool-ice, biểu tượng thương hiệu và tiêu đề theo mẫu thiết kế Fintech.
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-/// Nền iOS systemGroupedBackground sạch sẽ — không dùng hiệu ứng glow/blob kiểu AI.
+/// Nền trang sạch sẽ: trắng tinh khiết ở Light Mode, Midnight Navy sâu ở Dark Mode.
 class PremiumBackground extends StatelessWidget {
   const PremiumBackground({super.key, required this.child});
 
@@ -15,42 +15,51 @@ class PremiumBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return ColoredBox(
-      color: isDark ? const Color(0xFF000000) : AppColors.n50,
+      color: isDark ? AppColors.navy950 : AppColors.n0,
       child: child,
     );
   }
 }
 
-/// Bề mặt card chuẩn iOS Inset Grouped (nền trắng/charcoal, viền hairline mảnh, không đổ bóng màu).
+/// Bề mặt thẻ theo mẫu: nền ice-tint nhẹ (#F4F6FC) hoặc trắng nổi (#FFFFFF) trên Light Mode, Midnight Slate (#141236) trên Dark Mode.
 class PremiumSurface extends StatelessWidget {
   const PremiumSurface({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
-    this.radius = 14,
+    this.radius = 16,
     this.borderColor,
+    this.elevated = false,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final double radius;
   final Color? borderColor;
+  final bool elevated;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final defaultBorder =
-        isDark ? const Color(0xFF2C2C2E) : const Color(0xFFE5E5EA);
+    final bg = isDark
+        ? AppColors.navy800
+        : (elevated ? AppColors.n0 : AppColors.n50);
+    final defaultBorder = isDark ? AppColors.navy600 : AppColors.n100;
 
     return Container(
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(
-          color: borderColor ?? defaultBorder,
-          width: 0.6,
-        ),
+        border: Border.all(color: borderColor ?? defaultBorder, width: 0.8),
+        boxShadow: (!isDark && elevated)
+            ? const [
+                BoxShadow(
+                  color: Color(0x0F0F0B36),
+                  blurRadius: 18,
+                  offset: Offset(0, 6),
+                ),
+              ]
+            : null,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
@@ -60,9 +69,9 @@ class PremiumSurface extends StatelessWidget {
   }
 }
 
-/// Biểu tượng ứng dụng phong cách iOS App Icon Squircle tối giản.
+/// Biểu tượng thương hiệu SplitDebt theo bảng màu Midnight Navy & Royal Blue.
 class SplitDebtMark extends StatelessWidget {
-  const SplitDebtMark({super.key, this.size = 60});
+  const SplitDebtMark({super.key, this.size = 56});
   final double size;
 
   @override
@@ -71,34 +80,62 @@ class SplitDebtMark extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.circular(size * .225),
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(size * .26),
+        border: Border.all(
+          color: AppColors.p500.withValues(alpha: 0.35),
+          width: 1,
+        ),
       ),
-      child: Icon(
-        CupertinoIcons.creditcard_fill,
-        color: Colors.white,
-        size: size * .48,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned(
+            right: size * 0.12,
+            top: size * 0.12,
+            child: Container(
+              width: size * 0.22,
+              height: size * 0.22,
+              decoration: const BoxDecoration(
+                color: AppColors.p500,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Icon(
+            CupertinoIcons.creditcard_fill,
+            color: Colors.white,
+            size: size * .46,
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Tiêu đề iOS Large Title sắc nét, không dùng nhãn marketing thừa.
+/// Tiêu đề trang sắc nét theo phân cấp chữ Midnight Navy.
 class PremiumHeader extends StatelessWidget {
   const PremiumHeader({
     super.key,
     required this.eyebrow,
     required this.title,
     this.trailing,
+    this.onDark = false,
   });
 
   final String eyebrow;
   final String title;
   final Widget? trailing;
+  final bool onDark;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
+    final titleColor = onDark ? Colors.white : scheme.onSurface;
+    final eyebrowColor = onDark
+        ? Colors.white.withValues(alpha: 0.72)
+        : scheme.onSurfaceVariant;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -110,9 +147,7 @@ class PremiumHeader extends StatelessWidget {
                 Text(
                   eyebrow,
                   style: TextStyle(
-                    color: isDark
-                        ? const Color(0xFF8E8E93)
-                        : const Color(0xFF636366),
+                    color: eyebrowColor,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -124,10 +159,10 @@ class PremiumHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 30,
+                  fontSize: 26,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: -0.7,
-                  color: isDark ? Colors.white : const Color(0xFF000000),
+                  letterSpacing: -0.6,
+                  color: titleColor,
                 ),
               ),
             ],

@@ -1,16 +1,25 @@
-// Trách nhiệm file: Xây dựng màn hình notification screen và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+// Trách nhiệm file: Màn hình Thông báo tương thích Light & Dark mode, an toàn khi Firebase tắt.
 
 import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../core/network/dio_client.dart';
+
 import '../../core/app/app_keys.dart';
+import '../../core/network/dio_client.dart';
+import '../../core/state/app_sync.dart';
+import '../../core/theme/app_dimensions.dart';
+import '../../core/widgets/fintech_components.dart';
+import '../../core/widgets/motion_kit.dart';
+import '../../core/widgets/premium_shell.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'push_notification_service.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
+
   @override
   State<NotificationScreen> createState() => _NotificationScreenState();
 }
@@ -23,11 +32,16 @@ class _NotificationScreenState extends State<NotificationScreen>
   bool _enabling = false;
   String? _error;
   StreamSubscription<RemoteMessage>? _messages;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _messages = FirebaseMessaging.onMessage.listen((_) => _load());
+    try {
+      _messages = FirebaseMessaging.onMessage.listen((_) => _load());
+    } catch (_) {
+      // Firebase có thể đang tắt ở môi trường local/web.
+    }
     _load();
   }
 
@@ -46,13 +60,15 @@ class _NotificationScreenState extends State<NotificationScreen>
   Future<void> _load() async {
     try {
       final user = await AuthRepository().getCurrentUserId();
-      final response = await dioClient
-          .get('/notifications', queryParameters: {'userId': user});
+      final response = await dioClient.get(
+        '/notifications',
+        queryParameters: {'userId': user},
+      );
       if (!mounted) return;
       setState(() {
         _userId = user;
         _items = (response.data['data'] as List)
-            .map((e) => Map<String, dynamic>.from(e))
+            .map((e) => Map<String, dynamic>.from(e as Map))
             .toList();
         _error = null;
         _loading = false;
@@ -60,7 +76,11 @@ class _NotificationScreenState extends State<NotificationScreen>
     } catch (_) {
       if (mounted) {
         setState(() {
-          _error = 'Không tải được thông báo. Hãy thử lại.';
+          _error = tr(
+            context,
+            'Không tải được thông báo. Kiểm tra kết nối và thử lại.',
+            'Could not load notifications. Check your connection and retry.',
+          );
           _loading = false;
         });
       }
@@ -75,13 +95,31 @@ class _NotificationScreenState extends State<NotificationScreen>
       await push.initialize();
       await push.subscribeToUser(await AuthRepository().getCurrentUserId());
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Đã bật thông báo trên thiết bị này.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              tr(
+                context,
+                'Đã bật thông báo trên thiết bị này.',
+                'Notifications enabled on this device.',
+              ),
+            ),
+          ),
+        );
       }
-    } catch (error) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Chưa bật được thông báo: $error')));
+          SnackBar(
+            content: Text(
+              tr(
+                context,
+                'Chưa bật được thông báo đẩy trên thiết bị này.',
+                'Could not enable push notifications on this device.',
+              ),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _enabling = false);
@@ -89,93 +127,194 @@ class _NotificationScreenState extends State<NotificationScreen>
   }
 
   Future<void> _read(Map<String, dynamic> item) async {
+    if (item['isRead'] == true) return;
     try {
-      await dioClient.patch('/notifications/${item['id']}/read',
-          queryParameters: {'userId': _userId});
+      await dioClient.patch(
+        '/notifications/${item['id']}/read',
+        queryParameters: {'userId': _userId},
+      );
       if (mounted) setState(() => item['isRead'] = true);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Chưa đánh dấu đã đọc được. Hãy thử lại.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              tr(
+                context,
+                'Chưa đánh dấu đã đọc được. Hãy thử lại.',
+                'Could not mark as read. Please retry.',
+              ),
+            ),
+          ),
+        );
       }
     }
   }
 
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Thông báo'), actions: [
-          IconButton(
-              tooltip: _enabling
-                  ? 'Đang đăng ký...'
-                  : 'Bật thông báo trên thiết bị này',
-              onPressed: _enabling ? null : _enable,
-              icon: const Icon(Icons.notifications_active_outlined)),
-          IconButton(
-              tooltip: 'Tải lại',
-              onPressed: _load,
-              icon: const Icon(Icons.refresh))
-        ]),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(20),
-                    children: [
-                      if (_error != null)
-                        Text(_error!)
-                      else if (_items.isEmpty)
-                        const Padding(
-                            padding: EdgeInsets.all(32),
-                            child: Text(
-                                'Chưa có thông báo. Các cập nhật thanh toán sẽ xuất hiện tại đây.',
-                                textAlign: TextAlign.center)),
-                      for (final item in _items)
-                        Card(
-                            color: item['isRead'] == true
-                                ? Colors.white
-                                : const Color(0xFFF0EDFF),
-                            child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 12),
-                                leading: CircleAvatar(
-                                    backgroundColor: Colors.white,
-                                    child: Icon(
-                                        item['type'] == 'SETTLEMENT_PAID'
-                                            ? Icons.payments_outlined
-                                            : Icons.notifications_none,
-                                        color: const Color(0xFF6C5CE7),
-                                        size: 22)),
-                                title:
-                                    Text(item['content']?.toString() ?? item['title']?.toString() ?? 'Thông báo',
-                                        style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: item['isRead'] == true
-                                                ? FontWeight.w500
-                                                : FontWeight.w700)),
-                                subtitle: Padding(
-                                    padding: const EdgeInsets.only(top: 6),
-                                    child:
-                                        Text(_date(item['createdAt']), style: const TextStyle(fontSize: 12, color: Color(0xFF778092)))),
-                                trailing: item['isRead'] == true ? null : const Icon(Icons.circle, size: 8, color: Color(0xFF6C5CE7)),
-                                onTap: () => _read(item))),
-                    ])),
-      );
   String _date(dynamic value) {
     final date = DateTime.tryParse(value?.toString() ?? '');
     return date == null
         ? ''
         : DateFormat('dd/MM/yyyy HH:mm').format(date.toLocal());
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(tr(context, 'Thông báo', 'Notifications')),
+        actions: [
+          IconButton(
+            tooltip: _enabling
+                ? tr(context, 'Đang đăng ký...', 'Enabling...')
+                : tr(
+                    context,
+                    'Bật thông báo trên thiết bị này',
+                    'Enable push on this device',
+                  ),
+            onPressed: _enabling ? null : _enable,
+            icon: const Icon(Icons.notifications_active_outlined),
+          ),
+          IconButton(
+            tooltip: tr(context, 'Tải lại', 'Refresh'),
+            onPressed: _load,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
+      body: _loading
+          ? const Padding(
+              padding: EdgeInsets.all(AppDimensions.s16),
+              child: Column(
+                children: [
+                  ShimmerBox(width: double.infinity, height: 72, radius: 12),
+                  SizedBox(height: 8),
+                  ShimmerBox(width: double.infinity, height: 72, radius: 12),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              color: scheme.primary,
+              onRefresh: _load,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: AppDimensions.maxContentWidth,
+                  ),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(AppDimensions.s16),
+                    children: [
+                      if (_error != null)
+                        AppErrorState(
+                          title: tr(context, 'Lỗi tải thông báo', 'Load error'),
+                          message: _error!,
+                          onRetry: _load,
+                        )
+                      else if (_items.isEmpty)
+                        AppEmptyState(
+                          icon: CupertinoIcons.bell,
+                          title: tr(
+                            context,
+                            'Chưa có thông báo',
+                            'No notifications',
+                          ),
+                          message: tr(
+                            context,
+                            'Các cập nhật về khoản chi và xác nhận thanh toán sẽ hiển thị tại đây.',
+                            'Expense updates and settlement confirmations will appear here.',
+                          ),
+                        )
+                      else
+                        PremiumSurface(
+                          padding: EdgeInsets.zero,
+                          radius: AppDimensions.r12,
+                          child: Column(
+                            children: [
+                              for (int i = 0; i < _items.length; i++) ...[
+                                _notificationRow(_items[i], scheme),
+                                if (i < _items.length - 1)
+                                  const Divider(height: 1, indent: 64),
+                              ],
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _notificationRow(Map<String, dynamic> item, ColorScheme scheme) {
+    final isRead = item['isRead'] == true;
+    final isSettlement = item['type'] == 'SETTLEMENT_PAID';
+
+    return ColoredBox(
+      color: isRead
+          ? Colors.transparent
+          : scheme.primary.withValues(alpha: 0.06),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        leading: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            isSettlement
+                ? Icons.payments_outlined
+                : Icons.notifications_none_rounded,
+            color: scheme.primary,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          item['content']?.toString() ??
+              item['title']?.toString() ??
+              tr(context, 'Thông báo', 'Notification'),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: isRead ? FontWeight.w400 : FontWeight.w600,
+            color: scheme.onSurface,
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            _date(item['createdAt']),
+            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+          ),
+        ),
+        trailing: isRead
+            ? null
+            : Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: scheme.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+        onTap: () => _read(item),
+      ),
+    );
+  }
 }
 
 class NotificationBell extends StatelessWidget {
   const NotificationBell({super.key});
+
   @override
   Widget build(BuildContext context) => IconButton(
-      tooltip: 'Thông báo',
-      icon: const Icon(Icons.notifications_none_rounded),
-      onPressed: () => Navigator.of(context)
-          .push(MaterialPageRoute(builder: (_) => const NotificationScreen())));
+    tooltip: tr(context, 'Thông báo', 'Notifications'),
+    icon: const Icon(Icons.notifications_none_rounded),
+    onPressed: () =>
+        Navigator.of(context).push(fintechRoute(const NotificationScreen())),
+  );
 }

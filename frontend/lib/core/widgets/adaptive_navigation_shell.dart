@@ -121,11 +121,17 @@ class AdaptiveNavigationShell extends StatelessWidget {
                       children: [
                         for (var i = 0; i < 2; i++) _tab(context, i),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
                           child: IconButton.filled(
                             tooltip: addLabel,
                             onPressed: onQuickAdd,
-                            icon: const Icon(Icons.add),
+                            style: IconButton.styleFrom(
+                              minimumSize: const Size(48, 48),
+                              shape: const CircleBorder(),
+                              backgroundColor: scheme.primary,
+                              foregroundColor: scheme.onPrimary,
+                            ),
+                            icon: const Icon(Icons.add_rounded, size: 24),
                           ),
                         ),
                         for (var i = 2; i < 4; i++) _tab(context, i),

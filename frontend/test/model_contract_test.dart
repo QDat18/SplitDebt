@@ -8,14 +8,11 @@ import 'package:split_debt/features/settlements/models/settlement_models.dart';
 void main() {
   group('API contract models', () {
     test('unwraps the standard backend response envelope', () {
-      final response = ApiResponse<Map<String, dynamic>>.fromJson(
-        {
-          'status': 200,
-          'message': 'OK',
-          'data': {'id': 7},
-        },
-        (json) => Map<String, dynamic>.from(json! as Map),
-      );
+      final response = ApiResponse<Map<String, dynamic>>.fromJson({
+        'status': 200,
+        'message': 'OK',
+        'data': {'id': 7},
+      }, (json) => Map<String, dynamic>.from(json! as Map));
 
       expect(response.status, 200);
       expect(response.message, 'OK');
@@ -37,27 +34,29 @@ void main() {
       expect(group.userBalance, 125000.5);
     });
 
-    test('parses debt summary values without losing numeric precision type',
-        () {
-      final summary = DebtSummary.fromJson({
-        'totalToPay': 100000,
-        'totalToReceive': 0,
-        'youOwe': [
-          {
-            'debtorId': 1,
-            'debtorName': 'An',
-            'creditorId': 2,
-            'creditorName': 'Bình',
-            'amount': 100000,
-          },
-        ],
-        'owedToYou': <dynamic>[],
-        'netBalances': <dynamic>[],
-      });
+    test(
+      'parses debt summary values without losing numeric precision type',
+      () {
+        final summary = DebtSummary.fromJson({
+          'totalToPay': 100000,
+          'totalToReceive': 0,
+          'youOwe': [
+            {
+              'debtorId': 1,
+              'debtorName': 'An',
+              'creditorId': 2,
+              'creditorName': 'Bình',
+              'amount': 100000,
+            },
+          ],
+          'owedToYou': <dynamic>[],
+          'netBalances': <dynamic>[],
+        });
 
-      expect(summary.totalToPay, 100000.0);
-      expect(summary.youOwe.single.creditorName, 'Bình');
-      expect(summary.youOwe.single.amount, 100000.0);
-    });
+        expect(summary.totalToPay, 100000.0);
+        expect(summary.youOwe.single.creditorName, 'Bình');
+        expect(summary.youOwe.single.amount, 100000.0);
+      },
+    );
   });
 }

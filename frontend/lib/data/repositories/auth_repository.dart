@@ -19,24 +19,16 @@ class AuthRepository {
     _cachedUserId = id;
   }
 
-  AuthRepository({
-    Dio? dio,
-  }) : _dio = dio ?? dioClient;
+  AuthRepository({Dio? dio}) : _dio = dio ?? dioClient;
 
   // ===========================================================================
   // LOGIN
   // ===========================================================================
-  Future<String> login(
-    String email,
-    String password,
-  ) async {
+  Future<String> login(String email, String password) async {
     try {
       final response = await _dio.post(
         '/auth/login',
-        data: {
-          'email': email,
-          'password': password,
-        },
+        data: {'email': email, 'password': password},
       );
 
       final apiResponse = ApiResponse<String>.fromJson(
@@ -52,21 +44,15 @@ class AuthRepository {
         return apiResponse.data!;
       }
 
-      throw Exception(
-        apiResponse.message,
-      );
+      throw Exception(apiResponse.message);
     } on DioException catch (e) {
       if (e.response?.data is Map) {
         final dynamic data = e.response?.data;
 
-        throw Exception(
-          data['message']?.toString() ?? 'Đăng nhập thất bại',
-        );
+        throw Exception(data['message']?.toString() ?? 'Đăng nhập thất bại');
       }
 
-      throw Exception(
-        networkErrorMessage(e),
-      );
+      throw Exception(networkErrorMessage(e));
     }
   }
 
@@ -81,11 +67,7 @@ class AuthRepository {
     try {
       final response = await _dio.post(
         '/auth/register',
-        data: {
-          'fullName': fullName,
-          'email': email,
-          'password': password,
-        },
+        data: {'fullName': fullName, 'email': email, 'password': password},
       );
 
       final apiResponse = ApiResponse<String>.fromJson(
@@ -101,21 +83,15 @@ class AuthRepository {
         return apiResponse.data!;
       }
 
-      throw Exception(
-        apiResponse.message,
-      );
+      throw Exception(apiResponse.message);
     } on DioException catch (e) {
       if (e.response?.data is Map) {
         final dynamic data = e.response?.data;
 
-        throw Exception(
-          data['message']?.toString() ?? 'Đăng ký thất bại',
-        );
+        throw Exception(data['message']?.toString() ?? 'Đăng ký thất bại');
       }
 
-      throw Exception(
-        networkErrorMessage(e),
-      );
+      throw Exception(networkErrorMessage(e));
     }
   }
 
@@ -128,16 +104,12 @@ class AuthRepository {
     }
 
     try {
-      final response = await _dio.get(
-        '/users/me',
-      );
+      final response = await _dio.get('/users/me');
 
       final dynamic responseData = response.data;
 
       if (responseData is! Map) {
-        throw Exception(
-          'Response /users/me không hợp lệ',
-        );
+        throw Exception('Response /users/me không hợp lệ');
       }
 
       // -----------------------------------------------------------------------
@@ -152,9 +124,7 @@ class AuthRepository {
       final dynamic wrappedData = responseData['data'];
 
       if (wrappedData is Map) {
-        final int? id = _extractIdFromMap(
-          wrappedData,
-        );
+        final int? id = _extractIdFromMap(wrappedData);
 
         if (id != null) {
           _cachedUserId = id;
@@ -164,9 +134,7 @@ class AuthRepository {
         final dynamic user = wrappedData['user'];
 
         if (user is Map) {
-          final int? nestedId = _extractIdFromMap(
-            user,
-          );
+          final int? nestedId = _extractIdFromMap(user);
 
           if (nestedId != null) {
             _cachedUserId = nestedId;
@@ -181,9 +149,7 @@ class AuthRepository {
       //   id: 1
       // }
       // -----------------------------------------------------------------------
-      final int? directId = _extractIdFromMap(
-        responseData,
-      );
+      final int? directId = _extractIdFromMap(responseData);
 
       if (directId != null) {
         _cachedUserId = directId;
@@ -201,9 +167,7 @@ class AuthRepository {
       final dynamic directUser = responseData['user'];
 
       if (directUser is Map) {
-        final int? nestedId = _extractIdFromMap(
-          directUser,
-        );
+        final int? nestedId = _extractIdFromMap(directUser);
 
         if (nestedId != null) {
           _cachedUserId = nestedId;
@@ -211,9 +175,7 @@ class AuthRepository {
         }
       }
 
-      throw Exception(
-        'Không lấy được thông tin người dùng',
-      );
+      throw Exception('Không lấy được thông tin người dùng');
     } on DioException catch (e) {
       if (e.response?.data is Map) {
         final dynamic data = e.response?.data;
@@ -223,28 +185,20 @@ class AuthRepository {
         );
       }
 
-      throw Exception(
-        networkErrorMessage(e),
-      );
+      throw Exception(networkErrorMessage(e));
     }
   }
 
   // ===========================================================================
   // HELPERS
   // ===========================================================================
-  int? _extractIdFromMap(
-    Map map,
-  ) {
+  int? _extractIdFromMap(Map map) {
     final dynamic rawId = map['id'];
 
-    return _parseUserId(
-      rawId,
-    );
+    return _parseUserId(rawId);
   }
 
-  int? _parseUserId(
-    dynamic rawId,
-  ) {
+  int? _parseUserId(dynamic rawId) {
     if (rawId == null) {
       return null;
     }
@@ -257,8 +211,6 @@ class AuthRepository {
       return rawId.toInt();
     }
 
-    return int.tryParse(
-      rawId.toString(),
-    );
+    return int.tryParse(rawId.toString());
   }
 }

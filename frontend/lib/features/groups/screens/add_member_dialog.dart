@@ -1,7 +1,10 @@
-// Trách nhiệm file: Xây dựng màn hình add member dialog và điều phối tương tác người dùng với trạng thái nghiệp vụ.
+// Trách nhiệm file: Hộp thoại thêm thành viên vào nhóm bằng email, có dispose controller và hỗ trợ Dark Mode.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/state/app_sync.dart';
+import '../../../core/theme/app_dimensions.dart';
 import '../providers/group_provider.dart';
 
 class AddMemberDialog extends ConsumerStatefulWidget {
@@ -19,35 +22,43 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
   String _selectedRole = 'MEMBER';
   bool _isLoading = false;
 
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_isLoading || _formKey.currentState?.validate() != true) return;
 
     setState(() => _isLoading = true);
     try {
-      final email = _emailController.text.trim();
-
       await ref
           .read(userGroupsProvider.notifier)
-          .addMember(widget.groupId, email, role: _selectedRole);
-
+          .addMember(
+            widget.groupId,
+            _emailController.text.trim(),
+            role: _selectedRole,
+          );
       ref.invalidate(groupMembersProvider(widget.groupId));
-
       if (mounted) {
         Navigator.of(context).pop(true);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Đã thêm thành viên vào nhóm!'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Text(
+              tr(
+                context,
+                'Đã thêm thành viên vào nhóm.',
+                'Member added to group.',
+              ),
+            ),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
         );
       }
     } finally {
@@ -57,77 +68,85 @@ class _AddMemberDialogState extends ConsumerState<AddMemberDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Row(
-        children: [
-          Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF6750A4)),
-          SizedBox(width: 10),
-          Text(
-            'Thêm Thành Viên',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'Email thành viên *',
-                hintText: 'vi_du@email.com',
-                prefixIcon: Icon(Icons.email_outlined),
-              ),
-              validator: (val) {
-                if (val == null || val.trim().isEmpty) {
-                  return 'Vui lòng nhập email';
-                }
-                if (!val.contains('@')) return 'Email không hợp lệ';
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedRole,
-              decoration: const InputDecoration(
-                labelText: 'Vai trò trong nhóm',
-                prefixIcon: Icon(Icons.admin_panel_settings_outlined),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'MEMBER', child: Text('Thành viên')),
-                DropdownMenuItem(
-                  value: 'ADMIN',
-                  child: Text('Quản trị viên (ADMIN)'),
+      title: Text(tr(context, 'Thêm thành viên', 'Add member')),
+      content: SizedBox(
+        width: 400,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _emailController,
+                enabled: !_isLoading,
+                keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+                decoration: InputDecoration(
+                  labelText: tr(context, 'Email thành viên', 'Member email'),
+                  hintText: 'email@example.com',
+                  prefixIcon: const Icon(Icons.mail_outline_rounded),
                 ),
-              ],
-              onChanged: (val) {
-                if (val != null) setState(() => _selectedRole = val);
-              },
-            ),
-          ],
+                validator: (val) {
+                  final email = val?.trim() ?? '';
+                  if (email.isEmpty) {
+                    return tr(
+                      context,
+                      'Vui lòng nhập email.',
+                      'Enter an email.',
+                    );
+                  }
+                  if (!email.contains('@') || !email.contains('.')) {
+                    return tr(context, 'Email không hợp lệ.', 'Invalid email.');
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: AppDimensions.s16),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedRole,
+                decoration: InputDecoration(
+                  labelText: tr(context, 'Vai trò', 'Role'),
+                  prefixIcon: const Icon(Icons.admin_panel_settings_outlined),
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: 'MEMBER',
+                    child: Text(tr(context, 'Thành viên', 'Member')),
+                  ),
+                  DropdownMenuItem(
+                    value: 'ADMIN',
+                    child: Text(tr(context, 'Quản trị viên', 'Admin')),
+                  ),
+                ],
+                onChanged: _isLoading
+                    ? null
+                    : (val) {
+                        if (val != null) setState(() => _selectedRole = val);
+                      },
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Hủy'),
+          child: Text(tr(context, 'Hủy', 'Cancel')),
         ),
-        ElevatedButton(
+        FilledButton(
           onPressed: _isLoading ? null : _submit,
           child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
                   child: CircularProgressIndicator(
-                    color: Colors.white,
+                    color: scheme.onPrimary,
                     strokeWidth: 2,
                   ),
                 )
-              : const Text('Thêm thành viên'),
+              : Text(tr(context, 'Thêm', 'Add')),
         ),
       ],
     );

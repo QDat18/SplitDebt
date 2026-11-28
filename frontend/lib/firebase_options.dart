@@ -15,17 +15,17 @@ class DefaultFirebaseOptions {
       TargetPlatform.android => _for('ANDROID'),
       TargetPlatform.iOS => _for('IOS'),
       TargetPlatform.macOS => throw UnsupportedError(
-          'Firebase chưa được cấu hình cho macOS.',
-        ),
+        'Firebase chưa được cấu hình cho macOS.',
+      ),
       TargetPlatform.windows => throw UnsupportedError(
-          'Firebase chưa được cấu hình cho Windows.',
-        ),
+        'Firebase chưa được cấu hình cho Windows.',
+      ),
       TargetPlatform.linux => throw UnsupportedError(
-          'Firebase chưa được cấu hình cho Linux.',
-        ),
+        'Firebase chưa được cấu hình cho Linux.',
+      ),
       TargetPlatform.fuchsia => throw UnsupportedError(
-          'Firebase chưa được cấu hình cho Fuchsia.',
-        ),
+        'Firebase chưa được cấu hình cho Fuchsia.',
+      ),
     };
   }
 

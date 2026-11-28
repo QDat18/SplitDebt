@@ -59,8 +59,9 @@ class _MainLayoutScreenState extends ConsumerState<MainLayoutScreen>
       final data = await fetchUserPreferences();
       if (!mounted ||
           _handlingExpiredSession ||
-          revision != ref.read(preferenceRevisionProvider))
+          revision != ref.read(preferenceRevisionProvider)) {
         return;
+      }
       ref.read(themeModeProvider.notifier).state = parseBackendThemeMode(
         data['theme']?.toString(),
       );
@@ -93,6 +94,7 @@ class _MainLayoutScreenState extends ConsumerState<MainLayoutScreen>
     if (!mounted || _handlingExpiredSession) return;
     _handlingExpiredSession = true;
     AuthRepository.clearCache();
+    ref.invalidate(userGroupsProvider);
     ref.read(themeModeProvider.notifier).state = ThemeMode.system;
     ref.read(localeProvider.notifier).state = const Locale('vi');
     WidgetsBinding.instance.addPostFrameCallback((_) {

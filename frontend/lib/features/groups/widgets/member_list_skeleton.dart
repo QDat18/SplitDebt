@@ -1,83 +1,37 @@
-// Trách nhiệm file: Cung cấp widget member list skeleton có thể tái sử dụng trong giao diện của feature.
+// Trách nhiệm file: Cung cấp skeleton danh sách thành viên tương thích Light & Dark mode.
 
 import 'package:flutter/material.dart';
 
-class MemberListSkeleton extends StatefulWidget {
+import '../../../core/widgets/motion_kit.dart';
+
+class MemberListSkeleton extends StatelessWidget {
   const MemberListSkeleton({super.key});
 
   @override
-  State<MemberListSkeleton> createState() => _MemberListSkeletonState();
-}
-
-class _MemberListSkeletonState extends State<MemberListSkeleton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat(reverse: true);
-    _animation = Tween<double>(begin: 0.3, end: 0.7).animate(_controller);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        final opacity = _animation.value;
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: 4,
-          itemBuilder: (context, index) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.grey.withValues(alpha: opacity),
+    return Column(
+      children: List.generate(
+        4,
+        (_) => const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              ShimmerBox(width: 40, height: 40, radius: 20),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ShimmerBox(width: 120, height: 14, radius: 5),
+                    SizedBox(height: 6),
+                    ShimmerBox(width: 170, height: 12, radius: 5),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withValues(alpha: opacity),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        width: 180,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withValues(alpha: opacity),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

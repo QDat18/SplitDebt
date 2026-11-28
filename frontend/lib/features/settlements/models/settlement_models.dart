@@ -17,9 +17,7 @@ class DebtEdge {
     required this.amount,
   });
 
-  factory DebtEdge.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory DebtEdge.fromJson(Map<String, dynamic> json) {
     return DebtEdge(
       debtorId: (json['debtorId'] as num).toInt(),
       debtorName: json['debtorName'] as String? ?? '',
@@ -43,9 +41,7 @@ class NetBalance {
     required this.netBalance,
   });
 
-  factory NetBalance.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory NetBalance.fromJson(Map<String, dynamic> json) {
     return NetBalance(
       userId: (json['userId'] as num).toInt(),
       fullName: json['fullName'] as String? ?? '',
@@ -73,32 +69,18 @@ class DebtSummary {
     required this.netBalances,
   });
 
-  factory DebtSummary.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory DebtSummary.fromJson(Map<String, dynamic> json) {
     return DebtSummary(
       totalToPay: (json['totalToPay'] as num? ?? 0).toDouble(),
       totalToReceive: (json['totalToReceive'] as num? ?? 0).toDouble(),
       youOwe: ((json['youOwe'] as List?) ?? const [])
-          .map(
-            (e) => DebtEdge.fromJson(
-              e as Map<String, dynamic>,
-            ),
-          )
+          .map((e) => DebtEdge.fromJson(e as Map<String, dynamic>))
           .toList(),
       owedToYou: ((json['owedToYou'] as List?) ?? const [])
-          .map(
-            (e) => DebtEdge.fromJson(
-              e as Map<String, dynamic>,
-            ),
-          )
+          .map((e) => DebtEdge.fromJson(e as Map<String, dynamic>))
           .toList(),
       netBalances: ((json['netBalances'] as List?) ?? const [])
-          .map(
-            (e) => NetBalance.fromJson(
-              e as Map<String, dynamic>,
-            ),
-          )
+          .map((e) => NetBalance.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
   }
@@ -117,20 +99,14 @@ class SmartSettlementResult {
     required this.suggestions,
   });
 
-  factory SmartSettlementResult.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory SmartSettlementResult.fromJson(Map<String, dynamic> json) {
     return SmartSettlementResult(
-      beforeTransactionCount:
-          (json['beforeTransactionCount'] as num? ?? 0).toInt(),
-      afterTransactionCount:
-          (json['afterTransactionCount'] as num? ?? 0).toInt(),
+      beforeTransactionCount: (json['beforeTransactionCount'] as num? ?? 0)
+          .toInt(),
+      afterTransactionCount: (json['afterTransactionCount'] as num? ?? 0)
+          .toInt(),
       suggestions: ((json['suggestions'] as List?) ?? const [])
-          .map(
-            (e) => DebtEdge.fromJson(
-              e as Map<String, dynamic>,
-            ),
-          )
+          .map((e) => DebtEdge.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
   }
@@ -141,14 +117,9 @@ class ChartSlice {
 
   final double amount;
 
-  const ChartSlice({
-    required this.label,
-    required this.amount,
-  });
+  const ChartSlice({required this.label, required this.amount});
 
-  factory ChartSlice.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory ChartSlice.fromJson(Map<String, dynamic> json) {
     return ChartSlice(
       label: json['label'] as String? ?? 'Khác',
       amount: (json['amount'] as num? ?? 0).toDouble(),
@@ -181,29 +152,19 @@ class FinancialStats {
     required this.byMember,
   });
 
-  factory FinancialStats.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory FinancialStats.fromJson(Map<String, dynamic> json) {
     return FinancialStats(
       period: json['period'] as String? ?? 'MONTH',
       totalExpense: (json['totalExpense'] as num? ?? 0).toDouble(),
-      totalPaidByCurrentUser:
-          (json['totalPaidByCurrentUser'] as num? ?? 0).toDouble(),
+      totalPaidByCurrentUser: (json['totalPaidByCurrentUser'] as num? ?? 0)
+          .toDouble(),
       totalDebtToPay: (json['totalDebtToPay'] as num? ?? 0).toDouble(),
       totalDebtToReceive: (json['totalDebtToReceive'] as num? ?? 0).toDouble(),
       byCategory: ((json['byCategory'] as List?) ?? const [])
-          .map(
-            (e) => ChartSlice.fromJson(
-              e as Map<String, dynamic>,
-            ),
-          )
+          .map((e) => ChartSlice.fromJson(e as Map<String, dynamic>))
           .toList(),
       byMember: ((json['byMember'] as List?) ?? const [])
-          .map(
-            (e) => ChartSlice.fromJson(
-              e as Map<String, dynamic>,
-            ),
-          )
+          .map((e) => ChartSlice.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
   }
@@ -240,9 +201,7 @@ class SettlementRecord {
     this.paymentMethod,
   });
 
-  factory SettlementRecord.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory SettlementRecord.fromJson(Map<String, dynamic> json) {
     return SettlementRecord(
       id: (json['id'] as num).toInt(),
       groupId: (json['groupId'] as num).toInt(),

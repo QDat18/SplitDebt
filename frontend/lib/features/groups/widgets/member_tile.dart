@@ -1,6 +1,9 @@
-// Trách nhiệm file: Cung cấp widget member tile có thể tái sử dụng trong giao diện của feature.
+// Trách nhiệm file: Cung cấp widget member tile chuẩn hóa, tương thích Light & Dark mode.
 
 import 'package:flutter/material.dart';
+
+import '../../../core/state/app_sync.dart';
+import '../../../core/theme/app_colors.dart';
 import '../models/group_member_model.dart';
 
 class MemberTile extends StatelessWidget {
@@ -17,44 +20,49 @@ class MemberTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     final String roleText;
     final Color roleColor;
     switch (member.role) {
       case 'OWNER':
-        roleText = 'Trưởng nhóm';
-        roleColor = theme.colorScheme.primary;
+        roleText = tr(context, 'Trưởng nhóm', 'Owner');
+        roleColor = scheme.primary;
         break;
       case 'ADMIN':
-        roleText = 'Quản trị';
-        roleColor = Colors.blue.shade700;
+        roleText = tr(context, 'Quản trị', 'Admin');
+        roleColor = AppColors.warningFor(context);
         break;
       default:
-        roleText = 'Thành viên';
-        roleColor = Colors.grey.shade600;
+        roleText = tr(context, 'Thành viên', 'Member');
+        roleColor = scheme.onSurfaceVariant;
     }
 
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       leading: CircleAvatar(
-        radius: 22,
-        backgroundColor: theme.colorScheme.primaryContainer,
+        radius: 20,
+        backgroundColor: scheme.primary.withValues(alpha: 0.12),
         child: Text(
           member.fullName.isNotEmpty ? member.fullName[0].toUpperCase() : 'U',
-          style: TextStyle(
-            color: theme.colorScheme.onPrimaryContainer,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w700),
         ),
       ),
       title: Text(
         member.fullName,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 15,
+          color: scheme.onSurface,
+        ),
       ),
       subtitle: Text(
         member.email,
-        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -69,7 +77,7 @@ class MemberTile extends StatelessWidget {
               roleText,
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: roleColor,
               ),
             ),
@@ -77,13 +85,13 @@ class MemberTile extends StatelessWidget {
           if (canManage && !member.isOwner && onRemove != null) ...[
             const SizedBox(width: 4),
             IconButton(
-              icon: const Icon(
-                Icons.remove_circle_outline_rounded,
-                color: Colors.red,
+              icon: Icon(
+                Icons.person_remove_outlined,
+                color: AppColors.errorFor(context),
                 size: 20,
               ),
               onPressed: onRemove,
-              tooltip: 'Xóa thành viên',
+              tooltip: tr(context, 'Xóa thành viên', 'Remove member'),
             ),
           ],
         ],

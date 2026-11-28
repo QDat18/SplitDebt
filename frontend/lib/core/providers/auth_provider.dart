@@ -19,7 +19,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
   final AuthRepository _authRepository;
 
   AuthNotifier(this._authRepository)
-      : super(const AsyncValue.data(AuthState.loading)) {
+    : super(const AsyncValue.data(AuthState.loading)) {
     checkToken();
   }
 
@@ -61,18 +61,15 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
       final int userId = await _authRepository.getCurrentUserId();
       await PushNotificationService.instance.subscribeToUser(userId);
       debugPrint(
-          'FCM background init & subscribe successful for user: $userId');
+        'FCM background init & subscribe successful for user: $userId',
+      );
     } catch (fcmError) {
       debugPrint('FCM background init warning (non-fatal): $fcmError');
     }
   }
 
   /// Đăng ký tài khoản
-  Future<bool> register(
-    String fullName,
-    String email,
-    String password,
-  ) async {
+  Future<bool> register(String fullName, String email, String password) async {
     state = const AsyncValue.loading();
     try {
       await _authRepository.register(fullName, email, password);
@@ -97,8 +94,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<AuthState>> {
   }
 }
 
-final authProvider =
-    StateNotifierProvider<AuthNotifier, AsyncValue<AuthState>>((ref) {
-  final authRepository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(authRepository);
-});
+final authProvider = StateNotifierProvider<AuthNotifier, AsyncValue<AuthState>>(
+  (ref) {
+    final authRepository = ref.watch(authRepositoryProvider);
+    return AuthNotifier(authRepository);
+  },
+);

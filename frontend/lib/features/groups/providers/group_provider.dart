@@ -31,10 +31,15 @@ class GroupListNotifier extends StateNotifier<AsyncValue<List<GroupModel>>> {
         try {
           final data = await ApiClient.get('/groups') as List;
           if (!mounted) return;
-          state = AsyncValue.data(data
-              .map((json) =>
-                  GroupModel.fromJson(Map<String, dynamic>.from(json as Map)))
-              .toList());
+          state = AsyncValue.data(
+            data
+                .map(
+                  (json) => GroupModel.fromJson(
+                    Map<String, dynamic>.from(json as Map),
+                  ),
+                )
+                .toList(),
+          );
         } catch (e, st) {
           if (mounted && !state.hasValue) state = AsyncValue.error(e, st);
         }
@@ -121,17 +126,22 @@ class GroupListNotifier extends StateNotifier<AsyncValue<List<GroupModel>>> {
   }
 }
 
-final userGroupsProvider = StateNotifierProvider.autoDispose<GroupListNotifier,
-    AsyncValue<List<GroupModel>>>((
-  ref,
-) {
-  return GroupListNotifier();
-});
+final userGroupsProvider =
+    StateNotifierProvider.autoDispose<
+      GroupListNotifier,
+      AsyncValue<List<GroupModel>>
+    >((ref) {
+      return GroupListNotifier();
+    });
 
 final groupMembersProvider = FutureProvider.autoDispose
     .family<List<GroupMemberModel>, String>((ref, groupId) async {
-  final List<dynamic> data = await ApiClient.get('/groups/$groupId/members');
-  return data
-      .map((json) => GroupMemberModel.fromJson(json as Map<String, dynamic>))
-      .toList();
-});
+      final List<dynamic> data = await ApiClient.get(
+        '/groups/$groupId/members',
+      );
+      return data
+          .map(
+            (json) => GroupMemberModel.fromJson(json as Map<String, dynamic>),
+          )
+          .toList();
+    });
